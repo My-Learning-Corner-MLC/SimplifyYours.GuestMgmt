@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.Api", "src\GuestManagementService.Api\GuestManagementService.Api.csproj", "{332B8722-E213-49E8-866F-9ED36EFA1C0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.Application", "src\GuestManagementService.Application\GuestManagementService.Application.csproj", "{82E9644A-2ECA-4C30-82C7-D7628E36AC0D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.Domain", "src\GuestManagementService.Domain\GuestManagementService.Domain.csproj", "{5DAA66FA-16AE-44E2-920A-717452BA32E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.Infrastructure", "src\GuestManagementService.Infrastructure\GuestManagementService.Infrastructure.csproj", "{2A591E51-A95F-488C-9D18-4F99996F209E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.Contracts", "src\GuestManagementService.Contracts\GuestManagementService.Contracts.csproj", "{596BFCBD-FC5F-46F4-B163-8544A6F42361}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{FFEF43A7-CF3F-4A51-925C-B481CAF12472}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuestManagementService.UnitTests", "tests\GuestManagementService.UnitTests\GuestManagementService.UnitTests.csproj", "{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{332B8722-E213-49E8-866F-9ED36EFA1C0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{332B8722-E213-49E8-866F-9ED36EFA1C0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{332B8722-E213-49E8-866F-9ED36EFA1C0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{332B8722-E213-49E8-866F-9ED36EFA1C0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82E9644A-2ECA-4C30-82C7-D7628E36AC0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82E9644A-2ECA-4C30-82C7-D7628E36AC0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82E9644A-2ECA-4C30-82C7-D7628E36AC0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82E9644A-2ECA-4C30-82C7-D7628E36AC0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DAA66FA-16AE-44E2-920A-717452BA32E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DAA66FA-16AE-44E2-920A-717452BA32E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DAA66FA-16AE-44E2-920A-717452BA32E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DAA66FA-16AE-44E2-920A-717452BA32E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A591E51-A95F-488C-9D18-4F99996F209E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A591E51-A95F-488C-9D18-4F99996F209E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A591E51-A95F-488C-9D18-4F99996F209E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A591E51-A95F-488C-9D18-4F99996F209E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{596BFCBD-FC5F-46F4-B163-8544A6F42361}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{596BFCBD-FC5F-46F4-B163-8544A6F42361}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{596BFCBD-FC5F-46F4-B163-8544A6F42361}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{596BFCBD-FC5F-46F4-B163-8544A6F42361}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{332B8722-E213-49E8-866F-9ED36EFA1C0B} = {F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}
+		{82E9644A-2ECA-4C30-82C7-D7628E36AC0D} = {F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}
+		{5DAA66FA-16AE-44E2-920A-717452BA32E4} = {F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}
+		{2A591E51-A95F-488C-9D18-4F99996F209E} = {F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}
+		{596BFCBD-FC5F-46F4-B163-8544A6F42361} = {F57A21FD-9825-4A5C-BAF0-1D9889E8E09E}
+		{EDA0E2EF-9986-4C6B-96B1-3C28C1ADCCB1} = {FFEF43A7-CF3F-4A51-925C-B481CAF12472}
+	EndGlobalSection
+EndGlobal
