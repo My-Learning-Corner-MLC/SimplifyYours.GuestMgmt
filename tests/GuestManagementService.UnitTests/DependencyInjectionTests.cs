@@ -1,5 +1,6 @@
 using GuestManagementService.Application;
 using GuestManagementService.Application.Ping;
+using GuestManagementService.Contracts.Ping;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,11 +16,13 @@ public sealed class DependencyInjectionTests
         services.AddApplication();
 
         using var provider = services.BuildServiceProvider();
-        var pingService = provider.GetRequiredService<IPingService>();
+        var sender = provider.GetRequiredService<ISender>();
+        var handler = provider.GetRequiredService<IRequestHandler<GetPingStatusQuery, PingStatusResponse>>();
         var timeProvider = provider.GetRequiredService<TimeProvider>();
         var pipelineBehavior = provider.GetRequiredService<IPipelineBehavior<TestRequest, string>>();
 
-        Assert.IsType<PingService>(pingService);
+        Assert.NotNull(sender);
+        Assert.IsType<GetPingStatusQueryHandler>(handler);
         Assert.Same(TimeProvider.System, timeProvider);
         Assert.NotNull(pipelineBehavior);
     }

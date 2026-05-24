@@ -1,8 +1,6 @@
 using GuestManagementService.Contracts.Ping;
+using MediatR;
 
 namespace GuestManagementService.Application.Ping;
 
-public interface IPingService
-{
-    PingStatusResponse GetStatus();
-}
+public sealed record GetPingStatusQuery : IRequest<PingStatusResponse>;

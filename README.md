@@ -27,7 +27,7 @@ No persistence, cache, messaging, or external service configuration is required 
 
 ## Developer Commands
 
-Run these commands from `code/backend/guest-management-service/SimplifyYours.GuestMgmt/`.
+Run these commands from `code/backend/guest-management-service/`.
 
 ### Restore
 

@@ -3,17 +3,17 @@ using Moq;
 
 namespace GuestManagementService.UnitTests.Ping;
 
-public sealed class PingServiceTests
+public sealed class GetPingStatusQueryHandlerTests
 {
     [Fact]
-    public void GetStatus_ReturnsServiceUpMessageWithCurrentGmtDateTime()
+    public async Task Handle_ReturnsServiceUpMessageWithCurrentGmtDateTime()
     {
-        var fixedDateTime = new DateTimeOffset(2026, 5, 23, 8, 30, 45, TimeSpan.Zero);
+        var fixedDateTime = new DateTimeOffset(2026, 5, 24, 8, 30, 45, TimeSpan.Zero);
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(provider => provider.GetUtcNow()).Returns(fixedDateTime);
-        var service = new PingService(timeProvider.Object);
+        var handler = new GetPingStatusQueryHandler(timeProvider.Object);
 
-        var response = service.GetStatus();
+        var response = await handler.Handle(new GetPingStatusQuery(), CancellationToken.None);
 
         Assert.Equal("Guest Management service is up.", response.Message);
         Assert.Equal(fixedDateTime, response.CurrentGmtDateTime);

@@ -1,4 +1,5 @@
 using GuestManagementService.Application.Ping;
+using MediatR;
 
 namespace GuestManagementService.Api.Endpoints;
 
@@ -7,9 +8,12 @@ internal static class PingEndpoints
     public static IEndpointRouteBuilder MapPingEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints
-            .MapGet("/ping", (IPingService pingService, ILoggerFactory loggerFactory) =>
+            .MapGet("/ping", async (
+                ISender sender,
+                ILoggerFactory loggerFactory,
+                CancellationToken cancellationToken) =>
             {
-                var response = pingService.GetStatus();
+                var response = await sender.Send(new GetPingStatusQuery(), cancellationToken);
 
                 loggerFactory
                     .CreateLogger("GuestManagementService.Ping")
