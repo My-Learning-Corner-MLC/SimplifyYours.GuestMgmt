@@ -1,0 +1,39 @@
+using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Domain.Guests;
+using Microsoft.EntityFrameworkCore;
+
+namespace GuestManagementService.Infrastructure.Persistence.Repositories;
+
+internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbContext) : IGuestRepository
+{
+    public async Task AddAsync(Guest guest, CancellationToken cancellationToken)
+    {
+        await dbContext.Guests.AddAsync(guest, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByPhoneAsync(
+        Guid eventId,
+        string normalizedPhoneNumber,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .AnyAsync(
+                guest => guest.EventId == eventId
+                    && guest.NormalizedPhoneNumber == normalizedPhoneNumber,
+                cancellationToken);
+    }
+
+    public async Task<bool> ExistsByEmailAsync(
+        Guid eventId,
+        string normalizedEmailAddress,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .AnyAsync(
+                guest => guest.EventId == eventId
+                    && guest.NormalizedEmailAddress == normalizedEmailAddress,
+                cancellationToken);
+    }
+}

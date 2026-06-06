@@ -4,3 +4,19 @@ GET {{GuestManagementService.Api_HostAddress}}/ping
 Accept: application/json
 
 ###
+
+POST {{GuestManagementService.Api_HostAddress}}/guest
+Content-Type: application/json
+
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "guestInfo": {
+    "firstName": "Ada",
+    "lastName": "Lovelace",
+    "phoneNumber": "+15551234567",
+    "emailAddress": "ada@example.com",
+    "gender": "preferNotToSay"
+  }
+}
+
+###
