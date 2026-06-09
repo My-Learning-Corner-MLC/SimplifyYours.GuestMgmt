@@ -23,9 +23,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
+      - name: Add GitHub Packages source
+        run: dotnet nuget add source "https://nuget.pkg.github.com/My-Learning-Corner-MLC/index.json" --name github --username "${{ github.actor }}" --password "${{ secrets.GH_PACKAGES_TOKEN }}" --store-password-in-clear-text
 
       - name: Restore
         run: dotnet restore GuestManagementService.sln
