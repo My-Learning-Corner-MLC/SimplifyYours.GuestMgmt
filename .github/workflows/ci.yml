@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build-and-test:
     name: Restore, build, and test
@@ -19,9 +23,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
 
       - name: Restore
         run: dotnet restore GuestManagementService.sln
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: dotnet build GuestManagementService.sln --configuration Release --no-restore
