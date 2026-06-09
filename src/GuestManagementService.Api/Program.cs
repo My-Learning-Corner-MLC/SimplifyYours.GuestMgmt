@@ -17,5 +17,6 @@ app.UseFriendlyErrorResponses();
 app.UseRequestLogging();
 
 app.MapPingEndpoints();
+app.MapGuestEndpoints();
 
 app.Run();

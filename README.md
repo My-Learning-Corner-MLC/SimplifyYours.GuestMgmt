@@ -21,9 +21,68 @@ Response body:
 }
 ```
 
+### `POST /guest`
+
+Adds one guest to an existing event. The service checks the local event reference table, which is synchronized from Event Service integration events, before creating the guest.
+
+Request body:
+
+```json
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "guestInfo": {
+    "firstName": "Ada",
+    "lastName": "Lovelace",
+    "phoneNumber": "+15551234567",
+    "emailAddress": "ada@example.com",
+    "gender": "preferNotToSay"
+  }
+}
+```
+
+Request options:
+
+- `eventId`: required.
+- `guestInfo`: required.
+- `guestInfo.firstName`: required.
+- `guestInfo.lastName`: required.
+- `guestInfo.phoneNumber`: required.
+- `guestInfo.emailAddress`: optional.
+- `guestInfo.gender`: optional, one of `male`, `female`, `other`, or `preferNotToSay`; defaults to `preferNotToSay`.
+
+Responses:
+
+- `201 Created` with the created guest details.
+- `400 Bad Request` with validation details when the request is invalid.
+- `404 Not Found` when the event reference does not exist or is deleted.
+- `409 Conflict` when the same event already has a guest with the same normalized phone number, or the same normalized email address when email is provided.
+
+Response body:
+
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "guestInfo": {
+    "firstName": "Ada",
+    "lastName": "Lovelace",
+    "phoneNumber": "+15551234567",
+    "emailAddress": "ada@example.com",
+    "gender": "preferNotToSay"
+  },
+  "createdAt": "2026-05-24T00:00:00+00:00"
+}
+```
+
 ## Configuration
 
-No persistence, cache, messaging, or external service configuration is required for the current scaffold.
+The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
+
+For design-time EF migration commands, set `ConnectionStrings__GuestManagementServiceDb` to a local non-production PostgreSQL connection string.
+
+`POST /guest` is currently unauthenticated because Identity Service authorization is not implemented yet. Add service-level authentication and authorization before exposing this endpoint outside local/dev use.
+
+Guest Management stores local event references synchronized from Event Service `EventCreated`, `EventUpdated`, and `EventDeleted` integration events. `Kafka:BootstrapServers`, `Kafka:EventReferenceTopic`, and `Kafka:GroupId` configure the Kafka consumer. The consumer is disabled when Kafka configuration is incomplete, and processed messages are tracked in the inbox table for idempotency.
 
 ## Local Observability
 
@@ -88,6 +147,34 @@ dotnet test GuestManagementService.sln --configuration Release --no-build /p:Col
 
 ```bash
 dotnet run --project src/GuestManagementService.Api/GuestManagementService.Api.csproj
+```
+
+### Add A Migration
+
+```bash
+dotnet ef migrations add <MigrationName> \
+  --project src/GuestManagementService.Infrastructure/GuestManagementService.Infrastructure.csproj \
+  --startup-project src/GuestManagementService.Api/GuestManagementService.Api.csproj \
+  --context GuestManagementServiceDbContext \
+  --output-dir Persistence/Migrations
+```
+
+### Apply Migrations
+
+```bash
+dotnet ef database update \
+  --project src/GuestManagementService.Infrastructure/GuestManagementService.Infrastructure.csproj \
+  --startup-project src/GuestManagementService.Api/GuestManagementService.Api.csproj \
+  --context GuestManagementServiceDbContext
+```
+
+### List Migrations
+
+```bash
+dotnet ef migrations list \
+  --project src/GuestManagementService.Infrastructure/GuestManagementService.Infrastructure.csproj \
+  --startup-project src/GuestManagementService.Api/GuestManagementService.Api.csproj \
+  --context GuestManagementServiceDbContext
 ```
 
 ## README Maintenance

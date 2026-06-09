@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build-and-test:
     name: Restore, build, and test
@@ -19,6 +23,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      - name: Add GitHub Packages source
+        run: dotnet nuget add source "https://nuget.pkg.github.com/My-Learning-Corner-MLC/index.json" --name github --username "${{ github.actor }}" --password "${{ secrets.GH_PACKAGES_TOKEN }}" --store-password-in-clear-text
 
       - name: Restore
         run: dotnet restore GuestManagementService.sln
