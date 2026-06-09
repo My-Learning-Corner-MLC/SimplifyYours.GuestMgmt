@@ -1,4 +1,5 @@
 using GuestManagementService.Application.Ping;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace GuestManagementService.UnitTests.Ping;
@@ -11,7 +12,9 @@ public sealed class GetPingStatusQueryHandlerTests
         var fixedDateTime = new DateTimeOffset(2026, 5, 24, 8, 30, 45, TimeSpan.Zero);
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(provider => provider.GetUtcNow()).Returns(fixedDateTime);
-        var handler = new GetPingStatusQueryHandler(timeProvider.Object);
+        var handler = new GetPingStatusQueryHandler(
+            timeProvider.Object,
+            NullLogger<GetPingStatusQueryHandler>.Instance);
 
         var response = await handler.Handle(new GetPingStatusQuery(), CancellationToken.None);
 
