@@ -4,6 +4,7 @@ using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Guests;
 using GuestManagementService.Domain.Guests;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace GuestManagementService.Application.Guests.AddGuest;
 
@@ -11,7 +12,8 @@ public sealed class AddGuestCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IGuestRepository guestRepository,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    ILogger<AddGuestCommandHandler> logger)
     : IRequestHandler<AddGuestCommand, AddGuestResult>
 {
     public async Task<AddGuestResult> Handle(AddGuestCommand request, CancellationToken cancellationToken)
@@ -20,6 +22,9 @@ public sealed class AddGuestCommandHandler(
 
         if (eventReference is null || eventReference.IsDeleted)
         {
+            logger.LogWarning(
+                "Guest add requested but event reference was not available. EventId: {EventId}.",
+                request.EventId);
             return AddGuestResult.EventNotFound();
         }
 
@@ -28,12 +33,18 @@ public sealed class AddGuestCommandHandler(
 
         if (await guestRepository.ExistsByPhoneAsync(request.EventId, normalizedPhone, cancellationToken))
         {
+            logger.LogWarning(
+                "Guest add rejected because phone number already exists for event. EventId: {EventId}.",
+                request.EventId);
             return AddGuestResult.Duplicate();
         }
 
         if (normalizedEmail is not null
             && await guestRepository.ExistsByEmailAsync(request.EventId, normalizedEmail, cancellationToken))
         {
+            logger.LogWarning(
+                "Guest add rejected because email address already exists for event. EventId: {EventId}.",
+                request.EventId);
             return AddGuestResult.Duplicate();
         }
 
@@ -57,6 +68,11 @@ public sealed class AddGuestCommandHandler(
 
         await guestRepository.AddAsync(guest, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Guest added. GuestId: {GuestId}. EventId: {EventId}.",
+            guest.Id,
+            guest.EventId);
 
         return AddGuestResult.Created(GuestDetails.From(guest));
     }

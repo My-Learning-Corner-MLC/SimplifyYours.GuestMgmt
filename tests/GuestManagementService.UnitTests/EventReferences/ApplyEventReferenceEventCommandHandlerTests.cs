@@ -2,6 +2,7 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent;
 using GuestManagementService.Domain.EventReferences;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace GuestManagementService.UnitTests.EventReferences;
@@ -74,6 +75,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
 
         return new ApplyEventReferenceEventCommandHandler(
             eventReferenceRepository ?? references.Object,
-            unitOfWork ?? work.Object);
+            unitOfWork ?? work.Object,
+            NullLogger<ApplyEventReferenceEventCommandHandler>.Instance);
     }
 }

@@ -4,6 +4,7 @@ using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Guests.AddGuest;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace GuestManagementService.UnitTests.Guests.AddGuest;
@@ -32,7 +33,8 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             unitOfWork.Object,
-            timeProvider.Object);
+            timeProvider.Object,
+            NullLogger<AddGuestCommandHandler>.Instance);
 
         var result = await handler.Handle(new AddGuestCommand(
             eventId,
@@ -148,6 +150,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferenceRepository ?? eventReferences.Object,
             guestRepository ?? guests.Object,
             unitOfWork.Object,
-            timeProvider.Object);
+            timeProvider.Object,
+            NullLogger<AddGuestCommandHandler>.Instance);
     }
 }

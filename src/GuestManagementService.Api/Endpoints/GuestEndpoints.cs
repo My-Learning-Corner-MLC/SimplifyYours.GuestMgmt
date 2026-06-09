@@ -1,4 +1,5 @@
 using FluentValidation;
+using GuestManagementService.Api.Responses;
 using GuestManagementService.Application.Guests.AddGuest;
 using GuestManagementService.Contracts.Guests;
 using MediatR;
@@ -19,6 +20,7 @@ internal static class GuestEndpoints
 
     private static async Task<IResult> AddGuestAsync(
         AddGuestRequest request,
+        HttpContext httpContext,
         ISender sender,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
@@ -27,10 +29,10 @@ internal static class GuestEndpoints
         {
             if (request.GuestInfo is null)
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return ApiErrorResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["GuestInfo"] = ["Guest info is required."]
-                });
+                }, httpContext);
             }
 
             var result = await sender.Send(
@@ -46,14 +48,20 @@ internal static class GuestEndpoints
             return result.Status switch
             {
                 AddGuestStatus.Created when result.Guest is not null => Created(result.Guest, loggerFactory),
-                AddGuestStatus.EventNotFound => Results.NotFound(),
-                AddGuestStatus.Duplicate => Results.Conflict(),
-                _ => Results.Problem("Unexpected add guest result.")
+                AddGuestStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                AddGuestStatus.Duplicate => ApiErrorResults.Conflict(
+                    "This event already has a guest with the same phone number or email address.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The guest could not be added right now. Please try again later.",
+                    httpContext)
             };
         }
         catch (ValidationException exception)
         {
-            return Results.ValidationProblem(ToValidationErrors(exception));
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
         }
     }
 
