@@ -24,11 +24,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
           source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
       - name: Restore
         run: dotnet restore GuestManagementService.sln
-        env:
-          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: dotnet build GuestManagementService.sln --configuration Release --no-restore
