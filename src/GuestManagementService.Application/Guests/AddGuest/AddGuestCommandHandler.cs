@@ -16,14 +16,32 @@ public sealed class AddGuestCommandHandler(
     ILogger<AddGuestCommandHandler> logger)
     : IRequestHandler<AddGuestCommand, AddGuestResult>
 {
+    private const string AddGuestsPermission = "guests.add";
+
     public async Task<AddGuestResult> Handle(AddGuestCommand request, CancellationToken cancellationToken)
     {
+        var currentUser = request.CurrentUser
+            ?? throw new InvalidOperationException("Current user is required to add a guest.");
+
+        if (!currentUser.HasPermission(AddGuestsPermission))
+        {
+            throw new UnauthorizedAccessException("Caller does not have permission to add guests.");
+        }
+
         var eventReference = await eventReferenceRepository.GetByIdAsync(request.EventId, cancellationToken);
 
         if (eventReference is null || eventReference.IsDeleted)
         {
             logger.LogWarning(
                 "Guest add requested but event reference was not available. EventId: {EventId}.",
+                request.EventId);
+            return AddGuestResult.EventNotFound();
+        }
+
+        if (eventReference.TenantId != currentUser.TenantId)
+        {
+            logger.LogWarning(
+                "Guest add requested but event reference is owned by another tenant. EventId: {EventId}.",
                 request.EventId);
             return AddGuestResult.EventNotFound();
         }
@@ -57,6 +75,7 @@ public sealed class AddGuestCommandHandler(
         var guest = Guest.Create(
             Guid.NewGuid(),
             request.EventId,
+            currentUser.TenantId,
             request.FirstName ?? string.Empty,
             request.LastName ?? string.Empty,
             request.PhoneNumber ?? string.Empty,

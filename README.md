@@ -4,6 +4,11 @@ Backend service for Simplify Yours guest management capabilities.
 
 ## Current API
 
+Protected guest resource endpoints require `Authorization: Bearer <access_token>`.
+Access tokens must be issued by Identity Service for audience
+`simplify-yours-api`. Normal users can add guests only to their own active
+event references. `SuperAdmin` can add guests to any active event reference.
+
 ### `GET /ping`
 
 Returns a Guest Management Service up message and the current GMT/UTC date-time.
@@ -53,8 +58,9 @@ Request options:
 Responses:
 
 - `201 Created` with the created guest details.
+- `401 Unauthorized` when the bearer token is missing or invalid.
 - `400 Bad Request` with validation details when the request is invalid.
-- `404 Not Found` when the event reference does not exist or is deleted.
+- `404 Not Found` when the event reference does not exist, is deleted, or belongs to another user.
 - `409 Conflict` when the same event already has a guest with the same normalized phone number, or the same normalized email address when email is provided.
 
 Response body:
@@ -80,9 +86,15 @@ The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Ke
 
 For design-time EF migration commands, set `ConnectionStrings__GuestManagementServiceDb` to a local non-production PostgreSQL connection string.
 
-`POST /guest` is currently unauthenticated because Identity Service authorization is not implemented yet. Add service-level authentication and authorization before exposing this endpoint outside local/dev use.
+Protected endpoints also require:
 
-Guest Management stores local event references synchronized from Event Service `EventCreated`, `EventUpdated`, and `EventDeleted` integration events. `Kafka:BootstrapServers`, `Kafka:EventReferenceTopic`, and `Kafka:GroupId` configure the Kafka consumer. The consumer is disabled when Kafka configuration is incomplete, and processed messages are tracked in the inbox table for idempotency.
+- `Auth:Issuer`: Identity Service issuer URL, for example `https://localhost:15200/`.
+- `Auth:Audience`: expected access-token audience, currently `simplify-yours-api`.
+- `Auth:AccessTokenEncryptionKeyBase64`: base64-encoded shared access-token encryption key.
+
+Keep real token encryption keys and bearer tokens out of source control.
+
+Guest Management stores local event references synchronized from Event Service `EventCreated`, `EventUpdated`, and `EventDeleted` integration events. Event reference payloads include `ownerUserId` so Guest Management can enforce owner-scoped access without reading the Event Service database. `Kafka:BootstrapServers`, `Kafka:EventReferenceTopic`, and `Kafka:GroupId` configure the Kafka consumer. The consumer is disabled when Kafka configuration is incomplete, and processed messages are tracked in the inbox table for idempotency.
 
 ## Local Observability
 

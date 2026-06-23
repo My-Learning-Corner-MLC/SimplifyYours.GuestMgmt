@@ -21,6 +21,10 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(reference => reference.TenantId)
+            .HasColumnName("tenant_id")
+            .IsRequired();
+
         builder.Property(reference => reference.IsDeleted)
             .HasColumnName("is_deleted")
             .HasDefaultValue(false)

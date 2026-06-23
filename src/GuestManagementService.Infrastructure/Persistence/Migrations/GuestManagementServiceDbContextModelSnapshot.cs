@@ -44,6 +44,10 @@ partial class GuestManagementServiceDbContextModelSnapshot : ModelSnapshot
                 .HasColumnType("timestamp with time zone")
                 .HasColumnName("last_synced_at");
 
+            b.Property<Guid>("TenantId")
+                .HasColumnType("uuid")
+                .HasColumnName("tenant_id");
+
             b.HasKey("EventId")
                 .HasName("pk_event_references");
 
@@ -100,6 +104,10 @@ partial class GuestManagementServiceDbContextModelSnapshot : ModelSnapshot
                 .HasColumnType("character varying(40)")
                 .HasColumnName("normalized_phone_number");
 
+            b.Property<Guid>("TenantId")
+                .HasColumnType("uuid")
+                .HasColumnName("tenant_id");
+
             b.Property<string>("PhoneNumber")
                 .IsRequired()
                 .HasMaxLength(40)
@@ -115,6 +123,9 @@ partial class GuestManagementServiceDbContextModelSnapshot : ModelSnapshot
 
             b.HasIndex("EventId")
                 .HasDatabaseName("ix_guests_event_id");
+
+            b.HasIndex("TenantId", "EventId")
+                .HasDatabaseName("ix_guests_tenant_id_event_id");
 
             b.HasIndex("EventId", "NormalizedEmailAddress")
                 .IsUnique()

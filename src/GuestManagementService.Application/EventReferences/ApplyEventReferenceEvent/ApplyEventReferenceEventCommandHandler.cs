@@ -20,7 +20,11 @@ public sealed class ApplyEventReferenceEventCommandHandler(
 
         if (eventReference is null)
         {
-            eventReference = EventReference.Active(request.EventId, request.EventName, request.OccurredAt);
+            eventReference = EventReference.Active(
+                request.EventId,
+                request.EventName,
+                request.TenantId,
+                request.OccurredAt);
             logger.LogInformation(
                 "Event reference created from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,
@@ -38,7 +42,7 @@ public sealed class ApplyEventReferenceEventCommandHandler(
         }
         else
         {
-            eventReference.MarkActive(request.EventName, request.OccurredAt);
+            eventReference.MarkActive(request.EventName, request.TenantId, request.OccurredAt);
             logger.LogInformation(
                 "Event reference marked active from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,

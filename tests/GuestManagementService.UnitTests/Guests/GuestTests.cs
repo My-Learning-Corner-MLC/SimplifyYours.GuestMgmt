@@ -11,6 +11,7 @@ public sealed class GuestTests
         var guest = Guest.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),
+            Guid.NewGuid(),
             " Ada ",
             " Lovelace ",
             " +1 555 123 4567 ",
@@ -34,6 +35,7 @@ public sealed class GuestTests
     public void Create_WhenEmailIsWhitespace_StoresNullEmail()
     {
         var guest = Guest.Create(
+            Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             "Ada",

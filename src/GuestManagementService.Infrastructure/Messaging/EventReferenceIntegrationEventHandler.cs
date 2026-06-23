@@ -18,7 +18,8 @@ internal sealed class EventReferenceIntegrationEventHandler(ISender sender)
                 context.Envelope.EventType,
                 context.Payload.EventId,
                 context.Payload.EventName,
-                context.Envelope.OccurredAt),
+                context.Envelope.OccurredAt,
+                context.Payload.TenantId),
             cancellationToken);
     }
 }

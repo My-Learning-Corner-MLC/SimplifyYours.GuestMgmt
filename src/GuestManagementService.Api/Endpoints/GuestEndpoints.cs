@@ -1,5 +1,6 @@
 using FluentValidation;
 using GuestManagementService.Api.Responses;
+using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Guests.AddGuest;
 using GuestManagementService.Contracts.Guests;
 using MediatR;
@@ -13,7 +14,8 @@ internal static class GuestEndpoints
         endpoints
             .MapPost("/guest", AddGuestAsync)
             .WithName("AddGuest")
-            .WithTags("Guests");
+            .WithTags("Guests")
+            .RequireAuthorization();
 
         return endpoints;
     }
@@ -27,6 +29,11 @@ internal static class GuestEndpoints
     {
         try
         {
+            if (!CurrentUserResolver.TryResolve(httpContext.User, out var currentUser))
+            {
+                return Results.Challenge();
+            }
+
             if (request.GuestInfo is null)
             {
                 return ApiErrorResults.ValidationProblem(new Dictionary<string, string[]>
@@ -42,7 +49,8 @@ internal static class GuestEndpoints
                     request.GuestInfo.LastName,
                     request.GuestInfo.PhoneNumber,
                     request.GuestInfo.EmailAddress,
-                    request.GuestInfo.Gender),
+                    request.GuestInfo.Gender,
+                    currentUser),
                 cancellationToken);
 
             return result.Status switch
