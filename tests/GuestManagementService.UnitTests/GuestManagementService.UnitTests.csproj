@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\GuestManagementService.Api\GuestManagementService.Api.csproj" />
     <ProjectReference Include="..\..\src\GuestManagementService.Application\GuestManagementService.Application.csproj" />
     <ProjectReference Include="..\..\src\GuestManagementService.Contracts\GuestManagementService.Contracts.csproj" />
     <ProjectReference Include="..\..\src\GuestManagementService.Domain\GuestManagementService.Domain.csproj" />

@@ -26,4 +26,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="GuestManagementService.UnitTests" />
+  </ItemGroup>
+
 </Project>
