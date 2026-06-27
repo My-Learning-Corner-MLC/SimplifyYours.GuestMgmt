@@ -15,7 +15,7 @@ internal static class GuestEndpoints
             .MapPost("/guest", AddGuestAsync)
             .WithName("AddGuest")
             .WithTags("Guests")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.GuestsAdd);
 
         return endpoints;
     }
