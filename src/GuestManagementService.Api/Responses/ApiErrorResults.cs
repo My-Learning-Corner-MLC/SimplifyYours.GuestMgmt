@@ -31,6 +31,11 @@ internal static class ApiErrorResults
         return Problem(StatusCodes.Status500InternalServerError, "Something went wrong.", message, context);
     }
 
+    public static IResult Forbidden(string message, HttpContext? context = null)
+    {
+        return Problem(StatusCodes.Status403Forbidden, "Forbidden.", message, context);
+    }
+
     public static ProblemDetails CreateProblemDetails(HttpContext context, int statusCode, string title, string message)
     {
         var problemDetails = new ProblemDetails
