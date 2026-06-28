@@ -12,9 +12,9 @@ public sealed class CurrentUserPipelineBehavior<TRequest, TResponse>(
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        if (request is BaseCommand baseCommand)
+        if (request is IAuthenticatedRequest authenticatedRequest)
         {
-            baseCommand.CurrentUser = currentUserAccessor.User
+            authenticatedRequest.CurrentUser = currentUserAccessor.User
                 ?? throw new InvalidOperationException(
                     "Current user was not resolved. Ensure CurrentUserMiddleware is registered before MediatR dispatch.");
         }
