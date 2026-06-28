@@ -138,6 +138,88 @@ public sealed class AddGuestCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenEventIsDeleted_ReturnsEventNotFound()
+    {
+        var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
+        var eventId = Guid.NewGuid();
+        var deletedReference = EventReference.Active(eventId, "Launch", TestTenantId, now);
+        deletedReference.MarkDeleted(now);
+        var eventReferences = new Mock<IEventReferenceRepository>();
+        eventReferences
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(deletedReference);
+        var guests = new Mock<IGuestRepository>();
+        var handler = CreateHandler(eventReferences.Object, guests.Object);
+
+        var result = await handler.Handle(ValidCommand(eventId), CancellationToken.None);
+
+        Assert.Equal(AddGuestStatus.EventNotFound, result.Status);
+        guests.Verify(
+            repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGenderIsValidMale_StoresMaleGender()
+    {
+        var eventId = Guid.NewGuid();
+        Guest? savedGuest = null;
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
+            .Callback<Guest, CancellationToken>((guest, _) => savedGuest = guest)
+            .Returns(Task.CompletedTask);
+        var handler = CreateHandler(guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(new AddGuestCommand(
+            eventId,
+            "Ada",
+            "Tester",
+            "+1 555 123 4567",
+            null,
+            "male")
+            {
+                CurrentUser = TestUser
+            },
+            CancellationToken.None);
+
+        Assert.Equal(AddGuestStatus.Created, result.Status);
+        Assert.NotNull(result.Guest);
+        Assert.Equal("male", result.Guest.Gender);
+        Assert.NotNull(savedGuest);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGenderIsUnrecognizedString_DefaultsToPreferNotToSay()
+    {
+        var eventId = Guid.NewGuid();
+        Guest? savedGuest = null;
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
+            .Callback<Guest, CancellationToken>((guest, _) => savedGuest = guest)
+            .Returns(Task.CompletedTask);
+        var handler = CreateHandler(guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(new AddGuestCommand(
+            eventId,
+            "Ada",
+            "Tester",
+            "+1 555 123 4567",
+            null,
+            "unknown-value")
+            {
+                CurrentUser = TestUser
+            },
+            CancellationToken.None);
+
+        Assert.Equal(AddGuestStatus.Created, result.Status);
+        Assert.NotNull(result.Guest);
+        Assert.Equal("preferNotToSay", result.Guest.Gender);
+        Assert.NotNull(savedGuest);
+    }
+
+    [Fact]
     public async Task Handle_WhenEventBelongsToAnotherTenant_ReturnsEventNotFound()
     {
         var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
