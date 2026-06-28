@@ -9,6 +9,4 @@ public sealed record AddGuestCommand(
     string? LastName,
     string? PhoneNumber,
     string? EmailAddress,
-    string? Gender,
-    CurrentUser? CurrentUser = null)
-    : IRequest<AddGuestResult>;
+    string? Gender) : BaseCommand, IRequest<AddGuestResult>;

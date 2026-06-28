@@ -14,7 +14,7 @@ public sealed class AddGuestCommandHandlerTests
 {
     private static readonly Guid TestUserId = Guid.Parse("ff3d23f3-6a5e-4555-b189-630dfd24bad8");
     private static readonly Guid TestTenantId = Guid.Parse("c2b9d3a1-4d4b-4b1a-9bc4-2f5a7e8d9f01");
-    private static readonly CurrentUser TestUser = new(TestUserId, TestTenantId, new[] { "guests.add" });
+    private static readonly CurrentUser TestUser = new(TestUserId, TestTenantId);
 
     [Fact]
     public async Task Handle_WhenEventExists_CreatesGuest()
@@ -47,8 +47,10 @@ public sealed class AddGuestCommandHandlerTests
             "Tester",
             "+1 555 123 4567",
             "test@example.com",
-            null,
-            TestUser),
+            null)
+            {
+                CurrentUser = TestUser
+            },
             CancellationToken.None);
 
         Assert.Equal(AddGuestStatus.Created, result.Status);
@@ -120,8 +122,10 @@ public sealed class AddGuestCommandHandlerTests
             "Tester",
             "+1 555 123 4567",
             null,
-            "female",
-            TestUser),
+            "female")
+            {
+                CurrentUser = TestUser
+            },
             CancellationToken.None);
 
         Assert.Equal(AddGuestStatus.Created, result.Status);
@@ -153,18 +157,6 @@ public sealed class AddGuestCommandHandlerTests
             Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_WhenCallerLacksAddGuestsPermission_Throws()
-    {
-        var eventId = Guid.NewGuid();
-        var handler = CreateHandler(eventId: eventId);
-        var userWithoutPermission = new CurrentUser(TestUserId, TestTenantId, Array.Empty<string>());
-
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => handler.Handle(
-            ValidCommand(eventId) with { CurrentUser = userWithoutPermission },
-            CancellationToken.None));
-    }
-
     private static AddGuestCommand ValidCommand(Guid eventId)
     {
         return new AddGuestCommand(
@@ -173,8 +165,10 @@ public sealed class AddGuestCommandHandlerTests
             "Tester",
             "+1 555 123 4567",
             "test@example.com",
-            "female",
-            TestUser);
+            "female")
+        {
+            CurrentUser = TestUser
+        };
     }
 
     private static AddGuestCommandHandler CreateHandler(

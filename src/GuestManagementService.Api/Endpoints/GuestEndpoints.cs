@@ -29,11 +29,6 @@ internal static class GuestEndpoints
     {
         try
         {
-            if (!CurrentUserResolver.TryResolve(httpContext.User, out var currentUser))
-            {
-                return Results.Challenge();
-            }
-
             if (request.GuestInfo is null)
             {
                 return ApiErrorResults.ValidationProblem(new Dictionary<string, string[]>
@@ -49,8 +44,7 @@ internal static class GuestEndpoints
                     request.GuestInfo.LastName,
                     request.GuestInfo.PhoneNumber,
                     request.GuestInfo.EmailAddress,
-                    request.GuestInfo.Gender,
-                    currentUser),
+                    request.GuestInfo.Gender),
                 cancellationToken);
 
             return result.Status switch

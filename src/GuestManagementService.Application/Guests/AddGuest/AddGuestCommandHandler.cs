@@ -16,17 +16,9 @@ public sealed class AddGuestCommandHandler(
     ILogger<AddGuestCommandHandler> logger)
     : IRequestHandler<AddGuestCommand, AddGuestResult>
 {
-    private const string AddGuestsPermission = "guests.add";
-
     public async Task<AddGuestResult> Handle(AddGuestCommand request, CancellationToken cancellationToken)
     {
-        var currentUser = request.CurrentUser
-            ?? throw new InvalidOperationException("Current user is required to add a guest.");
-
-        if (!currentUser.HasPermission(AddGuestsPermission))
-        {
-            throw new UnauthorizedAccessException("Caller does not have permission to add guests.");
-        }
+        var currentUser = request.CurrentUser;
 
         var eventReference = await eventReferenceRepository.GetByIdAsync(request.EventId, cancellationToken);
 
