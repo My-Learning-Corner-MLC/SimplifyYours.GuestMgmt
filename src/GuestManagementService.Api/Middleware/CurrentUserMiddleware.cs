@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Authorization;
 
 namespace GuestManagementService.Api.Middleware;
@@ -22,7 +21,7 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
             return Task.CompletedTask;
         }
 
-        ((CurrentUserAccessor)currentUserAccessor).User = currentUser;
+        currentUserAccessor.SetUser(currentUser);
         return next(context);
     }
 
