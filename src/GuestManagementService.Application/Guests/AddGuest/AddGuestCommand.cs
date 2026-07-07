@@ -1,3 +1,4 @@
+using GuestManagementService.Application.Authorization;
 using MediatR;
 
 namespace GuestManagementService.Application.Guests.AddGuest;
@@ -8,5 +9,4 @@ public sealed record AddGuestCommand(
     string? LastName,
     string? PhoneNumber,
     string? EmailAddress,
-    string? Gender)
-    : IRequest<AddGuestResult>;
+    string? Gender) : BaseCommand, IRequest<AddGuestResult>;

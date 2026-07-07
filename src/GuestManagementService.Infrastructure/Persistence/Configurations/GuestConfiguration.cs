@@ -20,6 +20,10 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
             .HasColumnName("event_id")
             .IsRequired();
 
+        builder.Property(guest => guest.TenantId)
+            .HasColumnName("tenant_id")
+            .IsRequired();
+
         builder.Property(guest => guest.FirstName)
             .HasColumnName("first_name")
             .HasMaxLength(100)
@@ -64,6 +68,9 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
 
         builder.HasIndex(guest => guest.EventId)
             .HasDatabaseName("ix_guests_event_id");
+
+        builder.HasIndex(guest => new { guest.TenantId, guest.EventId })
+            .HasDatabaseName("ix_guests_tenant_id_event_id");
 
         builder.HasIndex(guest => new { guest.EventId, guest.NormalizedPhoneNumber })
             .IsUnique()

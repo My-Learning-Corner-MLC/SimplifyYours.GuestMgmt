@@ -9,6 +9,7 @@ public sealed class Guest
     private Guest(
         Guid id,
         Guid eventId,
+        Guid tenantId,
         string firstName,
         string lastName,
         string phoneNumber,
@@ -20,6 +21,7 @@ public sealed class Guest
     {
         Id = id;
         EventId = eventId;
+        TenantId = tenantId;
         FirstName = firstName;
         LastName = lastName;
         PhoneNumber = phoneNumber;
@@ -34,6 +36,8 @@ public sealed class Guest
     public Guid Id { get; private set; }
 
     public Guid EventId { get; private set; }
+
+    public Guid TenantId { get; private set; }
 
     public string FirstName { get; private set; } = string.Empty;
 
@@ -56,6 +60,7 @@ public sealed class Guest
     public static Guest Create(
         Guid id,
         Guid eventId,
+        Guid tenantId,
         string firstName,
         string lastName,
         string phoneNumber,
@@ -75,6 +80,11 @@ public sealed class Guest
             throw new ArgumentException("Event id must not be empty.", nameof(eventId));
         }
 
+        if (tenantId == Guid.Empty)
+        {
+            throw new ArgumentException("Tenant id must not be empty.", nameof(tenantId));
+        }
+
         var normalizedFirstName = NormalizeRequiredText(firstName, nameof(firstName));
         var normalizedLastName = NormalizeRequiredText(lastName, nameof(lastName));
         var normalizedPhone = NormalizeRequiredText(phoneNumber, nameof(phoneNumber));
@@ -85,6 +95,7 @@ public sealed class Guest
         return new Guest(
             id,
             eventId,
+            tenantId,
             normalizedFirstName,
             normalizedLastName,
             normalizedPhone,

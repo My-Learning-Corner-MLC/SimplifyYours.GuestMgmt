@@ -1,19 +1,21 @@
 using FluentValidation;
 using GuestManagementService.Api.Responses;
+using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Guests.AddGuest;
 using GuestManagementService.Contracts.Guests;
 using MediatR;
 
 namespace GuestManagementService.Api.Endpoints;
 
-internal static class GuestEndpoints
+public static class GuestEndpoints
 {
     public static IEndpointRouteBuilder MapGuestEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints
             .MapPost("/guest", AddGuestAsync)
             .WithName("AddGuest")
-            .WithTags("Guests");
+            .WithTags("Guests")
+            .RequireAuthorization(Permissions.GuestsAdd);
 
         return endpoints;
     }
