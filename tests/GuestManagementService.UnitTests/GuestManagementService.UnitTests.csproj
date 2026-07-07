@@ -7,6 +7,11 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!-- Exclude EF Core-generated migrations and the model snapshot from coverage.
+         These are auto-generated boilerplate that is not unit-tested; counting them
+         skews the diff-coverage gate. -->
+    <ExcludeByFile>**/Persistence/Migrations/*.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup>
