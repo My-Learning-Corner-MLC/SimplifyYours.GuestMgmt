@@ -3,7 +3,7 @@ using GuestManagementService.Application.Authorization;
 
 namespace GuestManagementService.Api.Middleware;
 
-internal sealed class CurrentUserMiddleware(RequestDelegate next)
+public sealed class CurrentUserMiddleware(RequestDelegate next)
 {
     private const string SubjectClaim = "sub";
     private const string TenantIdClaim = "tenant_id";

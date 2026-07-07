@@ -7,7 +7,7 @@ using MediatR;
 
 namespace GuestManagementService.Api.Endpoints;
 
-internal static class GuestEndpoints
+public static class GuestEndpoints
 {
     public static IEndpointRouteBuilder MapGuestEndpoints(this IEndpointRouteBuilder endpoints)
     {

@@ -1,6 +1,6 @@
 namespace GuestManagementService.Api.Security;
 
-internal static class Permissions
+public static class Permissions
 {
     public const string ClaimType = "permissions";
 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization.Policy;
 
 namespace GuestManagementService.Api.Security;
 
-internal static class AuthorizationExtensions
+public static class AuthorizationExtensions
 {
     public static IServiceCollection AddPermissionPolicies(this IServiceCollection services)
     {
