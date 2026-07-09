@@ -6,8 +6,10 @@ Backend service for Simplify Yours guest management capabilities.
 
 Protected guest resource endpoints require `Authorization: Bearer <access_token>`.
 Access tokens must be issued by Identity Service for audience
-`simplify-yours-api`. Normal users can add guests only to their own active
-event references. `SuperAdmin` can add guests to any active event reference.
+`simplify-yours-api`. Adding a guest requires the `guests.add` permission and
+listing an event's guests requires the `guests.view` permission. Normal users
+can add or list guests only for their own active event references; `SuperAdmin`
+can do so for any active event reference.
 
 ### `GET /ping`
 
@@ -40,7 +42,11 @@ Request body:
     "lastName": "Lovelace",
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
-    "gender": "preferNotToSay"
+    "gender": "preferNotToSay",
+    "relationship": "Family",
+    "side": "Bride",
+    "plusOnes": 1,
+    "dietaryNotes": "Pescatarian"
   }
 }
 ```
@@ -52,8 +58,17 @@ Request options:
 - `guestInfo.firstName`: required.
 - `guestInfo.lastName`: required.
 - `guestInfo.phoneNumber`: required.
-- `guestInfo.emailAddress`: optional.
+- `guestInfo.emailAddress`: required, valid email.
 - `guestInfo.gender`: optional, one of `male`, `female`, `other`, or `preferNotToSay`; defaults to `preferNotToSay`.
+- `guestInfo.relationship`: optional, one of `Family`, `Friend`, `Colleague` (wedding metadata).
+- `guestInfo.side`: optional, one of `Bride`, `Groom` (wedding metadata).
+- `guestInfo.plusOnes`: optional integer `0`–`20`; defaults to `0`.
+- `guestInfo.dietaryNotes`: optional, up to 500 characters.
+
+The event-type-specific fields (`relationship`, `side`, `plusOnes`, `dietaryNotes`) are persisted
+together in a single opaque `metadata` `jsonb` column, not as dedicated columns. This feature
+implements the **wedding** shape; other event types add their own metadata shape with no schema
+change. Wedding-specific code lives under `Guests/Wedding/` in Domain and Application.
 
 Responses:
 
@@ -61,7 +76,7 @@ Responses:
 - `401 Unauthorized` when the bearer token is missing or invalid.
 - `400 Bad Request` with validation details when the request is invalid.
 - `404 Not Found` when the event reference does not exist, is deleted, or belongs to another user.
-- `409 Conflict` when the same event already has a guest with the same normalized phone number, or the same normalized email address when email is provided.
+- `409 Conflict` when the same event already has a guest with the same normalized phone number or email address.
 
 Response body:
 
@@ -74,15 +89,60 @@ Response body:
     "lastName": "Lovelace",
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
-    "gender": "preferNotToSay"
+    "gender": "preferNotToSay",
+    "relationship": "Family",
+    "side": "Bride",
+    "plusOnes": 1,
+    "dietaryNotes": "Pescatarian"
   },
   "createdAt": "2026-05-24T00:00:00+00:00"
+}
+```
+
+### `GET /guests?eventId={guid}`
+
+Returns the guests of one owned event, ordered by `createdAt` ascending. Requires the
+`guests.view` permission. The service enforces owner/tenant scoping via the local event reference
+table (same rule as `POST /guest`).
+
+Query options:
+
+- `eventId`: required.
+
+Responses:
+
+- `200 OK` with the guest list (empty array when the event has no guests).
+- `401 Unauthorized` when the bearer token is missing or invalid.
+- `404 Not Found` when the event reference does not exist, is deleted, or belongs to another user.
+
+Response body:
+
+```json
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "guests": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "phoneNumber": "+15551234567",
+      "emailAddress": "ada@example.com",
+      "gender": "preferNotToSay",
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian",
+      "createdAt": "2026-05-24T00:00:00+00:00"
+    }
+  ]
 }
 ```
 
 ## Configuration
 
 The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
+
+The guest endpoints are called directly from the Angular SPA, so CORS must allow the SPA origin. Configure `Cors:AllowedOrigins` (a string array); it defaults to `http://localhost:4200` for local development.
 
 For design-time EF migration commands, set `ConnectionStrings__GuestManagementServiceDb` to a local non-production PostgreSQL connection string.
 

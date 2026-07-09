@@ -2,7 +2,9 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Guests;
+using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Guests.Wedding;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -63,6 +65,15 @@ public sealed class AddGuestCommandHandler(
             gender = Gender.PreferNotToSay;
         }
 
+        WeddingGuestMetadataMapper.TryParseRelationship(request.Relationship, out var relationship);
+        WeddingGuestMetadataMapper.TryParseSide(request.Side, out var side);
+        var metadata = WeddingGuestMetadata.Create(
+            relationship,
+            side,
+            request.PlusOnes ?? 0,
+            request.DietaryNotes);
+        var metadataJson = WeddingGuestMetadataMapper.Serialize(metadata);
+
         var now = timeProvider.GetUtcNow();
         var guest = Guest.Create(
             Guid.NewGuid(),
@@ -75,6 +86,7 @@ public sealed class AddGuestCommandHandler(
             request.EmailAddress,
             normalizedEmail,
             gender,
+            metadataJson,
             now);
 
         await guestRepository.AddAsync(guest, cancellationToken);

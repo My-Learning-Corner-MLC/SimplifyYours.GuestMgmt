@@ -1,6 +1,7 @@
 namespace GuestManagementService.Contracts.Guests;
 
-public sealed record GuestInfoResponse(
+public sealed record GuestListItemResponse(
+    Guid Id,
     string FirstName,
     string LastName,
     string PhoneNumber,
@@ -9,4 +10,5 @@ public sealed record GuestInfoResponse(
     string? Relationship,
     string? Side,
     int PlusOnes,
-    string? DietaryNotes);
+    string? DietaryNotes,
+    DateTimeOffset CreatedAt);

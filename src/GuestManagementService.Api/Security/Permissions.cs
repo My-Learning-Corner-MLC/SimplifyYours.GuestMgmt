@@ -5,4 +5,6 @@ public static class Permissions
     public const string ClaimType = "permissions";
 
     public const string GuestsAdd = "guests.add";
+
+    public const string GuestsView = "guests.view";
 }

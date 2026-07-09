@@ -9,7 +9,9 @@ public static class AuthorizationExtensions
     {
         services.AddAuthorizationBuilder()
             .AddPolicy(Permissions.GuestsAdd, policy =>
-                policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsAdd));
+                policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsAdd))
+            .AddPolicy(Permissions.GuestsView, policy =>
+                policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsView));
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, PermissionDeniedResultHandler>();
 

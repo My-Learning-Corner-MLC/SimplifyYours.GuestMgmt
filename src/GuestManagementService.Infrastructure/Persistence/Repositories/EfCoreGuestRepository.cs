@@ -11,6 +11,18 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
         await dbContext.Guests.AddAsync(guest, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guest>> ListByEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .Where(guest => guest.EventId == eventId)
+            .OrderBy(guest => guest.CreatedAt)
+            .ThenBy(guest => guest.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsByPhoneAsync(
         Guid eventId,
         string normalizedPhoneNumber,
