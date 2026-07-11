@@ -41,5 +41,6 @@ app.UseAuthorization();
 
 app.MapPingEndpoints();
 app.MapGuestEndpoints();
+app.MapSeatingEndpoints();
 
 app.Run();
