@@ -64,4 +64,22 @@ public sealed class SeatingLayout
         UpdatedAt = now.ToUniversalTime();
         return table;
     }
+
+    public SeatingTable? FindTable(Guid tableId)
+    {
+        return _tables.FirstOrDefault(table => table.Id == tableId);
+    }
+
+    public bool RemoveTable(Guid tableId, DateTimeOffset now)
+    {
+        var table = FindTable(tableId);
+        if (table is null)
+        {
+            return false;
+        }
+
+        _tables.Remove(table);
+        UpdatedAt = now.ToUniversalTime();
+        return true;
+    }
 }

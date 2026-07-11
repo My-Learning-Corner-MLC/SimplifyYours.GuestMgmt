@@ -51,6 +51,26 @@ public sealed class SeatingTable
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    public void Rename(string name, DateTimeOffset now)
+    {
+        Name = NormalizeName(name);
+        UpdatedAt = now.ToUniversalTime();
+    }
+
+    public void Reshape(TableShape shape, int seatCount, DateTimeOffset now)
+    {
+        EnsureSeatCountInRange(seatCount);
+        Shape = shape;
+        SeatCount = seatCount;
+        UpdatedAt = now.ToUniversalTime();
+    }
+
+    public void SetFull(bool isFull, DateTimeOffset now)
+    {
+        IsFull = isFull;
+        UpdatedAt = now.ToUniversalTime();
+    }
+
     public static SeatingTable Create(
         Guid id,
         Guid seatingLayoutId,

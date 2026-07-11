@@ -51,4 +51,47 @@ public sealed class SeatingLayoutTests
         Assert.Equal(Later, layout.UpdatedAt);
         Assert.Equal(Created, layout.CreatedAt);
     }
+
+    [Fact]
+    public void FindTable_WhenPresent_ReturnsTable()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Later);
+
+        var found = layout.FindTable(table.Id);
+
+        Assert.Same(table, found);
+    }
+
+    [Fact]
+    public void FindTable_WhenAbsent_ReturnsNull()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        Assert.Null(layout.FindTable(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void RemoveTable_WhenPresent_RemovesItAndBumpsUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+
+        var removed = layout.RemoveTable(table.Id, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Tables);
+        Assert.Equal(Later, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void RemoveTable_WhenAbsent_ReturnsFalseAndDoesNotBumpUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        var removed = layout.RemoveTable(Guid.NewGuid(), Later);
+
+        Assert.False(removed);
+        Assert.Equal(Created, layout.UpdatedAt);
+    }
 }

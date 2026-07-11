@@ -1,7 +1,9 @@
 using FluentValidation;
+using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Application.Common.Logging;
 using GuestManagementService.Application.Common.Validation;
+using GuestManagementService.Application.Seating;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(CurrentUserPipelineBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RequestLoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped<ISeatingLayoutProvisioner, SeatingLayoutProvisioner>();
 
         return services;
     }

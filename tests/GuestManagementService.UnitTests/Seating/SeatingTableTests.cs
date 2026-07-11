@@ -66,4 +66,66 @@ public sealed class SeatingTableTests
 
         Assert.Equal("seatingLayoutId", exception.ParamName);
     }
+
+    [Fact]
+    public void Rename_UpdatesNameAndUpdatedAt()
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var later = Now.AddHours(1);
+
+        table.Rename("  Bride's side  ", later);
+
+        Assert.Equal("Bride's side", table.Name);
+        Assert.Equal(later, table.UpdatedAt);
+        Assert.Equal(Now, table.CreatedAt);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Rename_WhenNameBlank_Throws(string name)
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+
+        Assert.Throws<ArgumentException>(() => table.Rename(name, Now));
+    }
+
+    [Fact]
+    public void Reshape_UpdatesShapeAndSeatCount()
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var later = Now.AddHours(1);
+
+        table.Reshape(TableShape.Long, 10, later);
+
+        Assert.Equal(TableShape.Long, table.Shape);
+        Assert.Equal(10, table.SeatCount);
+        Assert.Equal(later, table.UpdatedAt);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(21)]
+    public void Reshape_WhenSeatCountOutOfRange_Throws(int seatCount)
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.Reshape(TableShape.Round, seatCount, Now));
+    }
+
+    [Fact]
+    public void SetFull_UpdatesIsFullAndUpdatedAt()
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var later = Now.AddHours(1);
+
+        table.SetFull(true, later);
+
+        Assert.True(table.IsFull);
+        Assert.Equal(later, table.UpdatedAt);
+
+        table.SetFull(false, later.AddMinutes(1));
+
+        Assert.False(table.IsFull);
+    }
 }
