@@ -38,6 +38,8 @@ public class SeatingEndpointPolicyMappingTests
     [InlineData("AssignSeat")]
     [InlineData("UnassignSeat")]
     [InlineData("ApplyAssignmentsBatch")]
+    [InlineData("UpdateTablePosition")]
+    [InlineData("ApplyTablePositionsBatch")]
     public void Mutation_endpoints_require_seating_manage_policy(string endpointName)
     {
         var endpoints = MapSeatingEndpointsForTest();

@@ -128,4 +128,18 @@ public sealed class SeatingTableTests
 
         Assert.False(table.IsFull);
     }
+
+    [Fact]
+    public void Move_SetsPositionAndRotation()
+    {
+        var table = SeatingTable.Create(Guid.NewGuid(), Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var later = Now.AddHours(1);
+
+        table.Move(340, 420, 15, later);
+
+        Assert.Equal(340, table.PositionX);
+        Assert.Equal(420, table.PositionY);
+        Assert.Equal(15, table.Rotation);
+        Assert.Equal(later, table.UpdatedAt);
+    }
 }

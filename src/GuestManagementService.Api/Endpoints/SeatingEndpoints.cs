@@ -3,12 +3,14 @@ using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Seating;
 using GuestManagementService.Application.Seating.ApplyAssignmentsBatch;
+using GuestManagementService.Application.Seating.ApplyTablePositionsBatch;
 using GuestManagementService.Application.Seating.AssignSeat;
 using GuestManagementService.Application.Seating.CreateTables;
 using GuestManagementService.Application.Seating.DeleteTable;
 using GuestManagementService.Application.Seating.GetSeatingLayout;
 using GuestManagementService.Application.Seating.UnassignSeat;
 using GuestManagementService.Application.Seating.UpdateTable;
+using GuestManagementService.Application.Seating.UpdateTablePosition;
 using GuestManagementService.Contracts.Seating;
 using MediatR;
 
@@ -57,6 +59,18 @@ public static class SeatingEndpoints
         endpoints
             .MapPut("/seating/assignments", ApplyAssignmentsBatchAsync)
             .WithName("ApplyAssignmentsBatch")
+            .WithTags("Seating")
+            .RequireAuthorization(Permissions.SeatingManage);
+
+        endpoints
+            .MapPatch("/seating/tables/{tableId:guid}/position", UpdateTablePositionAsync)
+            .WithName("UpdateTablePosition")
+            .WithTags("Seating")
+            .RequireAuthorization(Permissions.SeatingManage);
+
+        endpoints
+            .MapPatch("/seating/tables/positions", ApplyTablePositionsBatchAsync)
+            .WithName("ApplyTablePositionsBatch")
             .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
@@ -301,6 +315,73 @@ public static class SeatingEndpoints
                     httpContext),
                 _ => ApiErrorResults.Unexpected(
                     "The seating changes could not be saved right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static async Task<IResult> UpdateTablePositionAsync(
+        Guid tableId,
+        UpdateTablePositionRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(
+                new UpdateTablePositionCommand(request.EventId, tableId, request.PositionX, request.PositionY, request.Rotation),
+                cancellationToken);
+
+            return result.Status switch
+            {
+                UpdateTablePositionStatus.Updated when result.Table is not null => Results.Ok(ToTableResponse(result.Table)),
+                UpdateTablePositionStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                UpdateTablePositionStatus.TableNotFound => ApiErrorResults.NotFound(
+                    "The table was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The table's position could not be saved right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static async Task<IResult> ApplyTablePositionsBatchAsync(
+        ApplyTablePositionsBatchRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var positions = request.Positions
+                .Select(p => new TablePositionInput(p.TableId, p.PositionX, p.PositionY, p.Rotation))
+                .ToList();
+            var result = await sender.Send(new ApplyTablePositionsBatchCommand(request.EventId, positions), cancellationToken);
+
+            return result.Status switch
+            {
+                ApplyTablePositionsBatchStatus.Applied => Results.Ok(
+                    new ApplyTablePositionsBatchResponse(
+                        result.Results
+                            .Select(r => new TablePositionOpResponse(r.TableId, r.Status.ToString()))
+                            .ToList())),
+                ApplyTablePositionsBatchStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The table positions could not be saved right now. Please try again later.",
                     httpContext)
             };
         }

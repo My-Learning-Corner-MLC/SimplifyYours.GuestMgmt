@@ -71,6 +71,14 @@ public sealed class SeatingTable
         UpdatedAt = now.ToUniversalTime();
     }
 
+    public void Move(double positionX, double positionY, double rotation, DateTimeOffset now)
+    {
+        PositionX = positionX;
+        PositionY = positionY;
+        Rotation = rotation;
+        UpdatedAt = now.ToUniversalTime();
+    }
+
     public static SeatingTable Create(
         Guid id,
         Guid seatingLayoutId,
