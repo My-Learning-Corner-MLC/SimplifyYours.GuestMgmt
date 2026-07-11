@@ -94,4 +94,153 @@ public sealed class SeatingLayoutTests
         Assert.False(removed);
         Assert.Equal(Created, layout.UpdatedAt);
     }
+
+    [Fact]
+    public void AssignGuest_ToEmptySeat_Assigns()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+
+        var outcome = layout.AssignGuest(table.Id, 2, guestId, Later, out var assignment);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        Assert.NotNull(assignment);
+        Assert.Equal(table.Id, assignment.SeatingTableId);
+        Assert.Equal(2, assignment.SeatIndex);
+        Assert.Equal(guestId, assignment.GuestId);
+        Assert.Contains(assignment, layout.Assignments);
+        Assert.Equal(Later, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void AssignGuest_WhenSeatOccupiedByAnotherGuest_ReturnsSeatOccupiedAndDoesNotMutate()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var firstGuest = Guid.NewGuid();
+        var secondGuest = Guid.NewGuid();
+        layout.AssignGuest(table.Id, 0, firstGuest, Created, out _);
+
+        var outcome = layout.AssignGuest(table.Id, 0, secondGuest, Later, out var assignment);
+
+        Assert.Equal(SeatAssignmentOutcome.SeatOccupied, outcome);
+        Assert.Null(assignment);
+        Assert.Single(layout.Assignments);
+        Assert.Equal(firstGuest, layout.Assignments.Single().GuestId);
+    }
+
+    [Fact]
+    public void AssignGuest_WhenGuestAlreadySeatedElsewhere_MovesThem()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var tableA = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var tableB = layout.AddTable(Guid.NewGuid(), "Friends", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuest(tableA.Id, 0, guestId, Created, out _);
+
+        var outcome = layout.AssignGuest(tableB.Id, 3, guestId, Later, out var assignment);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        Assert.NotNull(assignment);
+        var only = Assert.Single(layout.Assignments);
+        Assert.Equal(tableB.Id, only.SeatingTableId);
+        Assert.Equal(3, only.SeatIndex);
+    }
+
+    [Fact]
+    public void AssignGuest_WhenReassigningSameGuestToSameSeat_IsIdempotent()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuest(table.Id, 0, guestId, Created, out _);
+
+        var outcome = layout.AssignGuest(table.Id, 0, guestId, Later, out var assignment);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        Assert.NotNull(assignment);
+        Assert.Single(layout.Assignments);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(8)]
+    public void AssignGuest_WhenSeatIndexOutOfTableRange_Throws(int seatIndex)
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => layout.AssignGuest(table.Id, seatIndex, Guid.NewGuid(), Later, out _));
+    }
+
+    [Fact]
+    public void AssignGuest_WhenTableNotInLayout_Throws()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        Assert.Throws<InvalidOperationException>(
+            () => layout.AssignGuest(Guid.NewGuid(), 0, Guid.NewGuid(), Later, out _));
+    }
+
+    [Fact]
+    public void UnassignSeat_WhenOccupied_RemovesAssignment()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        layout.AssignGuest(table.Id, 0, Guid.NewGuid(), Created, out _);
+
+        var removed = layout.UnassignSeat(table.Id, 0, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Assignments);
+        Assert.Equal(Later, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void UnassignSeat_WhenEmpty_ReturnsFalseAndDoesNotBumpUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+
+        var removed = layout.UnassignSeat(table.Id, 0, Later);
+
+        Assert.False(removed);
+        Assert.Equal(Created, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void UnassignGuest_WhenSeated_RemovesTheirAssignment()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuest(table.Id, 0, guestId, Created, out _);
+
+        var removed = layout.UnassignGuest(guestId, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Assignments);
+    }
+
+    [Fact]
+    public void UnassignGuest_WhenNotSeated_ReturnsFalse()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        Assert.False(layout.UnassignGuest(Guid.NewGuid(), Later));
+    }
+
+    [Fact]
+    public void RemoveTable_AlsoRemovesItsAssignments()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        layout.AssignGuest(table.Id, 0, Guid.NewGuid(), Created, out _);
+
+        layout.RemoveTable(table.Id, Later);
+
+        Assert.Empty(layout.Assignments);
+    }
 }

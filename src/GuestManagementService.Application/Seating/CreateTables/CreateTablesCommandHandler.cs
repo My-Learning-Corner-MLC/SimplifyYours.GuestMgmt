@@ -50,6 +50,6 @@ public sealed class CreateTablesCommandHandler(
             tables.Count,
             request.EventId);
 
-        return CreateTablesResult.Created(tables.Select(SeatingTableDetails.From).ToList());
+        return CreateTablesResult.Created(tables.Select(table => SeatingTableDetails.From(table)).ToList());
     }
 }

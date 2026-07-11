@@ -54,16 +54,7 @@ public sealed class GetSeatingLayoutQueryHandler(
         }
 
         var guests = await guestRepository.ListByEventAsync(request.EventId, cancellationToken);
-
-        // No seat assignments exist until the Seating sub-module's assignment slice lands,
-        // so every guest is currently "floating" and no table is seated.
-        var tables = layout.Tables.Select(SeatingTableDetails.From).ToList();
-        var seatCount = tables.Sum(table => table.SeatCount);
-        const int seatedCount = 0;
-        var floatingCount = guests.Count - seatedCount;
-
-        var summary = new SeatingSummaryDetails(tables.Count, seatCount, seatedCount, floatingCount);
-        var details = new SeatingLayoutDetails(layout.Id, layout.EventId, tables, summary);
+        var details = SeatingLayoutProjector.Project(layout, guests);
 
         return GetSeatingLayoutResult.Found(details);
     }

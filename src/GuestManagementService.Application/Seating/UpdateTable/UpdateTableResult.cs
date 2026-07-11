@@ -18,4 +18,9 @@ public sealed record UpdateTableResult(
     {
         return new UpdateTableResult(UpdateTableStatus.TableNotFound, null);
     }
+
+    public static UpdateTableResult SeatCountBelowOccupiedSeats()
+    {
+        return new UpdateTableResult(UpdateTableStatus.SeatCountBelowOccupiedSeats, null);
+    }
 }

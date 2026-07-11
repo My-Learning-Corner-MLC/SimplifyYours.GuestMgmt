@@ -8,4 +8,9 @@ public static class SeatingParsing
     {
         return Enum.TryParse(value, ignoreCase: true, out shape) && Enum.IsDefined(shape);
     }
+
+    public static bool TryParseBatchOpType(string? value, out SeatingBatchOpType opType)
+    {
+        return Enum.TryParse(value, ignoreCase: true, out opType) && Enum.IsDefined(opType);
+    }
 }

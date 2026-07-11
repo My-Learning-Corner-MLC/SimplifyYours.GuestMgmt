@@ -2,9 +2,12 @@ using FluentValidation;
 using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Seating;
+using GuestManagementService.Application.Seating.ApplyAssignmentsBatch;
+using GuestManagementService.Application.Seating.AssignSeat;
 using GuestManagementService.Application.Seating.CreateTables;
 using GuestManagementService.Application.Seating.DeleteTable;
 using GuestManagementService.Application.Seating.GetSeatingLayout;
+using GuestManagementService.Application.Seating.UnassignSeat;
 using GuestManagementService.Application.Seating.UpdateTable;
 using GuestManagementService.Contracts.Seating;
 using MediatR;
@@ -36,6 +39,24 @@ public static class SeatingEndpoints
         endpoints
             .MapDelete("/seating/tables/{tableId:guid}", DeleteTableAsync)
             .WithName("DeleteTable")
+            .WithTags("Seating")
+            .RequireAuthorization(Permissions.SeatingManage);
+
+        endpoints
+            .MapPut("/seating/tables/{tableId:guid}/seats/{seatIndex:int}", AssignSeatAsync)
+            .WithName("AssignSeat")
+            .WithTags("Seating")
+            .RequireAuthorization(Permissions.SeatingManage);
+
+        endpoints
+            .MapDelete("/seating/tables/{tableId:guid}/seats/{seatIndex:int}", UnassignSeatAsync)
+            .WithName("UnassignSeat")
+            .WithTags("Seating")
+            .RequireAuthorization(Permissions.SeatingManage);
+
+        endpoints
+            .MapPut("/seating/assignments", ApplyAssignmentsBatchAsync)
+            .WithName("ApplyAssignmentsBatch")
             .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
@@ -164,6 +185,136 @@ public static class SeatingEndpoints
         }
     }
 
+    private static async Task<IResult> AssignSeatAsync(
+        Guid tableId,
+        int seatIndex,
+        AssignSeatRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(
+                new AssignSeatCommand(request.EventId, tableId, seatIndex, request.GuestId),
+                cancellationToken);
+
+            return result.Status switch
+            {
+                AssignSeatStatus.Assigned when result.Table is not null => Results.Ok(ToTableResponse(result.Table)),
+                AssignSeatStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                AssignSeatStatus.TableNotFound => ApiErrorResults.NotFound(
+                    "The table was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                AssignSeatStatus.GuestNotFound => ApiErrorResults.NotFound(
+                    "The guest was not found for this event.",
+                    httpContext),
+                AssignSeatStatus.SeatIndexOutOfRange => ApiErrorResults.ValidationProblem(
+                    new Dictionary<string, string[]> { ["SeatIndex"] = ["Seat index is outside this table's seat count."] },
+                    httpContext),
+                AssignSeatStatus.SeatOccupied => ApiErrorResults.Conflict(
+                    "That seat is already taken. Someone else may have just been seated there.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The seat could not be assigned right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static async Task<IResult> UnassignSeatAsync(
+        Guid tableId,
+        int seatIndex,
+        Guid eventId,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(new UnassignSeatCommand(eventId, tableId, seatIndex), cancellationToken);
+
+            return result.Status switch
+            {
+                UnassignSeatStatus.Unassigned => Results.NoContent(),
+                UnassignSeatStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                UnassignSeatStatus.TableNotFound => ApiErrorResults.NotFound(
+                    "The table was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The seat could not be unassigned right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static async Task<IResult> ApplyAssignmentsBatchAsync(
+        ApplyAssignmentsBatchRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var opErrors = new Dictionary<string, string[]>();
+        var ops = new List<SeatingBatchOpInput>(request.Ops.Count);
+
+        for (var index = 0; index < request.Ops.Count; index++)
+        {
+            var opRequest = request.Ops[index];
+            if (!SeatingParsing.TryParseBatchOpType(opRequest.Op, out var opType))
+            {
+                opErrors[$"Ops[{index}].Op"] = ["Op must be one of: Assign, Unassign."];
+                continue;
+            }
+
+            ops.Add(new SeatingBatchOpInput(opType, opRequest.GuestId, opRequest.TableId, opRequest.SeatIndex));
+        }
+
+        if (opErrors.Count > 0)
+        {
+            return ApiErrorResults.ValidationProblem(opErrors, httpContext);
+        }
+
+        try
+        {
+            var result = await sender.Send(new ApplyAssignmentsBatchCommand(request.EventId, ops), cancellationToken);
+
+            return result.Status switch
+            {
+                ApplyAssignmentsBatchStatus.Applied when result.Layout is not null => Results.Ok(
+                    new ApplyAssignmentsBatchResponse(
+                        ToResponse(result.Layout),
+                        result.OpResults.Select(ToOpResponse).ToList())),
+                ApplyAssignmentsBatchStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The seating changes could not be saved right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static SeatingBatchOpResponse ToOpResponse(SeatingBatchOpResult result)
+    {
+        return new SeatingBatchOpResponse(result.GuestId, result.Status.ToString());
+    }
+
     private static SeatingLayoutResponse ToResponse(SeatingLayoutDetails layout)
     {
         return new SeatingLayoutResponse(
@@ -186,7 +337,8 @@ public static class SeatingEndpoints
             table.IsFull,
             table.PositionX,
             table.PositionY,
-            table.Rotation);
+            table.Rotation,
+            table.Seats.Select(seat => new SeatingSeatResponse(seat.SeatIndex, seat.GuestId, seat.GuestName)).ToList());
     }
 
     private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)

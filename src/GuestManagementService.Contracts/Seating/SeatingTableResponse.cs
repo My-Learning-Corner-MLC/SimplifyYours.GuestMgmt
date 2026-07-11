@@ -8,4 +8,5 @@ public sealed record SeatingTableResponse(
     bool IsFull,
     double? PositionX,
     double? PositionY,
-    double Rotation);
+    double Rotation,
+    IReadOnlyList<SeatingSeatResponse> Seats);

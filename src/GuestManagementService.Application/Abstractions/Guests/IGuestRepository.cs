@@ -19,4 +19,9 @@ public interface IGuestRepository
         Guid eventId,
         string normalizedEmailAddress,
         CancellationToken cancellationToken);
+
+    Task<bool> ExistsAsync(
+        Guid eventId,
+        Guid guestId,
+        CancellationToken cancellationToken);
 }

@@ -4,5 +4,6 @@ public enum UpdateTableStatus
 {
     Updated,
     EventNotFound,
-    TableNotFound
+    TableNotFound,
+    SeatCountBelowOccupiedSeats
 }

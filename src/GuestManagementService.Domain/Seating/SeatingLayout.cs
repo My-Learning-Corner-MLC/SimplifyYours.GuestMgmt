@@ -6,6 +6,7 @@ namespace GuestManagementService.Domain.Seating;
 public sealed class SeatingLayout
 {
     private readonly List<SeatingTable> _tables = [];
+    private readonly List<SeatAssignment> _assignments = [];
 
     private SeatingLayout()
     {
@@ -31,6 +32,8 @@ public sealed class SeatingLayout
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public IReadOnlyCollection<SeatingTable> Tables => _tables.AsReadOnly();
+
+    public IReadOnlyCollection<SeatAssignment> Assignments => _assignments.AsReadOnly();
 
     public static SeatingLayout Create(Guid id, Guid eventId, Guid tenantId, DateTimeOffset createdAt)
     {
@@ -79,6 +82,69 @@ public sealed class SeatingLayout
         }
 
         _tables.Remove(table);
+        _assignments.RemoveAll(assignment => assignment.SeatingTableId == tableId);
+        UpdatedAt = now.ToUniversalTime();
+        return true;
+    }
+
+    // A guest occupies at most one seat in the layout: assigning them elsewhere
+    // (or re-assigning the same seat) first drops any prior assignment for that
+    // guest, so this call is idempotent and doubles as "move".
+    public SeatAssignmentOutcome AssignGuest(
+        Guid tableId,
+        int seatIndex,
+        Guid guestId,
+        DateTimeOffset now,
+        out SeatAssignment? assignment)
+    {
+        var table = FindTable(tableId)
+            ?? throw new InvalidOperationException($"Table {tableId} does not belong to this layout.");
+
+        if (seatIndex < 0 || seatIndex >= table.SeatCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(seatIndex),
+                seatIndex,
+                $"Seat index must be between 0 and {table.SeatCount - 1} for this table.");
+        }
+
+        var occupant = _assignments.FirstOrDefault(a => a.SeatingTableId == tableId && a.SeatIndex == seatIndex);
+        if (occupant is not null && occupant.GuestId != guestId)
+        {
+            assignment = null;
+            return SeatAssignmentOutcome.SeatOccupied;
+        }
+
+        _assignments.RemoveAll(a => a.GuestId == guestId);
+
+        assignment = SeatAssignment.Create(Guid.NewGuid(), tableId, guestId, seatIndex, now);
+        _assignments.Add(assignment);
+        UpdatedAt = now.ToUniversalTime();
+        return SeatAssignmentOutcome.Assigned;
+    }
+
+    public bool UnassignSeat(Guid tableId, int seatIndex, DateTimeOffset now)
+    {
+        var assignment = _assignments.FirstOrDefault(a => a.SeatingTableId == tableId && a.SeatIndex == seatIndex);
+        if (assignment is null)
+        {
+            return false;
+        }
+
+        _assignments.Remove(assignment);
+        UpdatedAt = now.ToUniversalTime();
+        return true;
+    }
+
+    public bool UnassignGuest(Guid guestId, DateTimeOffset now)
+    {
+        var assignment = _assignments.FirstOrDefault(a => a.GuestId == guestId);
+        if (assignment is null)
+        {
+            return false;
+        }
+
+        _assignments.Remove(assignment);
         UpdatedAt = now.ToUniversalTime();
         return true;
     }

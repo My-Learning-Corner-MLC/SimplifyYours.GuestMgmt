@@ -40,6 +40,23 @@ public sealed class UpdateTableCommandHandler(
             return UpdateTableResult.TableNotFound();
         }
 
+        var highestOccupiedSeatIndex = layout.Assignments
+            .Where(assignment => assignment.SeatingTableId == table.Id)
+            .Select(assignment => (int?)assignment.SeatIndex)
+            .Max();
+
+        if (highestOccupiedSeatIndex.HasValue && request.SeatCount <= highestOccupiedSeatIndex.Value)
+        {
+            logger.LogWarning(
+                "Table update rejected because the new seat count would drop below an occupied seat. " +
+                "EventId: {EventId}. TableId: {TableId}. RequestedSeatCount: {RequestedSeatCount}. HighestOccupiedSeatIndex: {HighestOccupiedSeatIndex}.",
+                request.EventId,
+                request.TableId,
+                request.SeatCount,
+                highestOccupiedSeatIndex.Value);
+            return UpdateTableResult.SeatCountBelowOccupiedSeats();
+        }
+
         SeatingParsing.TryParseShape(request.Shape, out var shape);
         var now = timeProvider.GetUtcNow();
 
@@ -54,6 +71,6 @@ public sealed class UpdateTableCommandHandler(
             request.EventId,
             request.TableId);
 
-        return UpdateTableResult.Updated(SeatingTableDetails.From(table));
+        return UpdateTableResult.Updated(SeatingTableDetails.From(table, layout.Assignments));
     }
 }

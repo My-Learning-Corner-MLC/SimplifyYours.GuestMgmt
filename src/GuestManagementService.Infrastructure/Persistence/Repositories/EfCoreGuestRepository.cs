@@ -48,4 +48,14 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
                     && guest.NormalizedEmailAddress == normalizedEmailAddress,
                 cancellationToken);
     }
+
+    public async Task<bool> ExistsAsync(
+        Guid eventId,
+        Guid guestId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .AnyAsync(guest => guest.EventId == eventId && guest.Id == guestId, cancellationToken);
+    }
 }
