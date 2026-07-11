@@ -192,6 +192,9 @@ public static class SeatingEndpoints
                 UpdateTableStatus.TableNotFound => ApiErrorResults.NotFound(
                     "The table was not found. It may have been deleted or the id may be incorrect.",
                     httpContext),
+                UpdateTableStatus.SeatCountBelowOccupiedSeats => ApiErrorResults.Conflict(
+                    "Seat count can't be lower than the highest occupied seat. Unseat some guests first.",
+                    httpContext),
                 _ => ApiErrorResults.Unexpected(
                     "The table could not be updated right now. Please try again later.",
                     httpContext)
