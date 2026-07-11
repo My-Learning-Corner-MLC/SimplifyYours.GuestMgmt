@@ -60,5 +60,15 @@ internal sealed class SeatingLayoutConfiguration : IEntityTypeConfiguration<Seat
         builder.Metadata
             .FindNavigation(nameof(SeatingLayout.Assignments))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(layout => layout.Areas)
+            .WithOne()
+            .HasForeignKey(area => area.SeatingLayoutId)
+            .HasConstraintName("fk_floor_plan_areas_seating_layout_id")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(SeatingLayout.Areas))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

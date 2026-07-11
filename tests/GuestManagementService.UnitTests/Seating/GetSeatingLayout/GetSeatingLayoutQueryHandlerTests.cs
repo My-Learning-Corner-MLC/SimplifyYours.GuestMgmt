@@ -123,6 +123,7 @@ public sealed class GetSeatingLayoutQueryHandlerTests
         var existingLayout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
         existingLayout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
         existingLayout.AddTable(Guid.NewGuid(), "Friends", TableShape.Long, 6, Now);
+        existingLayout.AddArea(Guid.NewGuid(), "Stage", AreaKind.Stage, AreaShape.Rect, 3.4, 0.9, null, null, Now);
         var seatingLayouts = new Mock<ISeatingLayoutRepository>();
         seatingLayouts
             .Setup(repository => repository.GetByEventAsync(eventId, TestTenantId, It.IsAny<CancellationToken>()))
@@ -145,6 +146,9 @@ public sealed class GetSeatingLayoutQueryHandlerTests
         Assert.Equal("Round", roundTable.Shape);
         Assert.Equal(8, roundTable.SeatCount);
         Assert.False(roundTable.IsFull);
+        var stage = Assert.Single(result.Layout.Areas);
+        Assert.Equal("Stage", stage.Name);
+        Assert.Equal("Stage", stage.Kind);
     }
 
     private static IReadOnlyList<Guest> FiveGuests(Guid eventId)

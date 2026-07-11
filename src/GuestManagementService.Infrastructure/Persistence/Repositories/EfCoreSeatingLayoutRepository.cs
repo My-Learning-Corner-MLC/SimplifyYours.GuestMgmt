@@ -15,6 +15,7 @@ internal sealed class EfCoreSeatingLayoutRepository(GuestManagementServiceDbCont
         return await dbContext.SeatingLayouts
             .Include(layout => layout.Tables)
             .Include(layout => layout.Assignments)
+            .Include(layout => layout.Areas)
             .FirstOrDefaultAsync(
                 layout => layout.EventId == eventId && layout.TenantId == tenantId,
                 cancellationToken);

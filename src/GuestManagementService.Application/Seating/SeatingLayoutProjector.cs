@@ -15,11 +15,12 @@ public static class SeatingLayoutProjector
         var tables = layout.Tables
             .Select(table => SeatingTableDetails.From(table, layout.Assignments, guestNamesById))
             .ToList();
+        var areas = layout.Areas.Select(SeatingAreaDetails.From).ToList();
         var seatCount = tables.Sum(table => table.SeatCount);
         var seatedCount = layout.Assignments.Count;
         var floatingCount = guests.Count - seatedCount;
 
         var summary = new SeatingSummaryDetails(tables.Count, seatCount, seatedCount, floatingCount);
-        return new SeatingLayoutDetails(layout.Id, layout.EventId, tables, summary);
+        return new SeatingLayoutDetails(layout.Id, layout.EventId, tables, areas, summary);
     }
 }

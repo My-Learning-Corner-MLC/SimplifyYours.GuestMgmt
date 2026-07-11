@@ -243,4 +243,59 @@ public sealed class SeatingLayoutTests
 
         Assert.Empty(layout.Assignments);
     }
+
+    [Fact]
+    public void AddArea_AppendsAreaAndBumpsUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var areaId = Guid.NewGuid();
+
+        var area = layout.AddArea(areaId, "Stage", AreaKind.Stage, AreaShape.Rect, 3.4, 0.9, null, null, Later);
+
+        Assert.Equal(areaId, area.Id);
+        Assert.Equal(layout.Id, area.SeatingLayoutId);
+        Assert.Contains(area, layout.Areas);
+        Assert.Equal(Later, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void FindArea_WhenPresent_ReturnsArea()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var area = layout.AddArea(Guid.NewGuid(), "Stage", AreaKind.Stage, AreaShape.Rect, 3.4, 0.9, null, null, Later);
+
+        Assert.Same(area, layout.FindArea(area.Id));
+    }
+
+    [Fact]
+    public void FindArea_WhenAbsent_ReturnsNull()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        Assert.Null(layout.FindArea(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void RemoveArea_WhenPresent_RemovesItAndBumpsUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var area = layout.AddArea(Guid.NewGuid(), "Stage", AreaKind.Stage, AreaShape.Rect, 3.4, 0.9, null, null, Created);
+
+        var removed = layout.RemoveArea(area.Id, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Areas);
+        Assert.Equal(Later, layout.UpdatedAt);
+    }
+
+    [Fact]
+    public void RemoveArea_WhenAbsent_ReturnsFalseAndDoesNotBumpUpdatedAt()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+
+        var removed = layout.RemoveArea(Guid.NewGuid(), Later);
+
+        Assert.False(removed);
+        Assert.Equal(Created, layout.UpdatedAt);
+    }
 }

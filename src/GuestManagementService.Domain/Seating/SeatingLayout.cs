@@ -7,6 +7,7 @@ public sealed class SeatingLayout
 {
     private readonly List<SeatingTable> _tables = [];
     private readonly List<SeatAssignment> _assignments = [];
+    private readonly List<FloorPlanArea> _areas = [];
 
     private SeatingLayout()
     {
@@ -34,6 +35,8 @@ public sealed class SeatingLayout
     public IReadOnlyCollection<SeatingTable> Tables => _tables.AsReadOnly();
 
     public IReadOnlyCollection<SeatAssignment> Assignments => _assignments.AsReadOnly();
+
+    public IReadOnlyCollection<FloorPlanArea> Areas => _areas.AsReadOnly();
 
     public static SeatingLayout Create(Guid id, Guid eventId, Guid tenantId, DateTimeOffset createdAt)
     {
@@ -145,6 +148,41 @@ public sealed class SeatingLayout
         }
 
         _assignments.Remove(assignment);
+        UpdatedAt = now.ToUniversalTime();
+        return true;
+    }
+
+    public FloorPlanArea AddArea(
+        Guid areaId,
+        string name,
+        AreaKind kind,
+        AreaShape shape,
+        double width,
+        double height,
+        string? color,
+        int? capacity,
+        DateTimeOffset now)
+    {
+        var area = FloorPlanArea.Create(areaId, Id, name, kind, shape, width, height, color, capacity, now);
+        _areas.Add(area);
+        UpdatedAt = now.ToUniversalTime();
+        return area;
+    }
+
+    public FloorPlanArea? FindArea(Guid areaId)
+    {
+        return _areas.FirstOrDefault(area => area.Id == areaId);
+    }
+
+    public bool RemoveArea(Guid areaId, DateTimeOffset now)
+    {
+        var area = FindArea(areaId);
+        if (area is null)
+        {
+            return false;
+        }
+
+        _areas.Remove(area);
         UpdatedAt = now.ToUniversalTime();
         return true;
     }
