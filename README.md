@@ -138,6 +138,75 @@ Response body:
 }
 ```
 
+## Seating (Table/Seat Layout Builder)
+
+The Seating sub-module lives inside this service (not a separate deployable) and owns an
+event's table/seat layout and floor plan. Every event has at most one `SeatingLayout`,
+created lazily on first read. All Seating endpoints require `Authorization: Bearer
+<access_token>`; reads require `seating.view`, all writes require `seating.manage`.
+Every endpoint enforces the same owner/tenant scoping as the guest endpoints via the local
+event reference table.
+
+Routing follows the existing convention in this service: `eventId` is a query parameter on
+GET/DELETE and a body field on POST/PUT/PATCH — there are no nested `/events/{id}/...` paths.
+
+### Tables
+
+- `GET /seating?eventId={guid}` — loads (or lazily creates) the layout: tables (with a
+  `seats` array sized to `seatCount`, each seat carrying `guestId`/`guestName` when occupied),
+  floor-plan areas, and summary counts (`tableCount`, `seatCount`, `seatedCount`,
+  `floatingCount`).
+- `POST /seating/tables` — creates 1–20 tables in one call (`name`, `shape`: `Round`/`Long`/
+  `Square`, `seatCount`: 1–20, `count`). When `count > 1`, tables are numbered `name · 1`,
+  `name · 2`, ...
+- `PUT /seating/tables/{tableId}` — renames/reshapes/resizes a table and toggles "mark full"
+  together. Returns `409` if the new `seatCount` would drop below an occupied seat (unseat
+  first).
+- `DELETE /seating/tables/{tableId}?eventId={guid}` — deletes a table; any guests seated
+  there become unseated.
+- `PATCH /seating/tables/{tableId}/position` — moves/rotates one table (floor-plan drag,
+  single-table fallback).
+- `PATCH /seating/tables/positions` — moves/rotates a batch of tables in one call and one
+  save; per-table `Applied`/`TableNotFound` status. This is the primary write path for a
+  debounced drag flush from the UI — the client should coalesce a drag session into one
+  batch call rather than one request per drop.
+
+### Seat assignments ("who sits where")
+
+- `PUT /seating/tables/{tableId}/seats/{seatIndex}` (body: `{ eventId, guestId }`) —
+  assigns/moves a guest to that seat. Assigning an already-seated guest relocates them
+  (idempotent). Returns `409` if the seat is already occupied by someone else. Kept as the
+  keyboard/click accessibility fallback for the drag-and-drop UI.
+- `DELETE /seating/tables/{tableId}/seats/{seatIndex}?eventId={guid}` — unseats whoever is
+  there; a no-op success if the seat is already empty.
+- `PUT /seating/assignments` (body: `{ eventId, ops: [{ op: "Assign"|"Unassign", guestId,
+  tableId?, seatIndex? }] }`) — the primary write path for the debounced drag-and-drop queue.
+  Ops are guest-centric desired-end-state (safe to replay): `Assign` requires `tableId` and
+  `seatIndex`; `Unassign` only needs `guestId`. Applies every op against the layout then a
+  single save; returns per-op status (`Applied`/`Conflict`/`GuestNotFound`/`TableNotFound`/
+  `SeatIndexOutOfRange`) plus the authoritative layout, so one bad op in a batch doesn't
+  discard the rest. Capped at 200 ops per call.
+
+### Floor-plan areas
+
+Room elements (stage, dance floor, bar, entrance, buffet, cake) and free-form custom areas
+(photo booth, gift table, ...) placed alongside tables on the floor plan.
+
+- `POST /seating/areas` (body: `{ eventId, name, kind, shape, width, height, color?,
+  capacity? }`) — `kind`: `Stage`/`DanceFloor`/`Bar`/`Entrance`/`Buffet`/`Cake`/`Custom`;
+  `shape`: `Rect`/`Round`/`Free`. Created without a position — the client places it on the
+  canvas afterward.
+- `PUT /seating/areas/{areaId}` — updates name/kind/shape/size/color/capacity.
+- `DELETE /seating/areas/{areaId}?eventId={guid}` — removes an area.
+- `PATCH /seating/areas/{areaId}/position` — moves/rotates one area (single fallback).
+- `PATCH /seating/areas/positions` — batch move for a debounced drag flush, mirroring the
+  table-position batch. Per-area `Applied`/`AreaNotFound` status.
+
+All Seating endpoints return `404` for an unknown/deleted/other-tenant event, table, or area,
+and `400` (`problem+json` validation errors) for malformed input. No guest PII beyond a
+guest's existing name (already visible via `GET /guests`) is introduced by this sub-module;
+seat-assignment logs record IDs only.
+
 ## Configuration
 
 The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
