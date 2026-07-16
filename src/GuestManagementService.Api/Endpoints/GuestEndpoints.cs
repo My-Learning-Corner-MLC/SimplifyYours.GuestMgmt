@@ -81,20 +81,33 @@ public static class GuestEndpoints
 
     private static async Task<IResult> ListGuestsAsync(
         Guid eventId,
+        int? pageNumber,
+        int? pageSize,
+        string? search,
+        string? sortBy,
+        string? sortDirection,
         HttpContext httpContext,
         ISender sender,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await sender.Send(new ListGuestsQuery(eventId), cancellationToken);
+            var result = await sender.Send(
+                new ListGuestsQuery(eventId, pageNumber, pageSize, search, sortBy, sortDirection),
+                cancellationToken);
 
             return result.Status switch
             {
                 ListGuestsStatus.Found => Results.Ok(
                     new ListGuestsResponse(
                         eventId,
-                        result.Guests.Select(ToListItem).ToList())),
+                        result.Guests.Select(ToListItem).ToList(),
+                        result.PageNumber,
+                        result.PageSize,
+                        result.TotalCount,
+                        result.TotalPages,
+                        result.HasPreviousPage,
+                        result.HasNextPage)),
                 ListGuestsStatus.EventNotFound => ApiErrorResults.NotFound(
                     "The event was not found. It may have been deleted or the id may be incorrect.",
                     httpContext),

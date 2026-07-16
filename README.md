@@ -142,8 +142,6 @@ Response body:
 
 The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
 
-The guest endpoints are called directly from the Angular SPA, so CORS must allow the SPA origin. Configure `Cors:AllowedOrigins` (a string array); it defaults to `http://localhost:4200` for local development.
-
 For design-time EF migration commands, set `ConnectionStrings__GuestManagementServiceDb` to a local non-production PostgreSQL connection string.
 
 Protected endpoints also require:

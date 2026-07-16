@@ -34,13 +34,62 @@ public sealed class ListGuestsQueryHandler(
             return ListGuestsResult.EventNotFound();
         }
 
-        var guests = await guestRepository.ListByEventAsync(request.EventId, cancellationToken);
+        var options = new GuestListQueryOptions(
+            request.EventId,
+            currentUser.TenantId,
+            request.PageNumber ?? ListGuestsQueryDefaults.PageNumber,
+            request.PageSize ?? ListGuestsQueryDefaults.PageSize,
+            NormalizeOptionalText(request.Search),
+            ResolveSortBy(request.SortBy),
+            ResolveSortDirection(request.SortDirection));
+
+        var page = await guestRepository.ListAsync(options, cancellationToken);
+        var totalPages = page.TotalCount == 0
+            ? 0
+            : (int)Math.Ceiling(page.TotalCount / (double)page.PageSize);
+
+        var guests = page.Items.Select(GuestDetails.From).ToList();
 
         logger.LogInformation(
-            "Guest list returned {GuestCount} guests for event {EventId}.",
+            "Guest list returned {ReturnedCount} of {TotalCount} guests for event {EventId}. PageNumber: {PageNumber}. PageSize: {PageSize}.",
             guests.Count,
-            request.EventId);
+            page.TotalCount,
+            request.EventId,
+            page.PageNumber,
+            page.PageSize);
 
-        return ListGuestsResult.Found(guests.Select(GuestDetails.From).ToList());
+        return ListGuestsResult.Found(
+            guests,
+            page.PageNumber,
+            page.PageSize,
+            page.TotalCount,
+            totalPages,
+            page.PageNumber > 1,
+            page.PageNumber < totalPages);
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static GuestSortField ResolveSortBy(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? GuestSortField.CreatedAt
+            : value.Trim().ToLowerInvariant() switch
+            {
+                "name" => GuestSortField.Name,
+                "email" => GuestSortField.Email,
+                "createdat" => GuestSortField.CreatedAt,
+                _ => throw new ArgumentException("Sort field must be one of: name, email, createdAt.", nameof(value))
+            };
+    }
+
+    private static SortDirection ResolveSortDirection(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? SortDirection.Asc
+            : Enum.Parse<SortDirection>(value, ignoreCase: true);
     }
 }
