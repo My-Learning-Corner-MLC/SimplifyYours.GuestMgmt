@@ -8,22 +8,14 @@ public sealed class AddGuestCommandValidatorTests
 
     private static AddGuestCommand ValidCommand(
         string? email = "ada@example.com",
-        string? phone = "+15551234567",
-        string? relationship = "Family",
-        string? side = "Bride",
-        int? plusOnes = 1,
-        string? dietaryNotes = "Pescatarian")
+        string? phone = "+15551234567")
         => new(
             Guid.NewGuid(),
             "Ada",
             "Lovelace",
             phone,
             email,
-            "preferNotToSay",
-            relationship,
-            side,
-            plusOnes,
-            dietaryNotes);
+            "preferNotToSay");
 
     [Fact]
     public void Validate_WhenAllFieldsAreValid_Passes()
@@ -34,13 +26,9 @@ public sealed class AddGuestCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenOptionalWeddingFieldsAreAbsent_Passes()
+    public void Validate_WhenEventMetadataIsAbsent_Passes()
     {
-        var result = validator.Validate(ValidCommand(
-            relationship: null,
-            side: null,
-            plusOnes: null,
-            dietaryNotes: null));
+        var result = validator.Validate(ValidCommand());
 
         Assert.True(result.IsValid);
     }
@@ -81,37 +69,5 @@ public sealed class AddGuestCommandValidatorTests
             "unknown"));
 
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.Gender));
-    }
-
-    [Fact]
-    public void Validate_WhenRelationshipIsUnknown_Fails()
-    {
-        var result = validator.Validate(ValidCommand(relationship: "Nemesis"));
-
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.Relationship));
-    }
-
-    [Fact]
-    public void Validate_WhenSideIsUnknown_Fails()
-    {
-        var result = validator.Validate(ValidCommand(side: "Neither"));
-
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.Side));
-    }
-
-    [Fact]
-    public void Validate_WhenPlusOnesIsNegative_Fails()
-    {
-        var result = validator.Validate(ValidCommand(plusOnes: -1));
-
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.PlusOnes));
-    }
-
-    [Fact]
-    public void Validate_WhenDietaryNotesTooLong_Fails()
-    {
-        var result = validator.Validate(ValidCommand(dietaryNotes: new string('a', 501)));
-
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.DietaryNotes));
     }
 }

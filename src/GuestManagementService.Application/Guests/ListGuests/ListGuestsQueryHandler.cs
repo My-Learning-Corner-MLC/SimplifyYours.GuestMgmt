@@ -9,6 +9,7 @@ namespace GuestManagementService.Application.Guests.ListGuests;
 public sealed class ListGuestsQueryHandler(
     IEventReferenceRepository eventReferenceRepository,
     IGuestRepository guestRepository,
+    IGuestMetadataMapperFactory metadataMapperFactory,
     ILogger<ListGuestsQueryHandler> logger)
     : IRequestHandler<ListGuestsQuery, ListGuestsResult>
 {
@@ -48,7 +49,8 @@ public sealed class ListGuestsQueryHandler(
             ? 0
             : (int)Math.Ceiling(page.TotalCount / (double)page.PageSize);
 
-        var guests = page.Items.Select(GuestDetails.From).ToList();
+        var metadataMapper = metadataMapperFactory.Resolve(eventReference.EventType);
+        var guests = page.Items.Select(guest => GuestDetails.From(guest, metadataMapper)).ToList();
 
         logger.LogInformation(
             "Guest list returned {ReturnedCount} of {TotalCount} guests for event {EventId}. PageNumber: {PageNumber}. PageSize: {PageSize}.",

@@ -53,10 +53,7 @@ public static class GuestEndpoints
                     request.GuestInfo.PhoneNumber,
                     request.GuestInfo.EmailAddress,
                     request.GuestInfo.Gender,
-                    request.GuestInfo.Relationship,
-                    request.GuestInfo.Side,
-                    request.GuestInfo.PlusOnes,
-                    request.GuestInfo.DietaryNotes),
+                    request.GuestInfo.EventMetadata),
                 cancellationToken);
 
             return result.Status switch
@@ -143,10 +140,7 @@ public static class GuestEndpoints
                 guest.PhoneNumber,
                 guest.EmailAddress,
                 guest.Gender,
-                guest.Relationship,
-                guest.Side,
-                guest.PlusOnes,
-                guest.DietaryNotes),
+                guest.EventMetadata),
             guest.CreatedAt);
 
         return Results.Created($"/guest/{response.Id}", response);
@@ -161,10 +155,7 @@ public static class GuestEndpoints
             guest.PhoneNumber,
             guest.EmailAddress,
             guest.Gender,
-            guest.Relationship,
-            guest.Side,
-            guest.PlusOnes,
-            guest.DietaryNotes,
+            guest.EventMetadata,
             guest.CreatedAt);
     }
 

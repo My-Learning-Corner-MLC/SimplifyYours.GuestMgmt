@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GuestManagementService.Application.Authorization;
 using MediatR;
 
@@ -10,7 +11,4 @@ public sealed record AddGuestCommand(
     string? PhoneNumber,
     string? EmailAddress,
     string? Gender,
-    string? Relationship = null,
-    string? Side = null,
-    int? PlusOnes = null,
-    string? DietaryNotes = null) : BaseCommand, IRequest<AddGuestResult>;
+    JsonElement? EventMetadata = null) : BaseCommand, IRequest<AddGuestResult>;

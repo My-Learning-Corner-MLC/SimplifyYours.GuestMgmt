@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FluentValidation;
+using FluentValidation.Results;
+using GuestManagementService.Contracts.Guests.Wedding;
 using GuestManagementService.Domain.Guests.Wedding;
 
 namespace GuestManagementService.Application.Guests.Wedding;
@@ -7,15 +10,82 @@ namespace GuestManagementService.Application.Guests.Wedding;
 /// <summary>
 /// Parses request values into a <see cref="WeddingGuestMetadata"/> and (de)serializes it to the
 /// JSON stored in the guest's opaque metadata column. Wedding-specific — other event types get
-/// their own mapper under their own folder.
+/// their own mapper under their own folder and are registered alongside this one in DI; see
+/// <see cref="IGuestMetadataMapperFactory"/>.
 /// </summary>
-public static class WeddingGuestMetadataMapper
+public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRequest> validator)
+    : IGuestMetadataMapper
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    public string EventType => "wedding";
+
+    public string? Serialize(JsonElement? eventMetadata)
+    {
+        if (eventMetadata is null || eventMetadata.Value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        WeddingGuestMetadataRequest? request;
+        try
+        {
+            request = eventMetadata.Value.Deserialize<WeddingGuestMetadataRequest>(SerializerOptions);
+        }
+        catch (JsonException)
+        {
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure(
+                    "EventMetadata",
+                    "Event metadata must be a valid object for a wedding guest."),
+            });
+        }
+
+        if (request is null)
+        {
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure(
+                    "EventMetadata",
+                    "Event metadata must be a valid object for a wedding guest."),
+            });
+        }
+
+        var validationResult = validator.Validate(request);
+        if (!validationResult.IsValid)
+        {
+            var failures = validationResult.Errors
+                .Select(error => new ValidationFailure($"EventMetadata.{error.PropertyName}", error.ErrorMessage))
+                .ToList();
+            throw new ValidationException(failures);
+        }
+
+        TryParseRelationship(request.Relationship, out var relationship);
+        TryParseSide(request.Side, out var side);
+        var metadata = WeddingGuestMetadata.Create(relationship, side, request.PlusOnes ?? 0, request.DietaryNotes);
+        return Serialize(metadata);
+    }
+
+    public object? ToContract(string? storedMetadata)
+    {
+        var metadata = Deserialize(storedMetadata);
+
+        if (metadata is { Relationship: null, Side: null, PlusOnes: 0, DietaryNotes: null })
+        {
+            return null;
+        }
+
+        return new WeddingGuestMetadataResponse(
+            ToContractValue(metadata.Relationship),
+            ToContractValue(metadata.Side),
+            metadata.PlusOnes,
+            metadata.DietaryNotes);
+    }
 
     public static bool TryParseRelationship(string? value, out Relationship? relationship)
     {

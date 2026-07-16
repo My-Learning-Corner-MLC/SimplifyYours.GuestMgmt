@@ -2,9 +2,7 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Guests;
-using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Domain.Guests;
-using GuestManagementService.Domain.Guests.Wedding;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +11,7 @@ namespace GuestManagementService.Application.Guests.AddGuest;
 public sealed class AddGuestCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IGuestRepository guestRepository,
+    IGuestMetadataMapperFactory metadataMapperFactory,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     ILogger<AddGuestCommandHandler> logger)
@@ -65,14 +64,10 @@ public sealed class AddGuestCommandHandler(
             gender = Gender.PreferNotToSay;
         }
 
-        WeddingGuestMetadataMapper.TryParseRelationship(request.Relationship, out var relationship);
-        WeddingGuestMetadataMapper.TryParseSide(request.Side, out var side);
-        var metadata = WeddingGuestMetadata.Create(
-            relationship,
-            side,
-            request.PlusOnes ?? 0,
-            request.DietaryNotes);
-        var metadataJson = WeddingGuestMetadataMapper.Serialize(metadata);
+        // Which metadata shape applies depends on the event's actual type; Resolve throws when
+        // no mapper is registered for it — guests cannot be added to unsupported event types.
+        var metadataMapper = metadataMapperFactory.Resolve(eventReference.EventType);
+        var metadataJson = metadataMapper.Serialize(request.EventMetadata);
 
         var now = timeProvider.GetUtcNow();
         var guest = Guest.Create(
@@ -97,6 +92,6 @@ public sealed class AddGuestCommandHandler(
             guest.Id,
             guest.EventId);
 
-        return AddGuestResult.Created(GuestDetails.From(guest));
+        return AddGuestResult.Created(GuestDetails.From(guest, metadataMapper));
     }
 }

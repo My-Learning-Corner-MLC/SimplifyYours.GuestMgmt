@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace GuestManagementService.Contracts.Guests;
 
 public sealed record GuestInfoRequest(
@@ -6,7 +8,6 @@ public sealed record GuestInfoRequest(
     string? PhoneNumber,
     string? EmailAddress,
     string? Gender,
-    string? Relationship = null,
-    string? Side = null,
-    int? PlusOnes = null,
-    string? DietaryNotes = null);
+    // Shape depends on the event's type (e.g. wedding: relationship, side, plusOnes,
+    // dietaryNotes) — see IGuestMetadataMapper. Null/omitted for event types with no metadata.
+    JsonElement? EventMetadata = null);

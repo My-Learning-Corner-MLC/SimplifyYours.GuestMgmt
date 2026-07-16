@@ -43,10 +43,12 @@ Request body:
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
     "gender": "preferNotToSay",
-    "relationship": "Family",
-    "side": "Bride",
-    "plusOnes": 1,
-    "dietaryNotes": "Pescatarian"
+    "eventMetadata": {
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian"
+    }
   }
 }
 ```
@@ -60,15 +62,33 @@ Request options:
 - `guestInfo.phoneNumber`: required.
 - `guestInfo.emailAddress`: required, valid email.
 - `guestInfo.gender`: optional, one of `male`, `female`, `other`, or `preferNotToSay`; defaults to `preferNotToSay`.
-- `guestInfo.relationship`: optional, one of `Family`, `Friend`, `Colleague` (wedding metadata).
-- `guestInfo.side`: optional, one of `Bride`, `Groom` (wedding metadata).
-- `guestInfo.plusOnes`: optional integer `0`–`20`; defaults to `0`.
-- `guestInfo.dietaryNotes`: optional, up to 500 characters.
+- `guestInfo.eventMetadata`: optional object whose shape depends on the event's actual type — see
+  below. Omitted/ignored for event types with no registered mapper.
 
-The event-type-specific fields (`relationship`, `side`, `plusOnes`, `dietaryNotes`) are persisted
-together in a single opaque `metadata` `jsonb` column, not as dedicated columns. This feature
-implements the **wedding** shape; other event types add their own metadata shape with no schema
-change. Wedding-specific code lives under `Guests/Wedding/` in Domain and Application.
+For a **wedding** event (`eventMetadata`):
+
+- `relationship`: optional, one of `Family`, `Friend`, `Colleague`.
+- `side`: optional, one of `Bride`, `Groom`.
+- `plusOnes`: optional integer `0`–`20`; defaults to `0`.
+- `dietaryNotes`: optional, up to 500 characters.
+
+For a **birthday** event (`eventMetadata`):
+
+- `plusOnes`: optional integer `0`–`20`; defaults to `0`.
+- `dietaryNotes`: optional, up to 500 characters.
+
+`eventMetadata` is validated against the event's **actual** type, looked up from the local event
+reference table (synced from Event Service via Kafka) — the server never assumes a shape. The
+resulting value is persisted in a single opaque `metadata` `jsonb` column on the guest, not as
+dedicated columns, so each event type can carry its own attributes with no schema change.
+
+Adding a new event type means:
+
+1. A metadata value object under `Guests/<EventType>/` in Domain (e.g. `BirthdayGuestMetadata`).
+2. A response contract under `Guests/<EventType>/` in Contracts (e.g. `BirthdayGuestMetadataResponse`).
+3. An `IGuestMetadataMapper` implementation under `Guests/<EventType>/` in Application, registered
+   in `GuestManagementService.Application.DependencyInjection` — `GuestMetadataMapperFactory`
+   discovers it automatically via `IEnumerable<IGuestMetadataMapper>`; no factory changes needed.
 
 Responses:
 
@@ -90,10 +110,12 @@ Response body:
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
     "gender": "preferNotToSay",
-    "relationship": "Family",
-    "side": "Bride",
-    "plusOnes": 1,
-    "dietaryNotes": "Pescatarian"
+    "eventMetadata": {
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian"
+    }
   },
   "createdAt": "2026-05-24T00:00:00+00:00"
 }
@@ -143,10 +165,12 @@ Response body:
       "phoneNumber": "+15551234567",
       "emailAddress": "ada@example.com",
       "gender": "preferNotToSay",
-      "relationship": "Family",
-      "side": "Bride",
-      "plusOnes": 1,
-      "dietaryNotes": "Pescatarian",
+      "eventMetadata": {
+        "relationship": "Family",
+        "side": "Bride",
+        "plusOnes": 1,
+        "dietaryNotes": "Pescatarian"
+      },
       "createdAt": "2026-05-24T00:00:00+00:00"
     }
   ],
