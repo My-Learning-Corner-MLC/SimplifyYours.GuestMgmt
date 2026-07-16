@@ -20,8 +20,8 @@ public static class GuestEndpoints
             .RequireAuthorization(Permissions.GuestsAdd);
 
         endpoints
-            .MapGet("/guests", ListGuestsAsync)
-            .WithName("ListGuests")
+            .MapPost("/guests/query", ListGuestsAsync)
+            .WithName("QueryGuests")
             .WithTags("Guests")
             .RequireAuthorization(Permissions.GuestsView);
 
@@ -80,12 +80,7 @@ public static class GuestEndpoints
     }
 
     private static async Task<IResult> ListGuestsAsync(
-        Guid eventId,
-        int? pageNumber,
-        int? pageSize,
-        string? search,
-        string? sortBy,
-        string? sortDirection,
+        QueryGuestsRequest request,
         HttpContext httpContext,
         ISender sender,
         CancellationToken cancellationToken)
@@ -93,14 +88,20 @@ public static class GuestEndpoints
         try
         {
             var result = await sender.Send(
-                new ListGuestsQuery(eventId, pageNumber, pageSize, search, sortBy, sortDirection),
+                new ListGuestsQuery(
+                    request.EventId,
+                    request.PageNumber,
+                    request.PageSize,
+                    request.Search,
+                    request.SortBy,
+                    request.SortDirection),
                 cancellationToken);
 
             return result.Status switch
             {
                 ListGuestsStatus.Found => Results.Ok(
-                    new ListGuestsResponse(
-                        eventId,
+                    new QueryGuestsResponse(
+                        request.EventId,
                         result.Guests.Select(ToListItem).ToList(),
                         result.PageNumber,
                         result.PageSize,

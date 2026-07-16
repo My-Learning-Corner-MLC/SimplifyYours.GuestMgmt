@@ -20,3 +20,17 @@ Content-Type: application/json
 }
 
 ###
+
+POST {{GuestManagementService.Api_HostAddress}}/guests/query
+Content-Type: application/json
+
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "pageNumber": 1,
+  "pageSize": 20,
+  "search": "ada",
+  "sortBy": "name",
+  "sortDirection": "asc"
+}
+
+###

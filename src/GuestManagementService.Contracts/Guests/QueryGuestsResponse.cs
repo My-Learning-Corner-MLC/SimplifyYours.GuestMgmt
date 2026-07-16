@@ -1,8 +1,8 @@
 namespace GuestManagementService.Contracts.Guests;
 
-public sealed record ListGuestsResponse(
+public sealed record QueryGuestsResponse(
     Guid EventId,
-    IReadOnlyList<GuestListItemResponse> Guests,
+    IReadOnlyCollection<GuestListItemResponse> Items,
     int PageNumber,
     int PageSize,
     int TotalCount,

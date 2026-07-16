@@ -99,19 +99,34 @@ Response body:
 }
 ```
 
-### `GET /guests?eventId={guid}`
+### `POST /guests/query`
 
-Returns the guests of one owned event, ordered by `createdAt` ascending. Requires the
-`guests.view` permission. The service enforces owner/tenant scoping via the local event reference
-table (same rule as `POST /guest`).
+Returns a page of one owned event's guests. Requires the `guests.view` permission. The service
+enforces owner/tenant scoping via the local event reference table (same rule as `POST /guest`).
 
-Query options:
+Request body:
+
+```json
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "pageNumber": 1,
+  "pageSize": 20,
+  "search": "ada",
+  "sortBy": "name",
+  "sortDirection": "asc"
+}
+```
 
 - `eventId`: required.
+- `pageNumber`: optional, defaults to 1.
+- `pageSize`: optional, defaults to 20, max 100.
+- `search`: optional, matches first name, last name, or email.
+- `sortBy`: optional, one of `name`, `email`, `createdAt` (default).
+- `sortDirection`: optional, one of `asc` (default), `desc`.
 
 Responses:
 
-- `200 OK` with the guest list (empty array when the event has no guests).
+- `200 OK` with a page of guests (empty array when the event has no matching guests).
 - `401 Unauthorized` when the bearer token is missing or invalid.
 - `404 Not Found` when the event reference does not exist, is deleted, or belongs to another user.
 
@@ -120,7 +135,7 @@ Response body:
 ```json
 {
   "eventId": "00000000-0000-0000-0000-000000000000",
-  "guests": [
+  "items": [
     {
       "id": "00000000-0000-0000-0000-000000000000",
       "firstName": "Ada",
@@ -134,7 +149,13 @@ Response body:
       "dietaryNotes": "Pescatarian",
       "createdAt": "2026-05-24T00:00:00+00:00"
     }
-  ]
+  ],
+  "pageNumber": 1,
+  "pageSize": 20,
+  "totalCount": 1,
+  "totalPages": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
 }
 ```
 

@@ -53,7 +53,7 @@ public class EndpointPolicyMappingTests
         var endpoints = MapGuestEndpointsForTest();
 
         var endpoint = endpoints.SingleOrDefault(e =>
-            string.Equals(e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName, "ListGuests", StringComparison.Ordinal));
+            string.Equals(e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName, "QueryGuests", StringComparison.Ordinal));
 
         Assert.NotNull(endpoint);
 
