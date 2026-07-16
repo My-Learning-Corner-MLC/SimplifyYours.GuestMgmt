@@ -13,7 +13,8 @@ namespace GuestManagementService.Application.Guests.Wedding;
 /// their own mapper under their own folder and are registered alongside this one in DI; see
 /// <see cref="IGuestMetadataMapperFactory"/>.
 /// </summary>
-public sealed class WeddingGuestMetadataMapper : IGuestMetadataMapper
+public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRequest> validator)
+    : IGuestMetadataMapper
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -30,10 +31,10 @@ public sealed class WeddingGuestMetadataMapper : IGuestMetadataMapper
             return null;
         }
 
-        RequestDocument? request;
+        WeddingGuestMetadataRequest? request;
         try
         {
-            request = eventMetadata.Value.Deserialize<RequestDocument>(SerializerOptions);
+            request = eventMetadata.Value.Deserialize<WeddingGuestMetadataRequest>(SerializerOptions);
         }
         catch (JsonException)
         {
@@ -45,45 +46,20 @@ public sealed class WeddingGuestMetadataMapper : IGuestMetadataMapper
             });
         }
 
-        request ??= new RequestDocument(null, null, null, null);
+        request ??= new WeddingGuestMetadataRequest(null, null, null, null);
 
-        var failures = new List<ValidationFailure>();
-
-        if (!TryParseRelationship(request.Relationship, out var relationship))
+        var validationResult = validator.Validate(request);
+        if (!validationResult.IsValid)
         {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.Relationship",
-                "Relationship must be one of: Family, Friend, Colleague."));
-        }
-
-        if (!TryParseSide(request.Side, out var side))
-        {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.Side",
-                "Side must be one of: Bride, Groom."));
-        }
-
-        var plusOnes = request.PlusOnes ?? 0;
-        if (plusOnes is < 0 or > 20)
-        {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.PlusOnes",
-                "Plus-ones must be between 0 and 20."));
-        }
-
-        if (request.DietaryNotes is { Length: > 500 })
-        {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.DietaryNotes",
-                "Dietary notes must be 500 characters or fewer."));
-        }
-
-        if (failures.Count > 0)
-        {
+            var failures = validationResult.Errors
+                .Select(error => new ValidationFailure($"EventMetadata.{error.PropertyName}", error.ErrorMessage))
+                .ToList();
             throw new ValidationException(failures);
         }
 
-        var metadata = WeddingGuestMetadata.Create(relationship, side, plusOnes, request.DietaryNotes);
+        TryParseRelationship(request.Relationship, out var relationship);
+        TryParseSide(request.Side, out var side);
+        var metadata = WeddingGuestMetadata.Create(relationship, side, request.PlusOnes ?? 0, request.DietaryNotes);
         return Serialize(metadata);
     }
 
@@ -202,11 +178,5 @@ public sealed class WeddingGuestMetadataMapper : IGuestMetadataMapper
         string? Relationship,
         string? Side,
         int PlusOnes,
-        string? DietaryNotes);
-
-    private sealed record RequestDocument(
-        string? Relationship,
-        string? Side,
-        int? PlusOnes,
         string? DietaryNotes);
 }

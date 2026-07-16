@@ -55,8 +55,8 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
                 eventId,
                 "Launch",
                 DateTimeOffset.UtcNow,
-                TenantId,
-                "wedding"),
+                "wedding",
+                TenantId),
             CancellationToken.None);
 
         Assert.True(applied);
@@ -67,7 +67,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
     public async Task Handle_WhenEventDeleted_MarksReferenceDeleted()
     {
         var eventId = Guid.NewGuid();
-        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow);
+        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow, "wedding");
         var references = new Mock<IEventReferenceRepository>();
         references
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
@@ -80,6 +80,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
             eventId,
             "Launch",
             DateTimeOffset.UtcNow,
+            "wedding",
             TenantId),
             CancellationToken.None);
 
@@ -95,8 +96,8 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
             Guid.NewGuid(),
             "Launch",
             DateTimeOffset.UtcNow,
-            TenantId,
-            "wedding");
+            "wedding",
+            TenantId);
     }
 
     private static ApplyEventReferenceEventCommandHandler CreateHandler(

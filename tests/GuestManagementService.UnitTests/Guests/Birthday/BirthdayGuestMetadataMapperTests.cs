@@ -8,7 +8,7 @@ namespace GuestManagementService.UnitTests.Guests.Birthday;
 
 public sealed class BirthdayGuestMetadataMapperTests
 {
-    private readonly BirthdayGuestMetadataMapper mapper = new();
+    private readonly BirthdayGuestMetadataMapper mapper = new(new BirthdayGuestMetadataRequestValidator());
 
     [Fact]
     public void EventType_IsBirthday()

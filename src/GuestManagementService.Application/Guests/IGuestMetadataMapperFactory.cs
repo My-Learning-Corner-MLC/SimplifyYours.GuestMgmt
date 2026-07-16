@@ -3,8 +3,9 @@ namespace GuestManagementService.Application.Guests;
 public interface IGuestMetadataMapperFactory
 {
     /// <summary>
-    /// Resolves the mapper registered for <paramref name="eventType"/>, or <c>null</c> when the
-    /// event type is unknown/unset — callers must not assume a mapper exists.
+    /// Resolves the mapper registered for <paramref name="eventType"/>. Throws
+    /// <see cref="FluentValidation.ValidationException"/> when no mapper is registered for it —
+    /// callers can rely on the result always being present.
     /// </summary>
-    IGuestMetadataMapper? Resolve(string? eventType);
+    IGuestMetadataMapper Resolve(string eventType);
 }

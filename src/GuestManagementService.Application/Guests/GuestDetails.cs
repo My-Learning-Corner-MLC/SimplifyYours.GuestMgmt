@@ -15,11 +15,10 @@ public sealed record GuestDetails(
 {
     /// <summary>
     /// Maps a stored guest to its contract-facing details. <paramref name="metadataMapper"/> is
-    /// the mapper resolved for the guest's event type (<c>null</c> when the event type is
-    /// unrecognized or unset) — <see cref="Guest.Metadata"/> is only interpreted when a mapper is
-    /// available, never assumed.
+    /// the mapper resolved for the guest's event type — see
+    /// <see cref="IGuestMetadataMapperFactory"/>.
     /// </summary>
-    public static GuestDetails From(Guest guest, IGuestMetadataMapper? metadataMapper)
+    public static GuestDetails From(Guest guest, IGuestMetadataMapper metadataMapper)
     {
         return new GuestDetails(
             guest.Id,
@@ -29,7 +28,7 @@ public sealed record GuestDetails(
             guest.PhoneNumber,
             guest.EmailAddress,
             GuestParsing.ToContractValue(guest.Gender),
-            metadataMapper?.ToContract(guest.Metadata),
+            metadataMapper.ToContract(guest.Metadata),
             guest.CreatedAt);
     }
 }

@@ -8,7 +8,7 @@ namespace GuestManagementService.UnitTests.Guests.Wedding;
 
 public sealed class WeddingGuestMetadataMapperTests
 {
-    private readonly WeddingGuestMetadataMapper mapper = new();
+    private readonly WeddingGuestMetadataMapper mapper = new(new WeddingGuestMetadataRequestValidator());
 
     [Fact]
     public void EventType_IsWedding()

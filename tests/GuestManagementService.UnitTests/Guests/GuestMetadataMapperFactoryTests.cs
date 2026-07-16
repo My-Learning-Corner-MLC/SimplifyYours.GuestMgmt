@@ -1,3 +1,4 @@
+using FluentValidation;
 using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Guests.Birthday;
 using GuestManagementService.Application.Guests.Wedding;
@@ -7,7 +8,7 @@ namespace GuestManagementService.UnitTests.Guests;
 public sealed class GuestMetadataMapperFactoryTests
 {
     private readonly GuestMetadataMapperFactory factory = new(
-        [new WeddingGuestMetadataMapper(), new BirthdayGuestMetadataMapper()]);
+        [new WeddingGuestMetadataMapper(new WeddingGuestMetadataRequestValidator()), new BirthdayGuestMetadataMapper(new BirthdayGuestMetadataRequestValidator())]);
 
     [Theory]
     [InlineData("wedding", typeof(WeddingGuestMetadataMapper))]
@@ -22,11 +23,13 @@ public sealed class GuestMetadataMapperFactoryTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("")]
     [InlineData("launch")]
-    public void Resolve_WhenEventTypeIsUnknownOrEmpty_ReturnsNull(string? eventType)
+    [InlineData("dinner")]
+    public void Resolve_WhenEventTypeIsUnsupported_ThrowsValidationException(string eventType)
     {
-        Assert.Null(factory.Resolve(eventType));
+        var exception = Assert.Throws<ValidationException>(() => factory.Resolve(eventType));
+
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventType");
     }
 }

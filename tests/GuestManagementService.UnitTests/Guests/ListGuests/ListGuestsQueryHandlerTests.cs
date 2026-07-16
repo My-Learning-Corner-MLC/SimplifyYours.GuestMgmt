@@ -18,7 +18,7 @@ public sealed class ListGuestsQueryHandlerTests
     private static readonly CurrentUser TestUser = new(Guid.NewGuid(), TestTenantId);
     private static readonly DateTimeOffset Now = new(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
     private static readonly IGuestMetadataMapperFactory MetadataMapperFactory =
-        new GuestMetadataMapperFactory([new WeddingGuestMetadataMapper()]);
+        new GuestMetadataMapperFactory([new WeddingGuestMetadataMapper(new WeddingGuestMetadataRequestValidator())]);
 
     [Fact]
     public async Task Handle_WhenEventOwned_ReturnsMappedGuests()
@@ -126,7 +126,7 @@ public sealed class ListGuestsQueryHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Wedding", Guid.NewGuid(), Now));
+            .ReturnsAsync(EventReference.Active(eventId, "Wedding", Guid.NewGuid(), Now, "wedding"));
         var guests = new Mock<IGuestRepository>();
         var handler = new ListGuestsQueryHandler(
             eventReferences.Object,

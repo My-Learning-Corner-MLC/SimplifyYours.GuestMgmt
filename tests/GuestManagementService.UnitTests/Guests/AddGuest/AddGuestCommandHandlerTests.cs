@@ -6,7 +6,9 @@ using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Guests.AddGuest;
+using GuestManagementService.Application.Guests.Birthday;
 using GuestManagementService.Application.Guests.Wedding;
+using GuestManagementService.Contracts.Guests.Birthday;
 using GuestManagementService.Contracts.Guests.Wedding;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
@@ -21,7 +23,11 @@ public sealed class AddGuestCommandHandlerTests
     private static readonly Guid TestTenantId = Guid.Parse("c2b9d3a1-4d4b-4b1a-9bc4-2f5a7e8d9f01");
     private static readonly CurrentUser TestUser = new(TestUserId, TestTenantId);
     private static readonly IGuestMetadataMapperFactory MetadataMapperFactory =
-        new GuestMetadataMapperFactory([new WeddingGuestMetadataMapper()]);
+        new GuestMetadataMapperFactory(
+        [
+            new WeddingGuestMetadataMapper(new WeddingGuestMetadataRequestValidator()),
+            new BirthdayGuestMetadataMapper(new BirthdayGuestMetadataRequestValidator())
+        ]);
 
     [Fact]
     public async Task Handle_WhenEventExists_CreatesGuest()
@@ -32,7 +38,7 @@ public sealed class AddGuestCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Launch", TestTenantId, now, "launch"));
+            .ReturnsAsync(EventReference.Active(eventId, "Launch", TestTenantId, now, "wedding"));
         var guests = new Mock<IGuestRepository>();
         guests
             .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
@@ -127,7 +133,7 @@ public sealed class AddGuestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenWeddingFieldsProvidedForNonWeddingEvent_IgnoresMetadata()
+    public async Task Handle_WhenWeddingFieldsProvidedForBirthdayEvent_KeepsOnlySharedFields()
     {
         var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
         var eventId = Guid.NewGuid();
@@ -135,7 +141,7 @@ public sealed class AddGuestCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Launch", TestTenantId, now, "launch"));
+            .ReturnsAsync(EventReference.Active(eventId, "Mateo's birthday", TestTenantId, now, "birthday"));
         var guests = new Mock<IGuestRepository>();
         guests
             .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
@@ -152,6 +158,8 @@ public sealed class AddGuestCommandHandlerTests
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
 
+        // BirthdayGuestMetadataMapper only recognizes plusOnes/dietaryNotes — relationship/side
+        // are silently dropped rather than rejected, since they're not part of its request shape.
         var result = await handler.Handle(new AddGuestCommand(
             eventId,
             "Ada",
@@ -167,9 +175,51 @@ public sealed class AddGuestCommandHandlerTests
 
         Assert.Equal(AddGuestStatus.Created, result.Status);
         Assert.NotNull(result.Guest);
-        Assert.Null(result.Guest.EventMetadata);
+        var metadata = Assert.IsType<BirthdayGuestMetadataResponse>(result.Guest.EventMetadata);
+        Assert.Equal(2, metadata.PlusOnes);
+        Assert.Equal("Pescatarian", metadata.DietaryNotes);
         Assert.NotNull(savedGuest);
-        Assert.Null(savedGuest.Metadata);
+        Assert.NotNull(savedGuest.Metadata);
+        Assert.DoesNotContain("relationship", savedGuest.Metadata);
+    }
+
+    [Fact]
+    public async Task Handle_WhenEventTypeHasNoRegisteredMapper_ThrowsValidationException()
+    {
+        var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
+        var eventId = Guid.NewGuid();
+        var eventReferences = new Mock<IEventReferenceRepository>();
+        eventReferences
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EventReference.Active(eventId, "Product Launch", TestTenantId, now, "launch"));
+        var guests = new Mock<IGuestRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var timeProvider = new Mock<TimeProvider>();
+        timeProvider.Setup(provider => provider.GetUtcNow()).Returns(now);
+        var handler = new AddGuestCommandHandler(
+            eventReferences.Object,
+            guests.Object,
+            MetadataMapperFactory,
+            unitOfWork.Object,
+            timeProvider.Object,
+            NullLogger<AddGuestCommandHandler>.Instance);
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => handler.Handle(new AddGuestCommand(
+            eventId,
+            "Ada",
+            "Tester",
+            "+1 555 123 4567",
+            "test@example.com",
+            null)
+        {
+            CurrentUser = TestUser
+        },
+            CancellationToken.None));
+
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventType");
+        guests.Verify(
+            repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -288,7 +338,7 @@ public sealed class AddGuestCommandHandlerTests
     {
         var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
         var eventId = Guid.NewGuid();
-        var deletedReference = EventReference.Active(eventId, "Launch", TestTenantId, now);
+        var deletedReference = EventReference.Active(eventId, "Launch", TestTenantId, now, "wedding");
         deletedReference.MarkDeleted(now);
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
@@ -373,7 +423,7 @@ public sealed class AddGuestCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), now));
+            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), now, "wedding"));
         var guests = new Mock<IGuestRepository>();
         var handler = CreateHandler(eventReferences.Object, guests.Object);
 
@@ -425,7 +475,7 @@ public sealed class AddGuestCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, now));
+            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, now, "wedding"));
         var guests = new Mock<IGuestRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var timeProvider = new Mock<TimeProvider>();

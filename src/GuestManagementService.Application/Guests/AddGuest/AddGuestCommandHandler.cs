@@ -64,10 +64,10 @@ public sealed class AddGuestCommandHandler(
             gender = Gender.PreferNotToSay;
         }
 
-        // Which metadata shape applies depends on the event's actual type — no mapper is
-        // available (and no metadata is stored) for an event type nothing is registered for yet.
+        // Which metadata shape applies depends on the event's actual type; Resolve throws when
+        // no mapper is registered for it — guests cannot be added to unsupported event types.
         var metadataMapper = metadataMapperFactory.Resolve(eventReference.EventType);
-        var metadataJson = metadataMapper?.Serialize(request.EventMetadata);
+        var metadataJson = metadataMapper.Serialize(request.EventMetadata);
 
         var now = timeProvider.GetUtcNow();
         var guest = Guest.Create(

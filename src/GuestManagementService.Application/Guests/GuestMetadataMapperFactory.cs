@@ -1,3 +1,6 @@
+using FluentValidation;
+using FluentValidation.Results;
+
 namespace GuestManagementService.Application.Guests;
 
 /// <summary>
@@ -5,17 +8,30 @@ namespace GuestManagementService.Application.Guests;
 /// discovered from DI registration (<c>IEnumerable&lt;IGuestMetadataMapper&gt;</c>) — adding a
 /// new event type's mapper only requires registering it; this factory needs no changes.
 /// </summary>
-public sealed class GuestMetadataMapperFactory(IEnumerable<IGuestMetadataMapper> mappers)
-    : IGuestMetadataMapperFactory
+public sealed class GuestMetadataMapperFactory : IGuestMetadataMapperFactory
 {
-    public IGuestMetadataMapper? Resolve(string? eventType)
+    private readonly IReadOnlyDictionary<string, IGuestMetadataMapper> mappersByEventType;
+
+    public GuestMetadataMapperFactory(IEnumerable<IGuestMetadataMapper> mappers)
     {
-        if (string.IsNullOrWhiteSpace(eventType))
+        mappersByEventType = mappers.ToDictionary(
+            mapper => mapper.EventType,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    public IGuestMetadataMapper Resolve(string eventType)
+    {
+        if (!string.IsNullOrWhiteSpace(eventType) && mappersByEventType.TryGetValue(eventType, out var mapper))
         {
-            return null;
+            return mapper;
         }
 
-        return mappers.FirstOrDefault(
-            mapper => string.Equals(mapper.EventType, eventType, StringComparison.OrdinalIgnoreCase));
+        var supportedEventTypes = string.Join(", ", mappersByEventType.Keys.OrderBy(type => type));
+        throw new ValidationException(new[]
+        {
+            new ValidationFailure(
+                "EventType",
+                $"Guests cannot be added to '{eventType}' events yet. Supported event types: {supportedEventTypes}."),
+        });
     }
 }

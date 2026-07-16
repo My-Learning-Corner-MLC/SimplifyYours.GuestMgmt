@@ -37,6 +37,7 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
 
         builder.Property(reference => reference.EventType)
             .HasColumnName("event_type")
-            .HasMaxLength(50);
+            .HasMaxLength(50)
+            .IsRequired();
     }
 }

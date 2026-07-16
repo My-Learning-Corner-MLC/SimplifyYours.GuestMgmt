@@ -12,7 +12,7 @@ public sealed class EventReference
         Guid tenantId,
         bool isDeleted,
         DateTimeOffset lastSyncedAt,
-        string? eventType)
+        string eventType)
     {
         EventId = eventId;
         EventName = NormalizeEventName(eventName);
@@ -32,18 +32,17 @@ public sealed class EventReference
 
     public DateTimeOffset LastSyncedAt { get; private set; }
 
-    // The event's business type (wedding, birthday, ...), synced from event-service. Null for
-    // references synced before this field existed, until the next EventCreated/EventUpdated
-    // message backfills it. Guest metadata mapping is resolved from this value — see
-    // Application/Guests/IGuestMetadataMapper.
-    public string? EventType { get; private set; }
+    // The event's business type (wedding, birthday, ...), synced from event-service. Always
+    // present — event-service includes it on every EventCreated/EventUpdated message. Guest
+    // metadata mapping is resolved from this value — see Application/Guests/IGuestMetadataMapper.
+    public string EventType { get; private set; } = string.Empty;
 
     public static EventReference Active(
         Guid eventId,
         string eventName,
         Guid tenantId,
         DateTimeOffset syncedAt,
-        string? eventType = null)
+        string eventType)
     {
         if (eventId == Guid.Empty)
         {
@@ -58,7 +57,7 @@ public sealed class EventReference
         return new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
     }
 
-    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt, string? eventType = null)
+    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt, string eventType)
     {
         if (tenantId == Guid.Empty)
         {
@@ -88,8 +87,13 @@ public sealed class EventReference
         return eventName.Trim();
     }
 
-    private static string? NormalizeEventType(string? eventType)
+    private static string NormalizeEventType(string eventType)
     {
-        return string.IsNullOrWhiteSpace(eventType) ? null : eventType.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(eventType))
+        {
+            throw new ArgumentException("Event type is required.", nameof(eventType));
+        }
+
+        return eventType.Trim().ToLowerInvariant();
     }
 }

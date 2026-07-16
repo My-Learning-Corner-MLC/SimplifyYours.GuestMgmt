@@ -4,4 +4,4 @@ public sealed record EventReferencePayload(
     Guid EventId,
     string EventName,
     Guid TenantId,
-    string? EventType = null);
+    string EventType);

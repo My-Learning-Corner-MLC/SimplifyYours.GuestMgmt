@@ -15,7 +15,8 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                 table: "event_references",
                 type: "character varying(50)",
                 maxLength: 50,
-                nullable: true);
+                nullable: false,
+                defaultValue: "");
         }
 
         /// <inheritdoc />

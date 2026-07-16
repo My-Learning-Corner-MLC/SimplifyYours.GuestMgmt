@@ -41,9 +41,5 @@ public sealed class AddGuestCommandValidator : AbstractValidator<AddGuestCommand
             .Must(value => string.IsNullOrWhiteSpace(value)
                 || SupportedGenderValues.Contains(value.Trim(), StringComparer.OrdinalIgnoreCase))
             .WithMessage("Gender must be one of: male, female, other, preferNotToSay.");
-
-        // EventMetadata's shape depends on the event's type, which is only known after looking up
-        // the EventReference — that validation happens in AddGuestCommandHandler via the resolved
-        // IGuestMetadataMapper, not here.
     }
 }

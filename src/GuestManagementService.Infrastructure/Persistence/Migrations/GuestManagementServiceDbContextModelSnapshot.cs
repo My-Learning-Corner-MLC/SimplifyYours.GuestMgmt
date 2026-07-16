@@ -35,6 +35,7 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnName("event_name");
 
                     b.Property<string>("EventType")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("event_type");

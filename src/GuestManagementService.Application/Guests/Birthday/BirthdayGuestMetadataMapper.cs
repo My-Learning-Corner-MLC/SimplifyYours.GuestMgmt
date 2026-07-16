@@ -12,7 +12,8 @@ namespace GuestManagementService.Application.Guests.Birthday;
 /// JSON stored in the guest's opaque metadata column. Birthday-specific — narrower than wedding:
 /// just plus-ones and dietary notes, no relationship/side.
 /// </summary>
-public sealed class BirthdayGuestMetadataMapper : IGuestMetadataMapper
+public sealed class BirthdayGuestMetadataMapper(IValidator<BirthdayGuestMetadataRequest> validator)
+    : IGuestMetadataMapper
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -29,10 +30,10 @@ public sealed class BirthdayGuestMetadataMapper : IGuestMetadataMapper
             return null;
         }
 
-        RequestDocument? request;
+        BirthdayGuestMetadataRequest? request;
         try
         {
-            request = eventMetadata.Value.Deserialize<RequestDocument>(SerializerOptions);
+            request = eventMetadata.Value.Deserialize<BirthdayGuestMetadataRequest>(SerializerOptions);
         }
         catch (JsonException)
         {
@@ -44,31 +45,18 @@ public sealed class BirthdayGuestMetadataMapper : IGuestMetadataMapper
             });
         }
 
-        request ??= new RequestDocument(null, null);
+        request ??= new BirthdayGuestMetadataRequest(null, null);
 
-        var failures = new List<ValidationFailure>();
-
-        var plusOnes = request.PlusOnes ?? 0;
-        if (plusOnes is < 0 or > 20)
+        var validationResult = validator.Validate(request);
+        if (!validationResult.IsValid)
         {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.PlusOnes",
-                "Plus-ones must be between 0 and 20."));
-        }
-
-        if (request.DietaryNotes is { Length: > 500 })
-        {
-            failures.Add(new ValidationFailure(
-                "EventMetadata.DietaryNotes",
-                "Dietary notes must be 500 characters or fewer."));
-        }
-
-        if (failures.Count > 0)
-        {
+            var failures = validationResult.Errors
+                .Select(error => new ValidationFailure($"EventMetadata.{error.PropertyName}", error.ErrorMessage))
+                .ToList();
             throw new ValidationException(failures);
         }
 
-        var metadata = BirthdayGuestMetadata.Create(plusOnes, request.DietaryNotes);
+        var metadata = BirthdayGuestMetadata.Create(request.PlusOnes ?? 0, request.DietaryNotes);
         return Serialize(metadata);
     }
 
@@ -126,6 +114,4 @@ public sealed class BirthdayGuestMetadataMapper : IGuestMetadataMapper
     }
 
     private sealed record MetadataDocument(int PlusOnes, string? DietaryNotes);
-
-    private sealed record RequestDocument(int? PlusOnes, string? DietaryNotes);
 }
