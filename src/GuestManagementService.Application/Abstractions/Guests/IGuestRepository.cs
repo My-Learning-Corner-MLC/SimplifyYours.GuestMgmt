@@ -6,6 +6,8 @@ public interface IGuestRepository
 {
     Task AddAsync(Guest guest, CancellationToken cancellationToken);
 
+    Task<GuestListPage> ListAsync(GuestListQueryOptions options, CancellationToken cancellationToken);
+
     Task<bool> ExistsByPhoneAsync(
         Guid eventId,
         string normalizedPhoneNumber,

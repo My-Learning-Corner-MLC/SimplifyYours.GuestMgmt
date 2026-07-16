@@ -19,6 +19,7 @@ public sealed class GuestTests
             " ADA@EXAMPLE.COM ",
             "ada@example.com",
             Gender.PreferNotToSay,
+            "  {\"relationship\":\"Family\"}  ",
             now);
 
         Assert.Equal("Ada", guest.FirstName);
@@ -28,7 +29,28 @@ public sealed class GuestTests
         Assert.Equal("ADA@EXAMPLE.COM", guest.EmailAddress);
         Assert.Equal("ada@example.com", guest.NormalizedEmailAddress);
         Assert.Equal(Gender.PreferNotToSay, guest.Gender);
+        Assert.Equal("{\"relationship\":\"Family\"}", guest.Metadata);
         Assert.Equal(now, guest.CreatedAt);
+    }
+
+    [Fact]
+    public void Create_WhenMetadataIsWhitespace_StoresNullMetadata()
+    {
+        var guest = Guest.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Ada",
+            "Lovelace",
+            "+15551234567",
+            "+15551234567",
+            "ada@example.com",
+            "ada@example.com",
+            Gender.PreferNotToSay,
+            "   ",
+            DateTimeOffset.UtcNow);
+
+        Assert.Null(guest.Metadata);
     }
 
     [Fact]
@@ -45,6 +67,7 @@ public sealed class GuestTests
             " ",
             null,
             Gender.Other,
+            null,
             DateTimeOffset.UtcNow);
 
         Assert.Null(guest.EmailAddress);

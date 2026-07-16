@@ -17,6 +17,7 @@ public sealed class Guest
         string? emailAddress,
         string? normalizedEmailAddress,
         Gender gender,
+        string? metadata,
         DateTimeOffset createdAt)
     {
         Id = id;
@@ -29,6 +30,7 @@ public sealed class Guest
         EmailAddress = emailAddress;
         NormalizedEmailAddress = normalizedEmailAddress;
         Gender = gender;
+        Metadata = metadata;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
     }
@@ -53,6 +55,11 @@ public sealed class Guest
 
     public Gender Gender { get; private set; } = Gender.PreferNotToSay;
 
+    // Event-type-specific attributes serialized as JSON (jsonb column). Each event type
+    // has its own metadata shape (e.g. wedding: relationship, side, plus-ones, dietary notes);
+    // the domain keeps it opaque so new event types can add fields without a schema change.
+    public string? Metadata { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -68,6 +75,7 @@ public sealed class Guest
         string? emailAddress,
         string? normalizedEmailAddress,
         Gender gender,
+        string? metadata,
         DateTimeOffset createdAt)
     {
         if (id == Guid.Empty)
@@ -91,6 +99,7 @@ public sealed class Guest
         var comparablePhone = NormalizeRequiredText(normalizedPhoneNumber, nameof(normalizedPhoneNumber));
         var cleanEmail = NormalizeOptionalText(emailAddress);
         var comparableEmail = NormalizeOptionalText(normalizedEmailAddress);
+        var cleanMetadata = NormalizeOptionalText(metadata);
 
         return new Guest(
             id,
@@ -103,6 +112,7 @@ public sealed class Guest
             cleanEmail,
             comparableEmail,
             gender,
+            cleanMetadata,
             createdAt.ToUniversalTime());
     }
 

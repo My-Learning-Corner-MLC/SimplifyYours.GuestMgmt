@@ -5,4 +5,8 @@ public sealed record GuestInfoRequest(
     string? LastName,
     string? PhoneNumber,
     string? EmailAddress,
-    string? Gender);
+    string? Gender,
+    string? Relationship = null,
+    string? Side = null,
+    int? PlusOnes = null,
+    string? DietaryNotes = null);

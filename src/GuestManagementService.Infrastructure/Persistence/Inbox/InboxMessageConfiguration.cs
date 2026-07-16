@@ -9,7 +9,8 @@ internal sealed class InboxMessageConfiguration : IEntityTypeConfiguration<Inbox
     {
         builder.ToTable("inbox_messages");
 
-        builder.HasKey(message => message.Id);
+        builder.HasKey(message => message.Id)
+            .HasName("pk_inbox_messages");
 
         builder.Property(message => message.Id)
             .HasColumnName("id")

@@ -1,7 +1,9 @@
 using FluentValidation;
 using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
+using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Guests.AddGuest;
+using GuestManagementService.Application.Guests.ListGuests;
 using GuestManagementService.Contracts.Guests;
 using MediatR;
 
@@ -16,6 +18,12 @@ public static class GuestEndpoints
             .WithName("AddGuest")
             .WithTags("Guests")
             .RequireAuthorization(Permissions.GuestsAdd);
+
+        endpoints
+            .MapPost("/guests/query", ListGuestsAsync)
+            .WithName("QueryGuests")
+            .WithTags("Guests")
+            .RequireAuthorization(Permissions.GuestsView);
 
         return endpoints;
     }
@@ -44,7 +52,11 @@ public static class GuestEndpoints
                     request.GuestInfo.LastName,
                     request.GuestInfo.PhoneNumber,
                     request.GuestInfo.EmailAddress,
-                    request.GuestInfo.Gender),
+                    request.GuestInfo.Gender,
+                    request.GuestInfo.Relationship,
+                    request.GuestInfo.Side,
+                    request.GuestInfo.PlusOnes,
+                    request.GuestInfo.DietaryNotes),
                 cancellationToken);
 
             return result.Status switch
@@ -67,8 +79,52 @@ public static class GuestEndpoints
         }
     }
 
+    private static async Task<IResult> ListGuestsAsync(
+        QueryGuestsRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(
+                new ListGuestsQuery(
+                    request.EventId,
+                    request.PageNumber,
+                    request.PageSize,
+                    request.Search,
+                    request.SortBy,
+                    request.SortDirection),
+                cancellationToken);
+
+            return result.Status switch
+            {
+                ListGuestsStatus.Found => Results.Ok(
+                    new QueryGuestsResponse(
+                        request.EventId,
+                        result.Guests.Select(ToListItem).ToList(),
+                        result.PageNumber,
+                        result.PageSize,
+                        result.TotalCount,
+                        result.TotalPages,
+                        result.HasPreviousPage,
+                        result.HasNextPage)),
+                ListGuestsStatus.EventNotFound => ApiErrorResults.NotFound(
+                    "The event was not found. It may have been deleted or the id may be incorrect.",
+                    httpContext),
+                _ => ApiErrorResults.Unexpected(
+                    "The guest list could not be loaded right now. Please try again later.",
+                    httpContext)
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
     private static IResult Created(
-        Application.Guests.GuestDetails guest,
+        GuestDetails guest,
         ILoggerFactory loggerFactory)
     {
         loggerFactory
@@ -86,10 +142,30 @@ public static class GuestEndpoints
                 guest.LastName,
                 guest.PhoneNumber,
                 guest.EmailAddress,
-                guest.Gender),
+                guest.Gender,
+                guest.Relationship,
+                guest.Side,
+                guest.PlusOnes,
+                guest.DietaryNotes),
             guest.CreatedAt);
 
         return Results.Created($"/guest/{response.Id}", response);
+    }
+
+    private static GuestListItemResponse ToListItem(GuestDetails guest)
+    {
+        return new GuestListItemResponse(
+            guest.Id,
+            guest.FirstName,
+            guest.LastName,
+            guest.PhoneNumber,
+            guest.EmailAddress,
+            guest.Gender,
+            guest.Relationship,
+            guest.Side,
+            guest.PlusOnes,
+            guest.DietaryNotes,
+            guest.CreatedAt);
     }
 
     private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)

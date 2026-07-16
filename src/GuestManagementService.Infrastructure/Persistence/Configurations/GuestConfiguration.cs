@@ -10,7 +10,8 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
     {
         builder.ToTable("guests");
 
-        builder.HasKey(guest => guest.Id);
+        builder.HasKey(guest => guest.Id)
+            .HasName("pk_guests");
 
         builder.Property(guest => guest.Id)
             .HasColumnName("id")
@@ -57,6 +58,10 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired();
+
+        builder.Property(guest => guest.Metadata)
+            .HasColumnName("metadata")
+            .HasColumnType("jsonb");
 
         builder.Property(guest => guest.CreatedAt)
             .HasColumnName("created_at")

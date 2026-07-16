@@ -10,7 +10,8 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
     {
         builder.ToTable("event_references");
 
-        builder.HasKey(reference => reference.EventId);
+        builder.HasKey(reference => reference.EventId)
+            .HasName("pk_event_references");
 
         builder.Property(reference => reference.EventId)
             .HasColumnName("event_id")

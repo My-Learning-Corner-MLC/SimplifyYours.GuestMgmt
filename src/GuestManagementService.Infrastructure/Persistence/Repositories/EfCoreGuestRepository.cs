@@ -1,4 +1,5 @@
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Guests.ListGuests;
 using GuestManagementService.Domain.Guests;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,20 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
     public async Task AddAsync(Guest guest, CancellationToken cancellationToken)
     {
         await dbContext.Guests.AddAsync(guest, cancellationToken);
+    }
+
+    public async Task<GuestListPage> ListAsync(GuestListQueryOptions options, CancellationToken cancellationToken)
+    {
+        var query = GuestListQueryBuilder.ApplyFilters(dbContext.Guests.AsNoTracking(), options);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await GuestListQueryBuilder.ApplySorting(query, options.SortBy, options.SortDirection)
+            .Skip((options.PageNumber - 1) * options.PageSize)
+            .Take(options.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new GuestListPage(items, options.PageNumber, options.PageSize, totalCount);
     }
 
     public async Task<bool> ExistsByPhoneAsync(

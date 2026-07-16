@@ -66,6 +66,59 @@ public sealed class AddGuestCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenWeddingFieldsProvided_PersistsMetadataAndReturnsThem()
+    {
+        var now = new DateTimeOffset(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
+        var eventId = Guid.NewGuid();
+        Guest? savedGuest = null;
+        var eventReferences = new Mock<IEventReferenceRepository>();
+        eventReferences
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EventReference.Active(eventId, "Whitmore Wedding", TestTenantId, now));
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
+            .Callback<Guest, CancellationToken>((guest, _) => savedGuest = guest)
+            .Returns(Task.CompletedTask);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var timeProvider = new Mock<TimeProvider>();
+        timeProvider.Setup(provider => provider.GetUtcNow()).Returns(now);
+        var handler = new AddGuestCommandHandler(
+            eventReferences.Object,
+            guests.Object,
+            unitOfWork.Object,
+            timeProvider.Object,
+            NullLogger<AddGuestCommandHandler>.Instance);
+
+        var result = await handler.Handle(new AddGuestCommand(
+            eventId,
+            "Ada",
+            "Tester",
+            "+1 555 123 4567",
+            "test@example.com",
+            null,
+            "Family",
+            "Bride",
+            2,
+            "Pescatarian")
+            {
+                CurrentUser = TestUser
+            },
+            CancellationToken.None);
+
+        Assert.Equal(AddGuestStatus.Created, result.Status);
+        Assert.NotNull(result.Guest);
+        Assert.Equal("Family", result.Guest.Relationship);
+        Assert.Equal("Bride", result.Guest.Side);
+        Assert.Equal(2, result.Guest.PlusOnes);
+        Assert.Equal("Pescatarian", result.Guest.DietaryNotes);
+        Assert.NotNull(savedGuest);
+        Assert.NotNull(savedGuest.Metadata);
+        Assert.Contains("\"relationship\":\"Family\"", savedGuest.Metadata);
+        Assert.Contains("\"side\":\"Bride\"", savedGuest.Metadata);
+    }
+
+    [Fact]
     public async Task Handle_WhenEventIsMissing_ReturnsEventNotFound()
     {
         var eventReferences = new Mock<IEventReferenceRepository>();

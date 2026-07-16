@@ -42,7 +42,28 @@ public class EndpointPolicyMappingTests
             .Where(policy => policy is not null)
             .ToArray();
 
-        Assert.Equal(new[] { Permissions.GuestsAdd }, policies);
+        Assert.Equal(
+            new[] { Permissions.GuestsAdd, Permissions.GuestsView }.OrderBy(p => p),
+            policies.OrderBy(p => p));
+    }
+
+    [Fact]
+    public void ListGuests_endpoint_requires_guests_view_policy()
+    {
+        var endpoints = MapGuestEndpointsForTest();
+
+        var endpoint = endpoints.SingleOrDefault(e =>
+            string.Equals(e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName, "QueryGuests", StringComparison.Ordinal));
+
+        Assert.NotNull(endpoint);
+
+        var policies = endpoint!.Metadata
+            .GetOrderedMetadata<IAuthorizeData>()
+            .Select(data => data.Policy)
+            .Where(policy => policy is not null)
+            .ToArray();
+
+        Assert.Contains(Permissions.GuestsView, policies);
     }
 
     // AddInfrastructure is intentionally omitted so the test does not attempt

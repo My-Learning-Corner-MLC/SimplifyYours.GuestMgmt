@@ -1,0 +1,2313 @@
+{
+  "GuestManagementService.Domain.dll": {
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Domain/Guests/Guest.cs": {
+      "GuestManagementService.Domain.Guests.Guest": {
+        "System.Guid GuestManagementService.Domain.Guests.Guest::get_Id()": {
+          "Lines": {
+            "38": 20
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Domain.Guests.Guest::get_EventId()": {
+          "Lines": {
+            "40": 20
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Domain.Guests.Guest::get_TenantId()": {
+          "Lines": {
+            "42": 10
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_FirstName()": {
+          "Lines": {
+            "44": 25
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_LastName()": {
+          "Lines": {
+            "46": 25
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_PhoneNumber()": {
+          "Lines": {
+            "48": 25
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_NormalizedPhoneNumber()": {
+          "Lines": {
+            "50": 20
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_EmailAddress()": {
+          "Lines": {
+            "52": 17
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_NormalizedEmailAddress()": {
+          "Lines": {
+            "54": 12
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Domain.Guests.Gender GuestManagementService.Domain.Guests.Guest::get_Gender()": {
+          "Lines": {
+            "56": 25
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::get_Metadata()": {
+          "Lines": {
+            "61": 20
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset GuestManagementService.Domain.Guests.Guest::get_CreatedAt()": {
+          "Lines": {
+            "63": 16
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset GuestManagementService.Domain.Guests.Guest::get_UpdatedAt()": {
+          "Lines": {
+            "65": 9
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Domain.Guests.Guest GuestManagementService.Domain.Guests.Guest::Create(System.Guid,System.Guid,System.Guid,System.String,System.String,System.String,System.String,System.String,System.String,GuestManagementService.Domain.Guests.Gender,System.String,System.DateTimeOffset)": {
+          "Lines": {
+            "81": 9,
+            "83": 0,
+            "86": 9,
+            "88": 0,
+            "91": 9,
+            "93": 0,
+            "96": 9,
+            "97": 9,
+            "98": 9,
+            "99": 9,
+            "100": 9,
+            "101": 9,
+            "102": 9,
+            "104": 9,
+            "105": 9,
+            "106": 9,
+            "107": 9,
+            "108": 9,
+            "109": 9,
+            "110": 9,
+            "111": 9,
+            "112": 9,
+            "113": 9,
+            "114": 9,
+            "115": 9,
+            "116": 9
+          },
+          "Branches": [
+            {
+              "Line": 81,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 81,
+              "Offset": 11,
+              "EndOffset": 29,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 9
+            },
+            {
+              "Line": 86,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 86,
+              "Offset": 40,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 9
+            },
+            {
+              "Line": 91,
+              "Offset": 69,
+              "EndOffset": 71,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 91,
+              "Offset": 69,
+              "EndOffset": 87,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 9
+            }
+          ]
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::NormalizeRequiredText(System.String,System.String)": {
+          "Lines": {
+            "121": 36,
+            "123": 0,
+            "126": 36
+          },
+          "Branches": [
+            {
+              "Line": 121,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 6,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 36
+            }
+          ]
+        },
+        "System.String GuestManagementService.Domain.Guests.Guest::NormalizeOptionalText(System.String)": {
+          "Lines": {
+            "131": 27
+          },
+          "Branches": [
+            {
+              "Line": 131,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 13
+            },
+            {
+              "Line": 131,
+              "Offset": 6,
+              "EndOffset": 15,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 14
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Domain.Guests.Guest::.ctor()": {
+          "Lines": {
+            "5": 0,
+            "7": 0
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Domain.Guests.Guest::.ctor(System.Guid,System.Guid,System.Guid,System.String,System.String,System.String,System.String,System.String,System.String,GuestManagementService.Domain.Guests.Gender,System.String,System.DateTimeOffset)": {
+          "Lines": {
+            "9": 9,
+            "10": 9,
+            "11": 9,
+            "12": 9,
+            "13": 9,
+            "14": 9,
+            "15": 9,
+            "16": 9,
+            "17": 9,
+            "18": 9,
+            "19": 9,
+            "20": 9,
+            "21": 9,
+            "23": 9,
+            "24": 9,
+            "25": 9,
+            "26": 9,
+            "27": 9,
+            "28": 9,
+            "29": 9,
+            "30": 9,
+            "31": 9,
+            "32": 9,
+            "33": 9,
+            "34": 9,
+            "35": 9,
+            "36": 9
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Domain/Guests/Wedding/WeddingGuestMetadata.cs": {
+      "GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata": {
+        "System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.Relationship> GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::get_Relationship()": {
+          "Lines": {
+            "22": 17
+          },
+          "Branches": []
+        },
+        "System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.GuestSide> GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::get_Side()": {
+          "Lines": {
+            "24": 17
+          },
+          "Branches": []
+        },
+        "System.Int32 GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::get_PlusOnes()": {
+          "Lines": {
+            "26": 17
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::get_DietaryNotes()": {
+          "Lines": {
+            "28": 17
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::Create(System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.Relationship>,System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.GuestSide>,System.Int32,System.String)": {
+          "Lines": {
+            "36": 17,
+            "38": 0,
+            "41": 17,
+            "43": 17
+          },
+          "Branches": [
+            {
+              "Line": 36,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 36,
+              "Offset": 2,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 17
+            },
+            {
+              "Line": 41,
+              "Offset": 26,
+              "EndOffset": 28,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 5
+            },
+            {
+              "Line": 41,
+              "Offset": 26,
+              "EndOffset": 36,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 12
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::.ctor(System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.Relationship>,System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.GuestSide>,System.Int32,System.String)": {
+          "Lines": {
+            "10": 17,
+            "11": 17,
+            "12": 17,
+            "13": 17,
+            "14": 17,
+            "16": 17,
+            "17": 17,
+            "18": 17,
+            "19": 17,
+            "20": 17
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata::.ctor(GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata)": {
+          "Lines": {
+            "8": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Domain/EventReferences/EventReference.cs": {
+      "GuestManagementService.Domain.EventReferences.EventReference": {
+        "System.Guid GuestManagementService.Domain.EventReferences.EventReference::get_EventId()": {
+          "Lines": {
+            "23": 17
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.EventReferences.EventReference::get_EventName()": {
+          "Lines": {
+            "25": 36
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Domain.EventReferences.EventReference::get_TenantId()": {
+          "Lines": {
+            "27": 30
+          },
+          "Branches": []
+        },
+        "System.Boolean GuestManagementService.Domain.EventReferences.EventReference::get_IsDeleted()": {
+          "Lines": {
+            "29": 34
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset GuestManagementService.Domain.EventReferences.EventReference::get_LastSyncedAt()": {
+          "Lines": {
+            "31": 20
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Domain.EventReferences.EventReference GuestManagementService.Domain.EventReferences.EventReference::Active(System.Guid,System.String,System.Guid,System.DateTimeOffset)": {
+          "Lines": {
+            "39": 17,
+            "41": 0,
+            "44": 17,
+            "46": 0,
+            "49": 17
+          },
+          "Branches": [
+            {
+              "Line": 39,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 39,
+              "Offset": 11,
+              "EndOffset": 29,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 17
+            },
+            {
+              "Line": 44,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 44,
+              "Offset": 40,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 17
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Domain.EventReferences.EventReference::MarkActive(System.String,System.Guid,System.DateTimeOffset)": {
+          "Lines": {
+            "54": 1,
+            "56": 0,
+            "59": 1,
+            "60": 1,
+            "61": 1,
+            "62": 1,
+            "63": 1
+          },
+          "Branches": [
+            {
+              "Line": 54,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 54,
+              "Offset": 11,
+              "EndOffset": 29,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Domain.EventReferences.EventReference::MarkDeleted(System.DateTimeOffset)": {
+          "Lines": {
+            "67": 2,
+            "68": 2,
+            "69": 2
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Domain.EventReferences.EventReference::NormalizeEventName(System.String)": {
+          "Lines": {
+            "73": 18,
+            "75": 0,
+            "78": 18
+          },
+          "Branches": [
+            {
+              "Line": 73,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 73,
+              "Offset": 6,
+              "EndOffset": 24,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 18
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Domain.EventReferences.EventReference::.ctor()": {
+          "Lines": {
+            "5": 0,
+            "7": 0
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Domain.EventReferences.EventReference::.ctor(System.Guid,System.String,System.Guid,System.Boolean,System.DateTimeOffset)": {
+          "Lines": {
+            "9": 17,
+            "10": 17,
+            "11": 17,
+            "12": 17,
+            "13": 17,
+            "14": 17,
+            "16": 17,
+            "17": 17,
+            "18": 17,
+            "19": 17,
+            "20": 17,
+            "21": 17
+          },
+          "Branches": []
+        }
+      }
+    }
+  },
+  "GuestManagementService.Application.dll": {
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/DependencyInjection.cs": {
+      "GuestManagementService.Application.DependencyInjection": {
+        "Microsoft.Extensions.DependencyInjection.IServiceCollection GuestManagementService.Application.DependencyInjection::AddApplication(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+          "Lines": {
+            "14": 1,
+            "15": 1,
+            "16": 1,
+            "17": 2,
+            "18": 1,
+            "19": 1,
+            "20": 1,
+            "21": 1,
+            "23": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Ping/GetPingStatusQuery.cs": {
+      "GuestManagementService.Application.Ping.GetPingStatusQuery": {
+        "System.Void GuestManagementService.Application.Ping.GetPingStatusQuery::.ctor(GuestManagementService.Application.Ping.GetPingStatusQuery)": {
+          "Lines": {
+            "6": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Ping/GetPingStatusQueryHandler.cs": {
+      "GuestManagementService.Application.Ping.GetPingStatusQueryHandler": {
+        "System.Threading.Tasks.Task`1<GuestManagementService.Contracts.Ping.PingStatusResponse> GuestManagementService.Application.Ping.GetPingStatusQueryHandler::Handle(GuestManagementService.Application.Ping.GetPingStatusQuery,System.Threading.CancellationToken)": {
+          "Lines": {
+            "18": 1,
+            "19": 1,
+            "21": 1,
+            "22": 1,
+            "23": 1,
+            "25": 1
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Ping.GetPingStatusQueryHandler::.ctor(System.TimeProvider,Microsoft.Extensions.Logging.ILogger`1<GuestManagementService.Application.Ping.GetPingStatusQueryHandler>)": {
+          "Lines": {
+            "7": 2,
+            "8": 2,
+            "9": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/GuestDetails.cs": {
+      "GuestManagementService.Application.Guests.GuestDetails": {
+        "System.Guid GuestManagementService.Application.Guests.GuestDetails::get_Id()": {
+          "Lines": {
+            "7": 0
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Application.Guests.GuestDetails::get_EventId()": {
+          "Lines": {
+            "8": 1
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_FirstName()": {
+          "Lines": {
+            "9": 1
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_LastName()": {
+          "Lines": {
+            "10": 0
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_PhoneNumber()": {
+          "Lines": {
+            "11": 0
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_EmailAddress()": {
+          "Lines": {
+            "12": 1
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_Gender()": {
+          "Lines": {
+            "13": 3
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_Relationship()": {
+          "Lines": {
+            "14": 2
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_Side()": {
+          "Lines": {
+            "15": 2
+          },
+          "Branches": []
+        },
+        "System.Int32 GuestManagementService.Application.Guests.GuestDetails::get_PlusOnes()": {
+          "Lines": {
+            "16": 2
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.GuestDetails::get_DietaryNotes()": {
+          "Lines": {
+            "17": 2
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset GuestManagementService.Application.Guests.GuestDetails::get_CreatedAt()": {
+          "Lines": {
+            "18": 6
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.GuestDetails GuestManagementService.Application.Guests.GuestDetails::From(GuestManagementService.Domain.Guests.Guest)": {
+          "Lines": {
+            "22": 6,
+            "24": 6,
+            "25": 6,
+            "26": 6,
+            "27": 6,
+            "28": 6,
+            "29": 6,
+            "30": 6,
+            "31": 6,
+            "32": 6,
+            "33": 6,
+            "34": 6,
+            "35": 6,
+            "36": 6
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Guests.GuestDetails::.ctor(System.Guid,System.Guid,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.String,System.DateTimeOffset)": {
+          "Lines": {
+            "6": 6
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/GuestNormalization.cs": {
+      "GuestManagementService.Application.Guests.GuestNormalization": {
+        "System.String GuestManagementService.Application.Guests.GuestNormalization::NormalizeEmail(System.String)": {
+          "Lines": {
+            "9": 7,
+            "10": 7,
+            "11": 7
+          },
+          "Branches": [
+            {
+              "Line": 9,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 9,
+              "Offset": 6,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            }
+          ]
+        },
+        "System.String GuestManagementService.Application.Guests.GuestNormalization::NormalizePhone(System.String)": {
+          "Lines": {
+            "16": 16,
+            "18": 458,
+            "20": 213,
+            "22": 176,
+            "23": 176,
+            "26": 37,
+            "28": 16,
+            "32": 16
+          },
+          "Branches": [
+            {
+              "Line": 18,
+              "Offset": 75,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 213
+            },
+            {
+              "Line": 20,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 176
+            },
+            {
+              "Line": 20,
+              "Offset": 31,
+              "EndOffset": 43,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 37
+            },
+            {
+              "Line": 26,
+              "Offset": 46,
+              "EndOffset": 48,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 16
+            },
+            {
+              "Line": 26,
+              "Offset": 54,
+              "EndOffset": 56,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 16
+            },
+            {
+              "Line": 26,
+              "Offset": 46,
+              "EndOffset": 64,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 213
+            },
+            {
+              "Line": 26,
+              "Offset": 54,
+              "EndOffset": 64,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 213
+            },
+            {
+              "Line": 18,
+              "Offset": 75,
+              "EndOffset": 77,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 16
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/GuestParsing.cs": {
+      "GuestManagementService.Application.Guests.GuestParsing": {
+        "System.Boolean GuestManagementService.Application.Guests.GuestParsing::TryParseGender(System.String,GuestManagementService.Domain.Guests.Gender&)": {
+          "Lines": {
+            "9": 5,
+            "11": 2,
+            "12": 2,
+            "15": 3,
+            "17": 3,
+            "19": 1,
+            "20": 1,
+            "23": 2,
+            "25": 1,
+            "26": 1,
+            "29": 1,
+            "31": 0,
+            "32": 0,
+            "35": 1,
+            "37": 0,
+            "38": 0,
+            "41": 1,
+            "42": 1
+          },
+          "Branches": [
+            {
+              "Line": 9,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 2
+            },
+            {
+              "Line": 9,
+              "Offset": 6,
+              "EndOffset": 13,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 17,
+              "Offset": 32,
+              "EndOffset": 34,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 17,
+              "Offset": 32,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 23,
+              "Offset": 51,
+              "EndOffset": 53,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 23,
+              "Offset": 51,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 1
+            },
+            {
+              "Line": 29,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 29,
+              "Offset": 70,
+              "EndOffset": 77,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 89,
+              "EndOffset": 91,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 35,
+              "Offset": 89,
+              "EndOffset": 96,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String GuestManagementService.Application.Guests.GuestParsing::ToContractValue(GuestManagementService.Domain.Guests.Gender)": {
+          "Lines": {
+            "47": 6,
+            "48": 6,
+            "49": 1,
+            "50": 1,
+            "51": 0,
+            "52": 4,
+            "53": 6
+          },
+          "Branches": [
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 30,
+              "Path": 2,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 38,
+              "Path": 3,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 46,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/Wedding/WeddingGuestMetadataMapper.cs": {
+      "GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper": {
+        "System.Boolean GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::TryParseRelationship(System.String,System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.Relationship>&)": {
+          "Lines": {
+            "22": 25,
+            "24": 25,
+            "26": 9,
+            "29": 16,
+            "30": 16,
+            "32": 14,
+            "33": 14,
+            "36": 2
+          },
+          "Branches": [
+            {
+              "Line": 24,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 9
+            },
+            {
+              "Line": 24,
+              "Offset": 13,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 16
+            },
+            {
+              "Line": 29,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 14
+            },
+            {
+              "Line": 29,
+              "Offset": 39,
+              "EndOffset": 41,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 14
+            },
+            {
+              "Line": 29,
+              "Offset": 31,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 29,
+              "Offset": 39,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            }
+          ]
+        },
+        "System.Boolean GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::TryParseSide(System.String,System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.GuestSide>&)": {
+          "Lines": {
+            "41": 21,
+            "43": 21,
+            "45": 6,
+            "48": 15,
+            "49": 15,
+            "51": 13,
+            "52": 13,
+            "55": 2
+          },
+          "Branches": [
+            {
+              "Line": 43,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 6
+            },
+            {
+              "Line": 43,
+              "Offset": 13,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 15
+            },
+            {
+              "Line": 48,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 13
+            },
+            {
+              "Line": 48,
+              "Offset": 39,
+              "EndOffset": 41,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 13
+            },
+            {
+              "Line": 48,
+              "Offset": 31,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 48,
+              "Offset": 39,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            }
+          ]
+        },
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::Serialize(GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata)": {
+          "Lines": {
+            "61": 7,
+            "62": 7,
+            "63": 7,
+            "64": 7,
+            "65": 7,
+            "67": 7,
+            "69": 5,
+            "72": 2
+          },
+          "Branches": [
+            {
+              "Line": 61,
+              "Offset": 15,
+              "EndOffset": 17,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 5
+            },
+            {
+              "Line": 61,
+              "Offset": 15,
+              "EndOffset": 21,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            },
+            {
+              "Line": 61,
+              "Offset": 55,
+              "EndOffset": 57,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 5
+            },
+            {
+              "Line": 61,
+              "Offset": 55,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 67,
+              "Offset": 100,
+              "EndOffset": 102,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 7
+            },
+            {
+              "Line": 67,
+              "Offset": 108,
+              "EndOffset": 110,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 5
+            },
+            {
+              "Line": 67,
+              "Offset": 116,
+              "EndOffset": 118,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 5
+            },
+            {
+              "Line": 67,
+              "Offset": 124,
+              "EndOffset": 126,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 5
+            },
+            {
+              "Line": 67,
+              "Offset": 132,
+              "EndOffset": 134,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 5
+            },
+            {
+              "Line": 67,
+              "Offset": 100,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            },
+            {
+              "Line": 67,
+              "Offset": 108,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 2
+            },
+            {
+              "Line": 67,
+              "Offset": 116,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 2
+            },
+            {
+              "Line": 67,
+              "Offset": 124,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 2
+            },
+            {
+              "Line": 67,
+              "Offset": 132,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 2
+            }
+          ]
+        },
+        "GuestManagementService.Domain.Guests.Wedding.WeddingGuestMetadata GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::Deserialize(System.String)": {
+          "Lines": {
+            "78": 10,
+            "80": 6,
+            "86": 4,
+            "87": 3,
+            "88": 1,
+            "90": 1,
+            "91": 1,
+            "93": 4,
+            "95": 1,
+            "98": 3,
+            "99": 3,
+            "100": 3,
+            "102": 3
+          },
+          "Branches": [
+            {
+              "Line": 78,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 6
+            },
+            {
+              "Line": 78,
+              "Offset": 6,
+              "EndOffset": 36,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 4
+            },
+            {
+              "Line": 93,
+              "Offset": 57,
+              "EndOffset": 59,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 93,
+              "Offset": 57,
+              "EndOffset": 87,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 3
+            },
+            {
+              "Line": 100,
+              "Offset": 122,
+              "EndOffset": 124,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 3
+            },
+            {
+              "Line": 100,
+              "Offset": 122,
+              "EndOffset": 132,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::ToContractValue(System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.Relationship>)": {
+          "Lines": {
+            "107": 6
+          },
+          "Branches": [
+            {
+              "Line": 107,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 107,
+              "Offset": 7,
+              "EndOffset": 11,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            }
+          ]
+        },
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::ToContractValue(System.Nullable`1<GuestManagementService.Domain.Guests.Wedding.GuestSide>)": {
+          "Lines": {
+            "112": 6
+          },
+          "Branches": [
+            {
+              "Line": 112,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 112,
+              "Offset": 7,
+              "EndOffset": 11,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper::.cctor()": {
+          "Lines": {
+            "14": 1,
+            "15": 1,
+            "16": 1,
+            "17": 1,
+            "18": 1
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument": {
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument::get_Relationship()": {
+          "Lines": {
+            "116": 12
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument::get_Side()": {
+          "Lines": {
+            "117": 10
+          },
+          "Branches": []
+        },
+        "System.Int32 GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument::get_PlusOnes()": {
+          "Lines": {
+            "118": 13
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument::get_DietaryNotes()": {
+          "Lines": {
+            "119": 20
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Guests.Wedding.WeddingGuestMetadataMapper/MetadataDocument::.ctor(System.String,System.String,System.Int32,System.String)": {
+          "Lines": {
+            "115": 10
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/ListGuests/ListGuestsQuery.cs": {
+      "GuestManagementService.Application.Guests.ListGuests.ListGuestsQuery": {
+        "System.Guid GuestManagementService.Application.Guests.ListGuests.ListGuestsQuery::get_EventId()": {
+          "Lines": {
+            "6": 18
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/ListGuests/ListGuestsQueryHandler.cs": {
+      "GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryHandler": {
+        "System.Void GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryHandler::.ctor(GuestManagementService.Application.Abstractions.EventReferences.IEventReferenceRepository,GuestManagementService.Application.Abstractions.Guests.IGuestRepository,Microsoft.Extensions.Logging.ILogger`1<GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryHandler>)": {
+          "Lines": {
+            "9": 4,
+            "10": 4,
+            "11": 4,
+            "12": 4
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryHandler/<Handle>d__4": {
+        "System.Void GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryHandler/<Handle>d__4::MoveNext()": {
+          "Lines": {
+            "17": 4,
+            "19": 4,
+            "21": 4,
+            "23": 1,
+            "24": 1,
+            "25": 1,
+            "26": 1,
+            "29": 3,
+            "31": 1,
+            "32": 1,
+            "33": 1,
+            "34": 1,
+            "37": 2,
+            "39": 2,
+            "40": 2,
+            "41": 2,
+            "42": 2,
+            "44": 2,
+            "45": 4
+          },
+          "Branches": [
+            {
+              "Line": 21,
+              "Offset": 159,
+              "EndOffset": 161,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 21,
+              "Offset": 159,
+              "EndOffset": 169,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 21,
+              "Offset": 167,
+              "EndOffset": 169,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 21,
+              "Offset": 167,
+              "EndOffset": 221,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 3
+            },
+            {
+              "Line": 29,
+              "Offset": 243,
+              "EndOffset": 245,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 29,
+              "Offset": 243,
+              "EndOffset": 297,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            },
+            {
+              "Line": 44,
+              "Offset": 479,
+              "EndOffset": 481,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 44,
+              "Offset": 479,
+              "EndOffset": 500,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 2
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/ListGuests/ListGuestsQueryValidator.cs": {
+      "GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryValidator": {
+        "System.Void GuestManagementService.Application.Guests.ListGuests.ListGuestsQueryValidator::.ctor()": {
+          "Lines": {
+            "7": 2,
+            "9": 2,
+            "10": 2,
+            "11": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/ListGuests/ListGuestsResult.cs": {
+      "GuestManagementService.Application.Guests.ListGuests.ListGuestsResult": {
+        "GuestManagementService.Application.Guests.ListGuests.ListGuestsStatus GuestManagementService.Application.Guests.ListGuests.ListGuestsResult::get_Status()": {
+          "Lines": {
+            "6": 4
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IReadOnlyList`1<GuestManagementService.Application.Guests.GuestDetails> GuestManagementService.Application.Guests.ListGuests.ListGuestsResult::get_Guests()": {
+          "Lines": {
+            "7": 6
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.ListGuests.ListGuestsResult GuestManagementService.Application.Guests.ListGuests.ListGuestsResult::Found(System.Collections.Generic.IReadOnlyList`1<GuestManagementService.Application.Guests.GuestDetails>)": {
+          "Lines": {
+            "11": 2
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.ListGuests.ListGuestsResult GuestManagementService.Application.Guests.ListGuests.ListGuestsResult::EventNotFound()": {
+          "Lines": {
+            "16": 2
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Guests.ListGuests.ListGuestsResult::.ctor(GuestManagementService.Application.Guests.ListGuests.ListGuestsStatus,System.Collections.Generic.IReadOnlyList`1<GuestManagementService.Application.Guests.GuestDetails>)": {
+          "Lines": {
+            "5": 4
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/AddGuest/AddGuestCommand.cs": {
+      "GuestManagementService.Application.Guests.AddGuest.AddGuestCommand": {
+        "System.Guid GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_EventId()": {
+          "Lines": {
+            "7": 40
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_FirstName()": {
+          "Lines": {
+            "8": 15
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_LastName()": {
+          "Lines": {
+            "9": 15
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_PhoneNumber()": {
+          "Lines": {
+            "10": 22
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_EmailAddress()": {
+          "Lines": {
+            "11": 22
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_Gender()": {
+          "Lines": {
+            "12": 15
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_Relationship()": {
+          "Lines": {
+            "13": 15
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_Side()": {
+          "Lines": {
+            "14": 15
+          },
+          "Branches": []
+        },
+        "System.Nullable`1<System.Int32> GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_PlusOnes()": {
+          "Lines": {
+            "15": 33
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::get_DietaryNotes()": {
+          "Lines": {
+            "16": 45
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestCommand::.ctor(System.Guid,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Nullable`1<System.Int32>,System.String)": {
+          "Lines": {
+            "6": 22
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/AddGuest/AddGuestCommandHandler.cs": {
+      "GuestManagementService.Application.Guests.AddGuest.AddGuestCommandHandler": {
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestCommandHandler::.ctor(GuestManagementService.Application.Abstractions.EventReferences.IEventReferenceRepository,GuestManagementService.Application.Abstractions.Guests.IGuestRepository,GuestManagementService.Application.Abstractions.Common.IUnitOfWork,System.TimeProvider,Microsoft.Extensions.Logging.ILogger`1<GuestManagementService.Application.Guests.AddGuest.AddGuestCommandHandler>)": {
+          "Lines": {
+            "13": 10,
+            "14": 10,
+            "15": 10,
+            "16": 10,
+            "17": 10,
+            "18": 10
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Guests.AddGuest.AddGuestCommandHandler/<Handle>d__6": {
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestCommandHandler/<Handle>d__6::MoveNext()": {
+          "Lines": {
+            "23": 10,
+            "25": 10,
+            "27": 10,
+            "29": 2,
+            "30": 2,
+            "31": 2,
+            "32": 2,
+            "35": 8,
+            "37": 1,
+            "38": 1,
+            "39": 1,
+            "40": 1,
+            "43": 7,
+            "44": 7,
+            "46": 7,
+            "48": 1,
+            "49": 1,
+            "50": 1,
+            "51": 1,
+            "54": 6,
+            "55": 6,
+            "57": 1,
+            "58": 1,
+            "59": 1,
+            "60": 1,
+            "63": 5,
+            "65": 1,
+            "68": 5,
+            "69": 5,
+            "70": 5,
+            "71": 5,
+            "72": 5,
+            "73": 5,
+            "74": 5,
+            "75": 5,
+            "77": 5,
+            "78": 5,
+            "79": 5,
+            "80": 5,
+            "81": 5,
+            "82": 5,
+            "83": 5,
+            "84": 5,
+            "85": 5,
+            "86": 5,
+            "87": 5,
+            "88": 5,
+            "89": 5,
+            "90": 5,
+            "92": 5,
+            "93": 5,
+            "95": 5,
+            "96": 5,
+            "97": 5,
+            "98": 5,
+            "100": 5,
+            "101": 10
+          },
+          "Branches": [
+            {
+              "Line": 27,
+              "Offset": 175,
+              "EndOffset": 177,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 9
+            },
+            {
+              "Line": 27,
+              "Offset": 175,
+              "EndOffset": 185,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            },
+            {
+              "Line": 27,
+              "Offset": 183,
+              "EndOffset": 185,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 2
+            },
+            {
+              "Line": 27,
+              "Offset": 183,
+              "EndOffset": 237,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 8
+            },
+            {
+              "Line": 35,
+              "Offset": 259,
+              "EndOffset": 261,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 259,
+              "EndOffset": 313,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 7
+            },
+            {
+              "Line": 43,
+              "Offset": 326,
+              "EndOffset": 328,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 43,
+              "Offset": 326,
+              "EndOffset": 334,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 7
+            },
+            {
+              "Line": 46,
+              "Offset": 488,
+              "EndOffset": 490,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 46,
+              "Offset": 488,
+              "EndOffset": 542,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 6
+            },
+            {
+              "Line": 54,
+              "Offset": 555,
+              "EndOffset": 557,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 3
+            },
+            {
+              "Line": 54,
+              "Offset": 555,
+              "EndOffset": 681,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 6
+            },
+            {
+              "Line": 54,
+              "Offset": 683,
+              "EndOffset": 685,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 1
+            },
+            {
+              "Line": 54,
+              "Offset": 683,
+              "EndOffset": 737,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 5
+            },
+            {
+              "Line": 63,
+              "Offset": 755,
+              "EndOffset": 757,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 1
+            },
+            {
+              "Line": 63,
+              "Offset": 755,
+              "EndOffset": 760,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 5
+            },
+            {
+              "Line": 78,
+              "Offset": 898,
+              "EndOffset": 900,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 78,
+              "Offset": 898,
+              "EndOffset": 906,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 5
+            },
+            {
+              "Line": 78,
+              "Offset": 918,
+              "EndOffset": 920,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 0
+            },
+            {
+              "Line": 78,
+              "Offset": 918,
+              "EndOffset": 926,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 5
+            },
+            {
+              "Line": 78,
+              "Offset": 938,
+              "EndOffset": 940,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 0
+            },
+            {
+              "Line": 78,
+              "Offset": 938,
+              "EndOffset": 946,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 5
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/AddGuest/AddGuestCommandValidator.cs": {
+      "GuestManagementService.Application.Guests.AddGuest.AddGuestCommandValidator": {
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestCommandValidator::.ctor()": {
+          "Lines": {
+            "17": 10,
+            "19": 10,
+            "20": 10,
+            "22": 10,
+            "23": 10,
+            "24": 10,
+            "26": 10,
+            "27": 10,
+            "28": 10,
+            "30": 10,
+            "31": 10,
+            "32": 10,
+            "33": 10,
+            "34": 10,
+            "36": 10,
+            "37": 10,
+            "38": 10,
+            "39": 10,
+            "41": 10,
+            "42": 10,
+            "43": 10,
+            "44": 10,
+            "46": 10,
+            "47": 10,
+            "48": 10,
+            "50": 10,
+            "51": 10,
+            "52": 10,
+            "54": 10,
+            "55": 10,
+            "56": 10,
+            "57": 30,
+            "59": 10,
+            "60": 10,
+            "61": 20,
+            "62": 10
+          },
+          "Branches": [
+            {
+              "Line": 33,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 9
+            },
+            {
+              "Line": 33,
+              "Offset": 6,
+              "EndOffset": 23,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 42,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 10
+            },
+            {
+              "Line": 42,
+              "Offset": 6,
+              "EndOffset": 35,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestCommandValidator::.cctor()": {
+          "Lines": {
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "15": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Guests/AddGuest/AddGuestResult.cs": {
+      "GuestManagementService.Application.Guests.AddGuest.AddGuestResult": {
+        "GuestManagementService.Application.Guests.AddGuest.AddGuestStatus GuestManagementService.Application.Guests.AddGuest.AddGuestResult::get_Status()": {
+          "Lines": {
+            "4": 10
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.GuestDetails GuestManagementService.Application.Guests.AddGuest.AddGuestResult::get_Guest()": {
+          "Lines": {
+            "5": 23
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.AddGuest.AddGuestResult GuestManagementService.Application.Guests.AddGuest.AddGuestResult::Created(GuestManagementService.Application.Guests.GuestDetails)": {
+          "Lines": {
+            "9": 5
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.AddGuest.AddGuestResult GuestManagementService.Application.Guests.AddGuest.AddGuestResult::EventNotFound()": {
+          "Lines": {
+            "14": 3
+          },
+          "Branches": []
+        },
+        "GuestManagementService.Application.Guests.AddGuest.AddGuestResult GuestManagementService.Application.Guests.AddGuest.AddGuestResult::Duplicate()": {
+          "Lines": {
+            "19": 2
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Guests.AddGuest.AddGuestResult::.ctor(GuestManagementService.Application.Guests.AddGuest.AddGuestStatus,GuestManagementService.Application.Guests.GuestDetails)": {
+          "Lines": {
+            "3": 10
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/EventReferences/ApplyEventReferenceEvent/ApplyEventReferenceEventCommand.cs": {
+      "GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand": {
+        "System.Guid GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_MessageId()": {
+          "Lines": {
+            "6": 3
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_EventType()": {
+          "Lines": {
+            "7": 4
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_EventId()": {
+          "Lines": {
+            "8": 6
+          },
+          "Branches": []
+        },
+        "System.String GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_EventName()": {
+          "Lines": {
+            "9": 2
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_OccurredAt()": {
+          "Lines": {
+            "10": 3
+          },
+          "Branches": []
+        },
+        "System.Guid GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::get_TenantId()": {
+          "Lines": {
+            "11": 4
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommand::.ctor(System.Guid,System.String,System.Guid,System.String,System.DateTimeOffset,System.Guid)": {
+          "Lines": {
+            "5": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/EventReferences/ApplyEventReferenceEvent/ApplyEventReferenceEventCommandHandler.cs": {
+      "GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommandHandler": {
+        "System.Void GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommandHandler::.ctor(GuestManagementService.Application.Abstractions.EventReferences.IEventReferenceRepository,GuestManagementService.Application.Abstractions.Common.IUnitOfWork,Microsoft.Extensions.Logging.ILogger`1<GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommandHandler>)": {
+          "Lines": {
+            "9": 2,
+            "10": 2,
+            "11": 2,
+            "12": 2
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommandHandler/<Handle>d__4": {
+        "System.Void GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent.ApplyEventReferenceEventCommandHandler/<Handle>d__4::MoveNext()": {
+          "Lines": {
+            "19": 2,
+            "21": 2,
+            "23": 1,
+            "24": 1,
+            "25": 1,
+            "26": 1,
+            "27": 1,
+            "28": 1,
+            "29": 1,
+            "30": 1,
+            "31": 1,
+            "32": 1,
+            "35": 2,
+            "37": 1,
+            "38": 1,
+            "39": 1,
+            "40": 1,
+            "41": 1,
+            "45": 1,
+            "46": 1,
+            "47": 1,
+            "48": 1,
+            "49": 1,
+            "50": 1,
+            "53": 2,
+            "54": 2,
+            "56": 2,
+            "57": 2
+          },
+          "Branches": [
+            {
+              "Line": 21,
+              "Offset": 150,
+              "EndOffset": 152,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 21,
+              "Offset": 150,
+              "EndOffset": 276,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            },
+            {
+              "Line": 35,
+              "Offset": 298,
+              "EndOffset": 300,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 298,
+              "EndOffset": 379,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 1
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Common/Validation/ValidationBehavior.cs": {
+      "GuestManagementService.Application.Common.Validation.ValidationBehavior`2": {
+        "System.Void GuestManagementService.Application.Common.Validation.ValidationBehavior`2::.ctor(System.Collections.Generic.IEnumerable`1<FluentValidation.IValidator`1<TRequest>>)": {
+          "Lines": {
+            "6": 4,
+            "7": 4
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<>c": {
+        "System.Collections.Generic.IEnumerable`1<FluentValidation.Results.ValidationFailure> GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<>c::<Handle>b__2_0(FluentValidation.Results.ValidationResult)": {
+          "Lines": {
+            "26": 2
+          },
+          "Branches": []
+        },
+        "System.Boolean GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<>c::<Handle>b__2_1(FluentValidation.Results.ValidationFailure)": {
+          "Lines": {
+            "27": 1
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<>c__DisplayClass2_0": {
+        "System.Threading.Tasks.Task`1<FluentValidation.Results.ValidationResult> GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<>c__DisplayClass2_0::<Handle>b__2(FluentValidation.IValidator`1<TRequest>)": {
+          "Lines": {
+            "23": 4
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<Handle>d__2": {
+        "System.Void GuestManagementService.Application.Common.Validation.ValidationBehavior`2/<Handle>d__2::MoveNext()": {
+          "Lines": {
+            "16": 3,
+            "18": 1,
+            "21": 2,
+            "22": 2,
+            "25": 2,
+            "28": 2,
+            "30": 2,
+            "32": 1,
+            "35": 1,
+            "36": 2
+          },
+          "Branches": [
+            {
+              "Line": 16,
+              "Offset": 61,
+              "EndOffset": 63,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 16,
+              "Offset": 61,
+              "EndOffset": 168,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            },
+            {
+              "Line": 25,
+              "Offset": 307,
+              "EndOffset": 309,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 25,
+              "Offset": 307,
+              "EndOffset": 332,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 25,
+              "Offset": 343,
+              "EndOffset": 345,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 25,
+              "Offset": 343,
+              "EndOffset": 368,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            },
+            {
+              "Line": 30,
+              "Offset": 388,
+              "EndOffset": 390,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 30,
+              "Offset": 388,
+              "EndOffset": 398,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 1
+            }
+          ]
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Common/Logging/RequestLoggingBehavior.cs": {
+      "GuestManagementService.Application.Common.Logging.RequestLoggingBehavior`2": {
+        "System.Void GuestManagementService.Application.Common.Logging.RequestLoggingBehavior`2::.ctor(Microsoft.Extensions.Logging.ILogger`1<GuestManagementService.Application.Common.Logging.RequestLoggingBehavior`2<TRequest,TResponse>>)": {
+          "Lines": {
+            "7": 2,
+            "8": 2
+          },
+          "Branches": []
+        }
+      },
+      "GuestManagementService.Application.Common.Logging.RequestLoggingBehavior`2/<Handle>d__2": {
+        "System.Void GuestManagementService.Application.Common.Logging.RequestLoggingBehavior`2/<Handle>d__2::MoveNext()": {
+          "Lines": {
+            "17": 2,
+            "18": 2,
+            "20": 2,
+            "24": 2,
+            "25": 1,
+            "27": 1,
+            "28": 1,
+            "29": 1,
+            "30": 1,
+            "32": 1,
+            "34": 0,
+            "36": 0,
+            "37": 0,
+            "38": 0,
+            "39": 0,
+            "40": 0,
+            "41": 0,
+            "43": 1,
+            "45": 1,
+            "46": 1,
+            "47": 1,
+            "48": 1,
+            "49": 1,
+            "50": 1,
+            "51": 1,
+            "53": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Authorization/BaseCommand.cs": {
+      "GuestManagementService.Application.Authorization.BaseCommand": {
+        "GuestManagementService.Application.Authorization.CurrentUser GuestManagementService.Application.Authorization.BaseCommand::get_CurrentUser()": {
+          "Lines": {
+            "5": 30
+          },
+          "Branches": []
+        },
+        "System.Void GuestManagementService.Application.Authorization.BaseCommand::.ctor(GuestManagementService.Application.Authorization.BaseCommand)": {
+          "Lines": {
+            "3": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Authorization/CurrentUser.cs": {
+      "GuestManagementService.Application.Authorization.CurrentUser": {
+        "System.Guid GuestManagementService.Application.Authorization.CurrentUser::get_UserId()": {
+          "Lines": {
+            "3": 22
+          },
+          "Branches": []
+        }
+      }
+    },
+    "/Users/vi.diec/Desktop/SIDE-PROJECT/SimplifyYours/code/backend/guest-management-service/src/GuestManagementService.Application/Authorization/CurrentUserPipelineBehavior.cs": {
+      "GuestManagementService.Application.Authorization.CurrentUserPipelineBehavior`2": {
+        "System.Threading.Tasks.Task`1<TResponse> GuestManagementService.Application.Authorization.CurrentUserPipelineBehavior`2::Handle(TRequest,MediatR.RequestHandlerDelegate`1<TResponse>,System.Threading.CancellationToken)": {
+          "Lines": {
+            "15": 3,
+            "17": 2,
+            "18": 2,
+            "19": 2,
+            "22": 2
+          },
+          "Branches": [
+            {
+              "Line": 15,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 2
+            },
+            {
+              "Line": 17,
+              "Offset": 28,
+              "EndOffset": 30,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 17,
+              "Offset": 28,
+              "EndOffset": 42,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 1
+            },
+            {
+              "Line": 15,
+              "Offset": 13,
+              "EndOffset": 47,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            }
+          ]
+        },
+        "System.Void GuestManagementService.Application.Authorization.CurrentUserPipelineBehavior`2::.ctor(GuestManagementService.Application.Authorization.ICurrentUserAccessor)": {
+          "Lines": {
+            "5": 3,
+            "6": 3
+          },
+          "Branches": []
+        }
+      }
+    }
+  }
+}
