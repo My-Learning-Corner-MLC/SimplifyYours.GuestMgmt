@@ -32,9 +32,6 @@ public sealed class EventReference
 
     public DateTimeOffset LastSyncedAt { get; private set; }
 
-    // The event's business type (wedding, birthday, ...), synced from event-service. Always
-    // present — event-service includes it on every EventCreated/EventUpdated message. Guest
-    // metadata mapping is resolved from this value — see Application/Guests/IGuestMetadataMapper.
     public string EventType { get; private set; } = string.Empty;
 
     public static EventReference Active(

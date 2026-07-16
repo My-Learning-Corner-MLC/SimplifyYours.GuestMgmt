@@ -46,7 +46,15 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
             });
         }
 
-        request ??= new WeddingGuestMetadataRequest(null, null, null, null);
+        if (request is null)
+        {
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure(
+                    "EventMetadata",
+                    "Event metadata must be a valid object for a wedding guest."),
+            });
+        }
 
         var validationResult = validator.Validate(request);
         if (!validationResult.IsValid)

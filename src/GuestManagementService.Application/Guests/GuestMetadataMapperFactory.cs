@@ -21,17 +21,22 @@ public sealed class GuestMetadataMapperFactory : IGuestMetadataMapperFactory
 
     public IGuestMetadataMapper Resolve(string eventType)
     {
-        if (!string.IsNullOrWhiteSpace(eventType) && mappersByEventType.TryGetValue(eventType, out var mapper))
+        if (!IsSupported(eventType))
         {
-            return mapper;
+            var supportedEventTypes = string.Join(", ", mappersByEventType.Keys.OrderBy(type => type));
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure(
+                    "EventType",
+                    $"Guests cannot be added to '{eventType}' events yet. Supported event types: {supportedEventTypes}."),
+            });
         }
 
-        var supportedEventTypes = string.Join(", ", mappersByEventType.Keys.OrderBy(type => type));
-        throw new ValidationException(new[]
-        {
-            new ValidationFailure(
-                "EventType",
-                $"Guests cannot be added to '{eventType}' events yet. Supported event types: {supportedEventTypes}."),
-        });
+        return mappersByEventType[eventType];
+    }
+
+    private bool IsSupported(string eventType)
+    {
+        return !string.IsNullOrWhiteSpace(eventType) && mappersByEventType.ContainsKey(eventType);
     }
 }
