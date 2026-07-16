@@ -34,5 +34,9 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
         builder.Property(reference => reference.LastSyncedAt)
             .HasColumnName("last_synced_at")
             .IsRequired();
+
+        builder.Property(reference => reference.EventType)
+            .HasColumnName("event_type")
+            .HasMaxLength(50);
     }
 }

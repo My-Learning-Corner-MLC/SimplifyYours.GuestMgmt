@@ -1,10 +1,97 @@
+using System.Text.Json;
+using FluentValidation;
 using GuestManagementService.Application.Guests.Wedding;
+using GuestManagementService.Contracts.Guests.Wedding;
 using GuestManagementService.Domain.Guests.Wedding;
 
 namespace GuestManagementService.UnitTests.Guests.Wedding;
 
 public sealed class WeddingGuestMetadataMapperTests
 {
+    private readonly WeddingGuestMetadataMapper mapper = new();
+
+    [Fact]
+    public void EventType_IsWedding()
+    {
+        Assert.Equal("wedding", mapper.EventType);
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenEventMetadataIsNull_ReturnsNull()
+    {
+        Assert.Null(mapper.Serialize(null));
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenFieldsAreValid_ReturnsJson()
+    {
+        var element = ParseElement(new
+        {
+            relationship = "Family",
+            side = "Bride",
+            plusOnes = 2,
+            dietaryNotes = "Pescatarian"
+        });
+
+        var json = mapper.Serialize(element);
+
+        Assert.NotNull(json);
+        Assert.Contains("\"relationship\":\"Family\"", json);
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenRelationshipIsInvalid_ThrowsValidationException()
+    {
+        var element = ParseElement(new { relationship = "Nemesis" });
+
+        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.Relationship");
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenPlusOnesOutOfRange_ThrowsValidationException()
+    {
+        var element = ParseElement(new { plusOnes = 21 });
+
+        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.PlusOnes");
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenDietaryNotesTooLong_ThrowsValidationException()
+    {
+        var element = ParseElement(new { dietaryNotes = new string('a', 501) });
+
+        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.DietaryNotes");
+    }
+
+    [Fact]
+    public void ToContract_WhenStoredMetadataIsNull_ReturnsNull()
+    {
+        Assert.Null(mapper.ToContract(null));
+    }
+
+    [Fact]
+    public void ToContract_WhenStoredMetadataPresent_ReturnsWeddingResponse()
+    {
+        var json = WeddingGuestMetadataMapper.Serialize(
+            WeddingGuestMetadata.Create(Relationship.Family, GuestSide.Bride, 2, "Pescatarian"));
+
+        var contract = Assert.IsType<WeddingGuestMetadataResponse>(mapper.ToContract(json));
+
+        Assert.Equal("Family", contract.Relationship);
+        Assert.Equal("Bride", contract.Side);
+        Assert.Equal(2, contract.PlusOnes);
+        Assert.Equal("Pescatarian", contract.DietaryNotes);
+    }
+
+    private static JsonElement ParseElement(object value)
+    {
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(value));
+        return document.RootElement.Clone();
+    }
+
     [Theory]
     [InlineData("Family", Relationship.Family)]
     [InlineData("friend", Relationship.Friend)]

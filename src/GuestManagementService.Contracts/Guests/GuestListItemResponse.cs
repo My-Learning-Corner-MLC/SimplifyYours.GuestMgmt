@@ -7,8 +7,7 @@ public sealed record GuestListItemResponse(
     string PhoneNumber,
     string? EmailAddress,
     string Gender,
-    string? Relationship,
-    string? Side,
-    int PlusOnes,
-    string? DietaryNotes,
+    // Concrete shape depends on the event's type (e.g. Guests.Wedding.WeddingGuestMetadataResponse).
+    // Null when the event's type has no registered mapper.
+    object? EventMetadata,
     DateTimeOffset CreatedAt);
