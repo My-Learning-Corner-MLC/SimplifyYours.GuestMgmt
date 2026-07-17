@@ -20,8 +20,8 @@ public static class GuestEndpoints
             .RequireAuthorization(Permissions.GuestsAdd);
 
         endpoints
-            .MapGet("/guests", ListGuestsAsync)
-            .WithName("ListGuests")
+            .MapPost("/guests/query", ListGuestsAsync)
+            .WithName("QueryGuests")
             .WithTags("Guests")
             .RequireAuthorization(Permissions.GuestsView);
 
@@ -53,10 +53,7 @@ public static class GuestEndpoints
                     request.GuestInfo.PhoneNumber,
                     request.GuestInfo.EmailAddress,
                     request.GuestInfo.Gender,
-                    request.GuestInfo.Relationship,
-                    request.GuestInfo.Side,
-                    request.GuestInfo.PlusOnes,
-                    request.GuestInfo.DietaryNotes),
+                    request.GuestInfo.EventMetadata),
                 cancellationToken);
 
             return result.Status switch
@@ -80,21 +77,35 @@ public static class GuestEndpoints
     }
 
     private static async Task<IResult> ListGuestsAsync(
-        Guid eventId,
+        QueryGuestsRequest request,
         HttpContext httpContext,
         ISender sender,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await sender.Send(new ListGuestsQuery(eventId), cancellationToken);
+            var result = await sender.Send(
+                new ListGuestsQuery(
+                    request.EventId,
+                    request.PageNumber,
+                    request.PageSize,
+                    request.Search,
+                    request.SortBy,
+                    request.SortDirection),
+                cancellationToken);
 
             return result.Status switch
             {
                 ListGuestsStatus.Found => Results.Ok(
-                    new ListGuestsResponse(
-                        eventId,
-                        result.Guests.Select(ToListItem).ToList())),
+                    new QueryGuestsResponse(
+                        request.EventId,
+                        result.Guests.Select(ToListItem).ToList(),
+                        result.PageNumber,
+                        result.PageSize,
+                        result.TotalCount,
+                        result.TotalPages,
+                        result.HasPreviousPage,
+                        result.HasNextPage)),
                 ListGuestsStatus.EventNotFound => ApiErrorResults.NotFound(
                     "The event was not found. It may have been deleted or the id may be incorrect.",
                     httpContext),
@@ -129,10 +140,7 @@ public static class GuestEndpoints
                 guest.PhoneNumber,
                 guest.EmailAddress,
                 guest.Gender,
-                guest.Relationship,
-                guest.Side,
-                guest.PlusOnes,
-                guest.DietaryNotes),
+                guest.EventMetadata),
             guest.CreatedAt);
 
         return Results.Created($"/guest/{response.Id}", response);
@@ -147,10 +155,7 @@ public static class GuestEndpoints
             guest.PhoneNumber,
             guest.EmailAddress,
             guest.Gender,
-            guest.Relationship,
-            guest.Side,
-            guest.PlusOnes,
-            guest.DietaryNotes,
+            guest.EventMetadata,
             guest.CreatedAt);
     }
 

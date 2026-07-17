@@ -21,4 +21,48 @@ public sealed class ListGuestsQueryValidatorTests
 
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(ListGuestsQuery.EventId));
     }
+
+    [Fact]
+    public void Validate_WhenPageNumberIsZero_Fails()
+    {
+        var result = validator.Validate(new ListGuestsQuery(Guid.NewGuid(), PageNumber: 0));
+
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(ListGuestsQuery.PageNumber));
+    }
+
+    [Fact]
+    public void Validate_WhenPageSizeExceedsMax_Fails()
+    {
+        var result = validator.Validate(
+            new ListGuestsQuery(Guid.NewGuid(), PageSize: ListGuestsQueryDefaults.MaxPageSize + 1));
+
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(ListGuestsQuery.PageSize));
+    }
+
+    [Fact]
+    public void Validate_WhenSortByIsUnknown_Fails()
+    {
+        var result = validator.Validate(new ListGuestsQuery(Guid.NewGuid(), SortBy: "table"));
+
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(ListGuestsQuery.SortBy));
+    }
+
+    [Fact]
+    public void Validate_WhenSortDirectionIsUnknown_Fails()
+    {
+        var result = validator.Validate(new ListGuestsQuery(Guid.NewGuid(), SortDirection: "sideways"));
+
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(ListGuestsQuery.SortDirection));
+    }
+
+    [Theory]
+    [InlineData("name")]
+    [InlineData("email")]
+    [InlineData("createdAt")]
+    public void Validate_WhenSortByIsKnown_Passes(string sortBy)
+    {
+        var result = validator.Validate(new ListGuestsQuery(Guid.NewGuid(), SortBy: sortBy));
+
+        Assert.True(result.IsValid);
+    }
 }

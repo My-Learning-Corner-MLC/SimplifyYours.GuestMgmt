@@ -40,7 +40,7 @@ public sealed class CreateTablesCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), Now));
+            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), Now, "wedding"));
         var handler = CreateHandler(eventReferenceRepository: eventReferences.Object);
 
         var result = await handler.Handle(Command(eventId), CancellationToken.None);
@@ -110,7 +110,7 @@ public sealed class CreateTablesCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now));
+            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now, "wedding"));
 
         var provisioners = new Mock<ISeatingLayoutProvisioner>();
         provisioners

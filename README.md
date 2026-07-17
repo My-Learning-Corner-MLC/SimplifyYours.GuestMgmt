@@ -43,10 +43,12 @@ Request body:
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
     "gender": "preferNotToSay",
-    "relationship": "Family",
-    "side": "Bride",
-    "plusOnes": 1,
-    "dietaryNotes": "Pescatarian"
+    "eventMetadata": {
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian"
+    }
   }
 }
 ```
@@ -60,15 +62,33 @@ Request options:
 - `guestInfo.phoneNumber`: required.
 - `guestInfo.emailAddress`: required, valid email.
 - `guestInfo.gender`: optional, one of `male`, `female`, `other`, or `preferNotToSay`; defaults to `preferNotToSay`.
-- `guestInfo.relationship`: optional, one of `Family`, `Friend`, `Colleague` (wedding metadata).
-- `guestInfo.side`: optional, one of `Bride`, `Groom` (wedding metadata).
-- `guestInfo.plusOnes`: optional integer `0`–`20`; defaults to `0`.
-- `guestInfo.dietaryNotes`: optional, up to 500 characters.
+- `guestInfo.eventMetadata`: optional object whose shape depends on the event's actual type — see
+  below. Omitted/ignored for event types with no registered mapper.
 
-The event-type-specific fields (`relationship`, `side`, `plusOnes`, `dietaryNotes`) are persisted
-together in a single opaque `metadata` `jsonb` column, not as dedicated columns. This feature
-implements the **wedding** shape; other event types add their own metadata shape with no schema
-change. Wedding-specific code lives under `Guests/Wedding/` in Domain and Application.
+For a **wedding** event (`eventMetadata`):
+
+- `relationship`: optional, one of `Family`, `Friend`, `Colleague`.
+- `side`: optional, one of `Bride`, `Groom`.
+- `plusOnes`: optional integer `0`–`20`; defaults to `0`.
+- `dietaryNotes`: optional, up to 500 characters.
+
+For a **birthday** event (`eventMetadata`):
+
+- `plusOnes`: optional integer `0`–`20`; defaults to `0`.
+- `dietaryNotes`: optional, up to 500 characters.
+
+`eventMetadata` is validated against the event's **actual** type, looked up from the local event
+reference table (synced from Event Service via Kafka) — the server never assumes a shape. The
+resulting value is persisted in a single opaque `metadata` `jsonb` column on the guest, not as
+dedicated columns, so each event type can carry its own attributes with no schema change.
+
+Adding a new event type means:
+
+1. A metadata value object under `Guests/<EventType>/` in Domain (e.g. `BirthdayGuestMetadata`).
+2. A response contract under `Guests/<EventType>/` in Contracts (e.g. `BirthdayGuestMetadataResponse`).
+3. An `IGuestMetadataMapper` implementation under `Guests/<EventType>/` in Application, registered
+   in `GuestManagementService.Application.DependencyInjection` — `GuestMetadataMapperFactory`
+   discovers it automatically via `IEnumerable<IGuestMetadataMapper>`; no factory changes needed.
 
 Responses:
 
@@ -90,28 +110,45 @@ Response body:
     "phoneNumber": "+15551234567",
     "emailAddress": "ada@example.com",
     "gender": "preferNotToSay",
-    "relationship": "Family",
-    "side": "Bride",
-    "plusOnes": 1,
-    "dietaryNotes": "Pescatarian"
+    "eventMetadata": {
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian"
+    }
   },
   "createdAt": "2026-05-24T00:00:00+00:00"
 }
 ```
 
-### `GET /guests?eventId={guid}`
+### `POST /guests/query`
 
-Returns the guests of one owned event, ordered by `createdAt` ascending. Requires the
-`guests.view` permission. The service enforces owner/tenant scoping via the local event reference
-table (same rule as `POST /guest`).
+Returns a page of one owned event's guests. Requires the `guests.view` permission. The service
+enforces owner/tenant scoping via the local event reference table (same rule as `POST /guest`).
 
-Query options:
+Request body:
+
+```json
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "pageNumber": 1,
+  "pageSize": 20,
+  "search": "ada",
+  "sortBy": "name",
+  "sortDirection": "asc"
+}
+```
 
 - `eventId`: required.
+- `pageNumber`: optional, defaults to 1.
+- `pageSize`: optional, defaults to 20, max 100.
+- `search`: optional, matches first name, last name, or email.
+- `sortBy`: optional, one of `name`, `email`, `createdAt` (default).
+- `sortDirection`: optional, one of `asc` (default), `desc`.
 
 Responses:
 
-- `200 OK` with the guest list (empty array when the event has no guests).
+- `200 OK` with a page of guests (empty array when the event has no matching guests).
 - `401 Unauthorized` when the bearer token is missing or invalid.
 - `404 Not Found` when the event reference does not exist, is deleted, or belongs to another user.
 
@@ -120,7 +157,7 @@ Response body:
 ```json
 {
   "eventId": "00000000-0000-0000-0000-000000000000",
-  "guests": [
+  "items": [
     {
       "id": "00000000-0000-0000-0000-000000000000",
       "firstName": "Ada",
@@ -128,13 +165,21 @@ Response body:
       "phoneNumber": "+15551234567",
       "emailAddress": "ada@example.com",
       "gender": "preferNotToSay",
-      "relationship": "Family",
-      "side": "Bride",
-      "plusOnes": 1,
-      "dietaryNotes": "Pescatarian",
+      "eventMetadata": {
+        "relationship": "Family",
+        "side": "Bride",
+        "plusOnes": 1,
+        "dietaryNotes": "Pescatarian"
+      },
       "createdAt": "2026-05-24T00:00:00+00:00"
     }
-  ]
+  ],
+  "pageNumber": 1,
+  "pageSize": 20,
+  "totalCount": 1,
+  "totalPages": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
 }
 ```
 

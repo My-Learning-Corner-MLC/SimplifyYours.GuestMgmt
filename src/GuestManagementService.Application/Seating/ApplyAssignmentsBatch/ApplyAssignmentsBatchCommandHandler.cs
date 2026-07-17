@@ -2,6 +2,7 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
+using GuestManagementService.Application.Seating;
 using GuestManagementService.Domain.Seating;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,7 @@ public sealed class ApplyAssignmentsBatchCommandHandler(
         }
 
         var layout = await seatingLayoutProvisioner.GetOrCreateAsync(request.EventId, currentUser.TenantId, cancellationToken);
-        var guests = await guestRepository.ListByEventAsync(request.EventId, cancellationToken);
+        var guests = await GuestRoster.LoadAllAsync(guestRepository, request.EventId, currentUser.TenantId, cancellationToken);
         var guestIds = guests.Select(guest => guest.Id).ToHashSet();
 
         var now = timeProvider.GetUtcNow();

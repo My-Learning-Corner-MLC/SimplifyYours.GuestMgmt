@@ -1,4 +1,3 @@
-using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Domain.Guests;
 
 namespace GuestManagementService.Application.Guests;
@@ -11,16 +10,16 @@ public sealed record GuestDetails(
     string PhoneNumber,
     string? EmailAddress,
     string Gender,
-    string? Relationship,
-    string? Side,
-    int PlusOnes,
-    string? DietaryNotes,
+    object? EventMetadata,
     DateTimeOffset CreatedAt)
 {
-    public static GuestDetails From(Guest guest)
+    /// <summary>
+    /// Maps a stored guest to its contract-facing details. <paramref name="metadataMapper"/> is
+    /// the mapper resolved for the guest's event type — see
+    /// <see cref="IGuestMetadataMapperFactory"/>.
+    /// </summary>
+    public static GuestDetails From(Guest guest, IGuestMetadataMapper metadataMapper)
     {
-        var metadata = WeddingGuestMetadataMapper.Deserialize(guest.Metadata);
-
         return new GuestDetails(
             guest.Id,
             guest.EventId,
@@ -29,10 +28,7 @@ public sealed record GuestDetails(
             guest.PhoneNumber,
             guest.EmailAddress,
             GuestParsing.ToContractValue(guest.Gender),
-            WeddingGuestMetadataMapper.ToContractValue(metadata.Relationship),
-            WeddingGuestMetadataMapper.ToContractValue(metadata.Side),
-            metadata.PlusOnes,
-            metadata.DietaryNotes,
+            metadataMapper.ToContract(guest.Metadata),
             guest.CreatedAt);
     }
 }

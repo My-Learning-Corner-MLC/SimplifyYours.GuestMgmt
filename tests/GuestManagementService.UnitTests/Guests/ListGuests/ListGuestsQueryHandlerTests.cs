@@ -1,7 +1,10 @@
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Authorization;
+using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Guests.ListGuests;
+using GuestManagementService.Application.Guests.Wedding;
+using GuestManagementService.Contracts.Guests.Wedding;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,6 +17,8 @@ public sealed class ListGuestsQueryHandlerTests
     private static readonly Guid TestTenantId = Guid.Parse("c2b9d3a1-4d4b-4b1a-9bc4-2f5a7e8d9f01");
     private static readonly CurrentUser TestUser = new(Guid.NewGuid(), TestTenantId);
     private static readonly DateTimeOffset Now = new(2026, 5, 24, 10, 0, 0, TimeSpan.Zero);
+    private static readonly IGuestMetadataMapperFactory MetadataMapperFactory =
+        new GuestMetadataMapperFactory([new WeddingGuestMetadataMapper(new WeddingGuestMetadataRequestValidator())]);
 
     [Fact]
     public async Task Handle_WhenEventOwned_ReturnsMappedGuests()
@@ -39,10 +44,16 @@ public sealed class ListGuestsQueryHandlerTests
         Assert.Equal(ListGuestsStatus.Found, result.Status);
         var item = Assert.Single(result.Guests);
         Assert.Equal("Ada", item.FirstName);
-        Assert.Equal("Family", item.Relationship);
-        Assert.Equal("Bride", item.Side);
-        Assert.Equal(2, item.PlusOnes);
-        Assert.Equal("Vegan", item.DietaryNotes);
+        var metadata = Assert.IsType<WeddingGuestMetadataResponse>(item.EventMetadata);
+        Assert.Equal("Family", metadata.Relationship);
+        Assert.Equal("Bride", metadata.Side);
+        Assert.Equal(2, metadata.PlusOnes);
+        Assert.Equal("Vegan", metadata.DietaryNotes);
+        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(1, result.TotalPages);
+        Assert.False(result.HasPreviousPage);
+        Assert.False(result.HasNextPage);
     }
 
     [Fact]
@@ -55,6 +66,35 @@ public sealed class ListGuestsQueryHandlerTests
 
         Assert.Equal(ListGuestsStatus.Found, result.Status);
         Assert.Empty(result.Guests);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
+    }
+
+    [Fact]
+    public async Task Handle_PassesPagingSearchAndSortToRepository()
+    {
+        var eventId = Guid.NewGuid();
+        var handler = CreateHandler(eventId, [], out var guests);
+
+        await handler.Handle(
+            new ListGuestsQuery(eventId, PageNumber: 2, PageSize: 10, Search: "ada", SortBy: "email", SortDirection: "desc")
+            {
+                CurrentUser = TestUser
+            },
+            CancellationToken.None);
+
+        guests.Verify(
+            repository => repository.ListAsync(
+                It.Is<GuestListQueryOptions>(options =>
+                    options.EventId == eventId
+                    && options.TenantId == TestTenantId
+                    && options.PageNumber == 2
+                    && options.PageSize == 10
+                    && options.Search == "ada"
+                    && options.SortBy == GuestSortField.Email
+                    && options.SortDirection == SortDirection.Desc),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -68,13 +108,14 @@ public sealed class ListGuestsQueryHandlerTests
         var handler = new ListGuestsQueryHandler(
             eventReferences.Object,
             guests.Object,
+            MetadataMapperFactory,
             NullLogger<ListGuestsQueryHandler>.Instance);
 
         var result = await handler.Handle(Query(Guid.NewGuid()), CancellationToken.None);
 
         Assert.Equal(ListGuestsStatus.EventNotFound, result.Status);
         guests.Verify(
-            repository => repository.ListByEventAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -85,11 +126,12 @@ public sealed class ListGuestsQueryHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Wedding", Guid.NewGuid(), Now));
+            .ReturnsAsync(EventReference.Active(eventId, "Wedding", Guid.NewGuid(), Now, "wedding"));
         var guests = new Mock<IGuestRepository>();
         var handler = new ListGuestsQueryHandler(
             eventReferences.Object,
             guests.Object,
+            MetadataMapperFactory,
             NullLogger<ListGuestsQueryHandler>.Instance);
 
         var result = await handler.Handle(Query(eventId), CancellationToken.None);
@@ -108,15 +150,17 @@ public sealed class ListGuestsQueryHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Wedding", TestTenantId, Now));
+            .ReturnsAsync(EventReference.Active(eventId, "Wedding", TestTenantId, Now, "wedding"));
         guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ListByEventAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(guestList);
+            .Setup(repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GuestListQueryOptions options, CancellationToken _) =>
+                new GuestListPage(guestList, options.PageNumber, options.PageSize, guestList.Count));
 
         return new ListGuestsQueryHandler(
             eventReferences.Object,
             guests.Object,
+            MetadataMapperFactory,
             NullLogger<ListGuestsQueryHandler>.Instance);
     }
 }

@@ -103,7 +103,7 @@ public sealed class ApplyAreaPositionsBatchCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now));
+            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now, "wedding"));
 
         var provisioners = new Mock<ISeatingLayoutProvisioner>();
         provisioners

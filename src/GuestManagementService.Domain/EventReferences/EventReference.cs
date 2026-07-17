@@ -11,13 +11,15 @@ public sealed class EventReference
         string eventName,
         Guid tenantId,
         bool isDeleted,
-        DateTimeOffset lastSyncedAt)
+        DateTimeOffset lastSyncedAt,
+        string eventType)
     {
         EventId = eventId;
         EventName = NormalizeEventName(eventName);
         TenantId = tenantId;
         IsDeleted = isDeleted;
         LastSyncedAt = lastSyncedAt.ToUniversalTime();
+        EventType = NormalizeEventType(eventType);
     }
 
     public Guid EventId { get; private set; }
@@ -30,11 +32,14 @@ public sealed class EventReference
 
     public DateTimeOffset LastSyncedAt { get; private set; }
 
+    public string EventType { get; private set; } = string.Empty;
+
     public static EventReference Active(
         Guid eventId,
         string eventName,
         Guid tenantId,
-        DateTimeOffset syncedAt)
+        DateTimeOffset syncedAt,
+        string eventType)
     {
         if (eventId == Guid.Empty)
         {
@@ -46,10 +51,10 @@ public sealed class EventReference
             throw new ArgumentException("Tenant id must not be empty.", nameof(tenantId));
         }
 
-        return new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt);
+        return new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
     }
 
-    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt)
+    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt, string eventType)
     {
         if (tenantId == Guid.Empty)
         {
@@ -60,6 +65,7 @@ public sealed class EventReference
         TenantId = tenantId;
         IsDeleted = false;
         LastSyncedAt = syncedAt.ToUniversalTime();
+        EventType = NormalizeEventType(eventType);
     }
 
     public void MarkDeleted(DateTimeOffset syncedAt)
@@ -76,5 +82,15 @@ public sealed class EventReference
         }
 
         return eventName.Trim();
+    }
+
+    private static string NormalizeEventType(string eventType)
+    {
+        if (string.IsNullOrWhiteSpace(eventType))
+        {
+            throw new ArgumentException("Event type is required.", nameof(eventType));
+        }
+
+        return eventType.Trim().ToLowerInvariant();
     }
 }

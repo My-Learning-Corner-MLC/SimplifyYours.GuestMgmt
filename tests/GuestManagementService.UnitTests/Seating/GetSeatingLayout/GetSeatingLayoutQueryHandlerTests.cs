@@ -3,6 +3,7 @@ using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Application.Authorization;
+using GuestManagementService.Application.Guests.ListGuests;
 using GuestManagementService.Application.Seating.GetSeatingLayout;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
@@ -38,7 +39,7 @@ public sealed class GetSeatingLayoutQueryHandlerTests
     public async Task Handle_WhenEventIsDeleted_ReturnsEventNotFound()
     {
         var eventId = Guid.NewGuid();
-        var deletedReference = EventReference.Active(eventId, "Launch", TestTenantId, Now);
+        var deletedReference = EventReference.Active(eventId, "Launch", TestTenantId, Now, "wedding");
         deletedReference.MarkDeleted(Now);
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
@@ -58,7 +59,7 @@ public sealed class GetSeatingLayoutQueryHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), Now));
+            .ReturnsAsync(EventReference.Active(eventId, "Launch", Guid.NewGuid(), Now, "wedding"));
         var handler = CreateHandler(eventReferenceRepository: eventReferences.Object);
 
         var result = await handler.Handle(Query(eventId), CancellationToken.None);
@@ -129,9 +130,10 @@ public sealed class GetSeatingLayoutQueryHandlerTests
             .Setup(repository => repository.GetByEventAsync(eventId, TestTenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingLayout);
         var guests = new Mock<IGuestRepository>();
+        var fiveGuests = FiveGuests(eventId);
         guests
-            .Setup(repository => repository.ListByEventAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(FiveGuests(eventId));
+            .Setup(repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuestListPage(fiveGuests, 1, fiveGuests.Count, fiveGuests.Count));
         var handler = CreateHandler(seatingLayoutRepository: seatingLayouts.Object, guestRepository: guests.Object, eventId: eventId);
 
         var result = await handler.Handle(Query(eventId), CancellationToken.None);
@@ -187,7 +189,7 @@ public sealed class GetSeatingLayoutQueryHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now));
+            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now, "wedding"));
 
         var seatingLayouts = new Mock<ISeatingLayoutRepository>();
         seatingLayouts
@@ -196,8 +198,8 @@ public sealed class GetSeatingLayoutQueryHandlerTests
 
         var guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ListByEventAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<Guest>());
+            .Setup(repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuestListPage(Array.Empty<Guest>(), 1, ListGuestsQueryDefaults.MaxPageSize, 0));
 
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(provider => provider.GetUtcNow()).Returns(Now);

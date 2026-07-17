@@ -3,6 +3,9 @@ using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Application.Common.Logging;
 using GuestManagementService.Application.Common.Validation;
+using GuestManagementService.Application.Guests;
+using GuestManagementService.Application.Guests.Birthday;
+using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Application.Seating;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +25,13 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RequestLoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<ISeatingLayoutProvisioner, SeatingLayoutProvisioner>();
+
+        // Guest metadata mappers, one per event type. Adding a new event type only requires
+        // registering its IGuestMetadataMapper here — GuestMetadataMapperFactory discovers it
+        // automatically via the IEnumerable<IGuestMetadataMapper> injection.
+        services.AddScoped<IGuestMetadataMapper, WeddingGuestMetadataMapper>();
+        services.AddScoped<IGuestMetadataMapper, BirthdayGuestMetadataMapper>();
+        services.AddScoped<IGuestMetadataMapperFactory, GuestMetadataMapperFactory>();
 
         return services;
     }

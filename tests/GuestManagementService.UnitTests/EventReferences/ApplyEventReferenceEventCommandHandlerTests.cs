@@ -33,14 +33,41 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
         Assert.False(savedReference.IsDeleted);
         Assert.Equal("Launch", savedReference.EventName);
         Assert.Equal(TenantId, savedReference.TenantId);
+        Assert.Equal("wedding", savedReference.EventType);
         unitOfWork.Verify(work => work.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenEventUpdated_RefreshesPlannedEventType()
+    {
+        var eventId = Guid.NewGuid();
+        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow, "birthday");
+        var references = new Mock<IEventReferenceRepository>();
+        references
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        var handler = CreateHandler(references.Object);
+
+        var applied = await handler.Handle(
+            new ApplyEventReferenceEventCommand(
+                Guid.NewGuid(),
+                "EventUpdated",
+                eventId,
+                "Launch",
+                DateTimeOffset.UtcNow,
+                "wedding",
+                TenantId),
+            CancellationToken.None);
+
+        Assert.True(applied);
+        Assert.Equal("wedding", existing.EventType);
     }
 
     [Fact]
     public async Task Handle_WhenEventDeleted_MarksReferenceDeleted()
     {
         var eventId = Guid.NewGuid();
-        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow);
+        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow, "wedding");
         var references = new Mock<IEventReferenceRepository>();
         references
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
@@ -53,6 +80,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
             eventId,
             "Launch",
             DateTimeOffset.UtcNow,
+            "wedding",
             TenantId),
             CancellationToken.None);
 
@@ -68,6 +96,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
             Guid.NewGuid(),
             "Launch",
             DateTimeOffset.UtcNow,
+            "wedding",
             TenantId);
     }
 

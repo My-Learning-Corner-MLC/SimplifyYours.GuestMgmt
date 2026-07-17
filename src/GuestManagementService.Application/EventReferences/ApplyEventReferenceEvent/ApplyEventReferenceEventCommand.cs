@@ -8,5 +8,6 @@ public sealed record ApplyEventReferenceEventCommand(
     Guid EventId,
     string EventName,
     DateTimeOffset OccurredAt,
+    string PlannedEventType,
     Guid TenantId = default)
     : IRequest<bool>;

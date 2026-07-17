@@ -20,3 +20,39 @@ Content-Type: application/json
 }
 
 ###
+
+POST {{GuestManagementService.Api_HostAddress}}/guest
+Content-Type: application/json
+
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "guestInfo": {
+    "firstName": "Ada",
+    "lastName": "Lovelace",
+    "phoneNumber": "+15551234567",
+    "emailAddress": "ada@example.com",
+    "gender": "preferNotToSay",
+    "eventMetadata": {
+      "relationship": "Family",
+      "side": "Bride",
+      "plusOnes": 1,
+      "dietaryNotes": "Pescatarian"
+    }
+  }
+}
+
+###
+
+POST {{GuestManagementService.Api_HostAddress}}/guests/query
+Content-Type: application/json
+
+{
+  "eventId": "00000000-0000-0000-0000-000000000000",
+  "pageNumber": 1,
+  "pageSize": 20,
+  "search": "ada",
+  "sortBy": "name",
+  "sortDirection": "asc"
+}
+
+###

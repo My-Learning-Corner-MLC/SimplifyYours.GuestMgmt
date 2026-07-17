@@ -235,8 +235,8 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
     {
         var guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ListByEventAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(guestList);
+            .Setup(repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuestListPage(guestList, 1, guestList.Count, guestList.Count));
         return guests;
     }
 
@@ -252,7 +252,7 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
         var eventReferences = new Mock<IEventReferenceRepository>();
         eventReferences
             .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now));
+            .ReturnsAsync(EventReference.Active(resolvedEventId, "Launch", TestTenantId, Now, "wedding"));
 
         var provisioners = new Mock<ISeatingLayoutProvisioner>();
         provisioners
@@ -261,8 +261,8 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
 
         var guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ListByEventAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<Guest>());
+            .Setup(repository => repository.ListAsync(It.IsAny<GuestListQueryOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GuestListPage(Array.Empty<Guest>(), 1, 0, 0));
 
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(provider => provider.GetUtcNow()).Returns(Now);

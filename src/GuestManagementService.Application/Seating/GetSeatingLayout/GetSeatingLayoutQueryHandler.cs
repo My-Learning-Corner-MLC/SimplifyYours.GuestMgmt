@@ -2,6 +2,7 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
+using GuestManagementService.Application.Seating;
 using GuestManagementService.Domain.Seating;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -53,7 +54,7 @@ public sealed class GetSeatingLayoutQueryHandler(
                 request.EventId);
         }
 
-        var guests = await guestRepository.ListByEventAsync(request.EventId, cancellationToken);
+        var guests = await GuestRoster.LoadAllAsync(guestRepository, request.EventId, currentUser.TenantId, cancellationToken);
         var details = SeatingLayoutProjector.Project(layout, guests);
 
         return GetSeatingLayoutResult.Found(details);
