@@ -67,18 +67,7 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
 
         TryParseRelationship(request.Relationship, out var relationship);
         TryParseSide(request.Side, out var side);
-        WeddingGuestMetadata metadata;
-        try
-        {
-            metadata = WeddingGuestMetadata.Create(relationship, side, request.PlusOnes ?? 0, request.DietaryNotes, request.Tags);
-        }
-        catch (ArgumentException exception)
-        {
-            throw new ValidationException(new[]
-            {
-                new ValidationFailure("EventMetadata.Tags", exception.Message),
-            });
-        }
+        var metadata = WeddingGuestMetadata.Create(relationship, side, request.PlusOnes ?? 0, request.DietaryNotes);
 
         return Serialize(metadata);
     }
@@ -87,7 +76,7 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
     {
         var metadata = Deserialize(storedMetadata);
 
-        if (metadata is { Relationship: null, Side: null, PlusOnes: 0, DietaryNotes: null } && metadata.Tags.Count == 0)
+        if (metadata is { Relationship: null, Side: null, PlusOnes: 0, DietaryNotes: null })
         {
             return null;
         }
@@ -96,8 +85,7 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
             ToContractValue(metadata.Relationship),
             ToContractValue(metadata.Side),
             metadata.PlusOnes,
-            metadata.DietaryNotes,
-            metadata.Tags);
+            metadata.DietaryNotes);
     }
 
     public static bool TryParseRelationship(string? value, out Relationship? relationship)
@@ -145,10 +133,9 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
             metadata.Relationship?.ToString(),
             metadata.Side?.ToString(),
             metadata.PlusOnes,
-            metadata.DietaryNotes,
-            metadata.Tags);
+            metadata.DietaryNotes);
 
-        if (document is { Relationship: null, Side: null, PlusOnes: 0, DietaryNotes: null } && (document.Tags?.Count ?? 0) == 0)
+        if (document is { Relationship: null, Side: null, PlusOnes: 0, DietaryNotes: null })
         {
             return null;
         }
@@ -183,7 +170,7 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
         TryParseSide(document.Side, out var side);
         var plusOnes = document.PlusOnes < 0 ? 0 : document.PlusOnes;
 
-        return WeddingGuestMetadata.Create(relationship, side, plusOnes, document.DietaryNotes, document.Tags);
+        return WeddingGuestMetadata.Create(relationship, side, plusOnes, document.DietaryNotes);
     }
 
     public static string? ToContractValue(Relationship? relationship)
@@ -196,12 +183,9 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
         return side?.ToString();
     }
 
-    // Tags may be null when deserializing metadata JSON stored before this field existed;
-    // WeddingGuestMetadata.Create normalizes a null list to empty.
     private sealed record MetadataDocument(
         string? Relationship,
         string? Side,
         int PlusOnes,
-        string? DietaryNotes,
-        IReadOnlyList<string>? Tags);
+        string? DietaryNotes);
 }

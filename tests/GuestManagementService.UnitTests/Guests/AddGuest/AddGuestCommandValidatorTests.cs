@@ -70,4 +70,42 @@ public sealed class AddGuestCommandValidatorTests
 
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.Gender));
     }
+
+    [Fact]
+    public void Validate_WhenTooManyTags_Fails()
+    {
+        var tags = Enumerable.Range(0, 11).Select(i => $"Tag{i}").ToArray();
+
+        var result = validator.Validate(ValidCommand() with { Tags = tags });
+
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddGuestCommand.Tags));
+    }
+
+    [Fact]
+    public void Validate_WhenTagTooLong_Fails()
+    {
+        var tags = new[] { new string('a', 33) };
+
+        var result = validator.Validate(ValidCommand() with { Tags = tags });
+
+        Assert.Contains(result.Errors, error => error.PropertyName.StartsWith(nameof(AddGuestCommand.Tags)));
+    }
+
+    [Fact]
+    public void Validate_WhenTagIsBlank_Fails()
+    {
+        var tags = new[] { "Family", "   " };
+
+        var result = validator.Validate(ValidCommand() with { Tags = tags });
+
+        Assert.Contains(result.Errors, error => error.PropertyName.StartsWith(nameof(AddGuestCommand.Tags)));
+    }
+
+    [Fact]
+    public void Validate_WhenTagsAreValid_Passes()
+    {
+        var result = validator.Validate(ValidCommand() with { Tags = new[] { "College friends", "Head table" } });
+
+        Assert.True(result.IsValid);
+    }
 }

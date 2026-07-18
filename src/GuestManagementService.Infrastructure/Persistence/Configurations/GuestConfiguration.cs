@@ -63,6 +63,15 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
             .HasColumnName("metadata")
             .HasColumnType("jsonb");
 
+        builder.Property<List<string>>("_tags")
+            .HasField("_tags")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .HasColumnName("tags")
+            .HasColumnType("text[]")
+            .IsRequired();
+
+        builder.Ignore(guest => guest.Tags);
+
         builder.Property(guest => guest.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
