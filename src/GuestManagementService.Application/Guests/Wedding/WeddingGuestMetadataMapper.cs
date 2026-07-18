@@ -68,6 +68,7 @@ public sealed class WeddingGuestMetadataMapper(IValidator<WeddingGuestMetadataRe
         TryParseRelationship(request.Relationship, out var relationship);
         TryParseSide(request.Side, out var side);
         var metadata = WeddingGuestMetadata.Create(relationship, side, request.PlusOnes ?? 0, request.DietaryNotes);
+
         return Serialize(metadata);
     }
 

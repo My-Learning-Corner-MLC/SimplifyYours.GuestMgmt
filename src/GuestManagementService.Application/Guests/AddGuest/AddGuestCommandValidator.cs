@@ -1,5 +1,6 @@
 using FluentValidation;
 using GuestManagementService.Application.Guests;
+using GuestManagementService.Domain.Guests;
 
 namespace GuestManagementService.Application.Guests.AddGuest;
 
@@ -41,5 +42,15 @@ public sealed class AddGuestCommandValidator : AbstractValidator<AddGuestCommand
             .Must(value => string.IsNullOrWhiteSpace(value)
                 || SupportedGenderValues.Contains(value.Trim(), StringComparer.OrdinalIgnoreCase))
             .WithMessage("Gender must be one of: male, female, other, preferNotToSay.");
+
+        RuleFor(command => command.Tags)
+            .Must(tags => tags is null || tags.Count <= Guest.MaxTags)
+            .WithMessage($"A guest may have at most {Guest.MaxTags} tags.");
+
+        RuleForEach(command => command.Tags)
+            .Must(tag => !string.IsNullOrWhiteSpace(tag))
+            .WithMessage("Tags must not be blank.")
+            .Must(tag => string.IsNullOrWhiteSpace(tag) || tag.Trim().Length <= Guest.MaxTagLength)
+            .WithMessage($"Tags must be {Guest.MaxTagLength} characters or fewer.");
     }
 }
