@@ -5,4 +5,5 @@ public sealed record WeddingGuestMetadataRequest(
     string? Relationship,
     string? Side,
     int? PlusOnes,
-    string? DietaryNotes);
+    string? DietaryNotes,
+    IReadOnlyList<string>? Tags = null);
