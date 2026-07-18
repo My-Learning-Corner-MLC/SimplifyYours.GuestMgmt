@@ -84,6 +84,58 @@ public sealed class WeddingGuestMetadataMapperTests
         Assert.Equal("Bride", contract.Side);
         Assert.Equal(2, contract.PlusOnes);
         Assert.Equal("Pescatarian", contract.DietaryNotes);
+        Assert.Empty(contract.Tags);
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenTagsAreValid_ReturnsJsonWithTags()
+    {
+        var element = ParseElement(new { tags = new[] { "College friends", "Head table" } });
+
+        var json = mapper.Serialize(element);
+
+        Assert.NotNull(json);
+        Assert.Contains("\"tags\":[\"College friends\",\"Head table\"]", json);
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenTagsHaveDuplicatesCaseInsensitive_Dedupes()
+    {
+        var element = ParseElement(new { tags = new[] { "Family", "family", "FAMILY" } });
+
+        var json = mapper.Serialize(element);
+
+        Assert.NotNull(json);
+        Assert.Contains("\"tags\":[\"Family\"]", json);
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenTooManyTags_ThrowsValidationException()
+    {
+        var element = ParseElement(new { tags = Enumerable.Range(0, 11).Select(i => $"Tag{i}").ToArray() });
+
+        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
+        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.Tags");
+    }
+
+    [Fact]
+    public void InstanceSerialize_WhenTagTooLong_ThrowsValidationException()
+    {
+        var element = ParseElement(new { tags = new[] { new string('a', 33) } });
+
+        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
+        Assert.Contains(exception.Errors, error => error.PropertyName.StartsWith("EventMetadata.Tags"));
+    }
+
+    [Fact]
+    public void ToContract_WhenStoredMetadataHasTags_ReturnsTagsInResponse()
+    {
+        var json = WeddingGuestMetadataMapper.Serialize(
+            WeddingGuestMetadata.Create(null, null, 0, null, new[] { "College friends" }));
+
+        var contract = Assert.IsType<WeddingGuestMetadataResponse>(mapper.ToContract(json));
+
+        Assert.Equal(new[] { "College friends" }, contract.Tags);
     }
 
     private static JsonElement ParseElement(object value)
