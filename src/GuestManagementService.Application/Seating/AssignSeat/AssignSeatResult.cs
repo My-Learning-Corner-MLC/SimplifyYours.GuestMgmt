@@ -33,4 +33,9 @@ public sealed record AssignSeatResult(
     {
         return new AssignSeatResult(AssignSeatStatus.SeatOccupied, null);
     }
+
+    public static AssignSeatResult InsufficientAdjacentSeats()
+    {
+        return new AssignSeatResult(AssignSeatStatus.InsufficientAdjacentSeats, null);
+    }
 }

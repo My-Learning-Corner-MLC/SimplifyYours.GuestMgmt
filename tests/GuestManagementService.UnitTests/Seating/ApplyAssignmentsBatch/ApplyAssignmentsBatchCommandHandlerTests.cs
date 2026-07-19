@@ -3,10 +3,12 @@ using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Application.Authorization;
+using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Application.Seating;
 using GuestManagementService.Application.Seating.ApplyAssignmentsBatch;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Guests.Wedding;
 using GuestManagementService.Domain.Seating;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -154,6 +156,67 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenAssignOpGuestHasAccompanyingGuests_ReservesAdjacentSeatsToo()
+    {
+        var eventId = Guid.NewGuid();
+        var layout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var guest = MakeGuest(eventId, plusOnes: 2);
+        var provisioner = LayoutProvisioner(eventId, layout);
+        var guests = GuestRepo(eventId, [guest]);
+        var handler = CreateHandler(provisioner: provisioner.Object, guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(
+            Command(eventId, [new SeatingBatchOpInput(SeatingBatchOpType.Assign, guest.Id, table.Id, 0)]),
+            CancellationToken.None);
+
+        Assert.Equal(SeatingBatchOpStatus.Applied, Assert.Single(result.OpResults).Status);
+        Assert.Equal(3, layout.Assignments.Count);
+        Assert.Equal(1, layout.Assignments.Count(a => !a.IsReservedForParty));
+        Assert.Equal(2, layout.Assignments.Count(a => a.IsReservedForParty));
+    }
+
+    [Fact]
+    public async Task Handle_WhenAssignOpCannotFitPartyAdjacently_ReportsInsufficientAdjacentSeatsAndDoesNotMutate()
+    {
+        var eventId = Guid.NewGuid();
+        var layout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 4, Now);
+        layout.AssignGuest(table.Id, 1, Guid.NewGuid(), Now, out _);
+        layout.AssignGuest(table.Id, 3, Guid.NewGuid(), Now, out _);
+        var guest = MakeGuest(eventId, plusOnes: 1);
+        var provisioner = LayoutProvisioner(eventId, layout);
+        var guests = GuestRepo(eventId, [guest]);
+        var handler = CreateHandler(provisioner: provisioner.Object, guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(
+            Command(eventId, [new SeatingBatchOpInput(SeatingBatchOpType.Assign, guest.Id, table.Id, 0)]),
+            CancellationToken.None);
+
+        Assert.Equal(SeatingBatchOpStatus.InsufficientAdjacentSeats, Assert.Single(result.OpResults).Status);
+        Assert.Equal(2, layout.Assignments.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAssignOpSeatIsOccupiedByAnotherPartyOutright_ReportsConflictNotInsufficientAdjacentSeats()
+    {
+        var eventId = Guid.NewGuid();
+        var layout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        layout.AssignGuest(table.Id, 0, Guid.NewGuid(), Now, out _);
+        var guest = MakeGuest(eventId);
+        var provisioner = LayoutProvisioner(eventId, layout);
+        var guests = GuestRepo(eventId, [guest]);
+        var handler = CreateHandler(provisioner: provisioner.Object, guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(
+            Command(eventId, [new SeatingBatchOpInput(SeatingBatchOpType.Assign, guest.Id, table.Id, 0)]),
+            CancellationToken.None);
+
+        Assert.Equal(SeatingBatchOpStatus.Conflict, Assert.Single(result.OpResults).Status);
+    }
+
+    [Fact]
     public async Task Handle_MixedBatch_AppliesValidOpsReportsInvalidOnesInOneSave()
     {
         var eventId = Guid.NewGuid();
@@ -200,8 +263,12 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
         Assert.Equal(0, result.Layout.Summary.FloatingCount);
     }
 
-    private static Guest MakeGuest(Guid eventId)
+    private static Guest MakeGuest(Guid eventId, int plusOnes = 0)
     {
+        var metadata = plusOnes == 0
+            ? null
+            : WeddingGuestMetadataMapper.Serialize(WeddingGuestMetadata.Create(null, null, plusOnes, null));
+
         return Guest.Create(
             Guid.NewGuid(),
             eventId,
@@ -213,7 +280,7 @@ public sealed class ApplyAssignmentsBatchCommandHandlerTests
             null,
             null,
             Gender.PreferNotToSay,
-            null,
+            metadata,
             Now);
     }
 

@@ -7,5 +7,6 @@ public enum AssignSeatStatus
     TableNotFound,
     GuestNotFound,
     SeatIndexOutOfRange,
-    SeatOccupied
+    SeatOccupied,
+    InsufficientAdjacentSeats
 }

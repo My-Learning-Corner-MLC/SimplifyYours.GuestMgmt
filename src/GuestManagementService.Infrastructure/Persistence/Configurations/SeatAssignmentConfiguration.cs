@@ -23,7 +23,10 @@ internal sealed class SeatAssignmentConfiguration : IEntityTypeConfiguration<Sea
             .IsRequired();
 
         builder.Property(assignment => assignment.GuestId)
-            .HasColumnName("guest_id")
+            .HasColumnName("guest_id");
+
+        builder.Property(assignment => assignment.PartyOwnerGuestId)
+            .HasColumnName("party_owner_guest_id")
             .IsRequired();
 
         builder.Property(assignment => assignment.SeatIndex)
@@ -46,7 +49,9 @@ internal sealed class SeatAssignmentConfiguration : IEntityTypeConfiguration<Sea
             .IsUnique()
             .HasDatabaseName("ux_seat_assignments_table_id_seat_index");
 
-        // One seat per guest within a layout.
+        // One seat per guest within a layout. GuestId is null for seats reserved for a
+        // party's accompanying attendees, and Postgres treats NULLs as distinct in a unique
+        // index, so any number of reserved seats can coexist here.
         builder.HasIndex("SeatingLayoutId", nameof(SeatAssignment.GuestId))
             .IsUnique()
             .HasDatabaseName("ux_seat_assignments_layout_id_guest_id");
@@ -55,6 +60,12 @@ internal sealed class SeatAssignmentConfiguration : IEntityTypeConfiguration<Sea
             .WithMany()
             .HasForeignKey(assignment => assignment.GuestId)
             .HasConstraintName("fk_seat_assignments_guest_id")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Guest>()
+            .WithMany()
+            .HasForeignKey(assignment => assignment.PartyOwnerGuestId)
+            .HasConstraintName("fk_seat_assignments_party_owner_guest_id")
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne<SeatingTable>()

@@ -198,9 +198,12 @@ GET/DELETE and a body field on POST/PUT/PATCH — there are no nested `/events/{
 ### Tables
 
 - `GET /seating?eventId={guid}` — loads (or lazily creates) the layout: tables (with a
-  `seats` array sized to `seatCount`, each seat carrying `guestId`/`guestName` when occupied),
+  `seats` array sized to `seatCount`, each seat carrying `guestId`/`guestName` when occupied
+  by a named guest, or `isReservedForParty: true` + `partyOwnerGuestId` when it's an
+  anonymous seat reserved for that guest's accompanying attendee — see "Seat assignments"),
   floor-plan areas, and summary counts (`tableCount`, `seatCount`, `seatedCount`,
-  `floatingCount`).
+  `floatingCount`). `seatedCount`/`floatingCount` count named guests only; reserved seats
+  aren't a guest and don't affect either.
 - `POST /seating/tables` — creates 1–20 tables in one call (`name`, `shape`: `Round`/`Long`/
   `Square`, `seatCount`: 1–20, `count`). When `count > 1`, tables are numbered `name · 1`,
   `name · 2`, ...
@@ -219,16 +222,26 @@ GET/DELETE and a body field on POST/PUT/PATCH — there are no nested `/events/{
 ### Seat assignments ("who sits where")
 
 - `PUT /seating/tables/{tableId}/seats/{seatIndex}` (body: `{ eventId, guestId }`) —
-  assigns/moves a guest to that seat. Assigning an already-seated guest relocates them
-  (idempotent). Returns `409` if the seat is already occupied by someone else. Kept as the
-  keyboard/click accessibility fallback for the drag-and-drop UI.
+  assigns/moves a guest to that seat. If the guest has accompanying attendees (wedding
+  metadata `plusOnes`, today the only source of this count), that many additional
+  contiguous adjacent seats are reserved alongside their own — anonymous seats with no
+  guest of their own (`guestId: null`, `isReservedForParty: true`), searched by seat index
+  outward from the dropped seat (wrapping for Round/Square; Long tables' two rows don't
+  wrap into each other). Assigning an already-seated guest relocates their whole party
+  (idempotent). Returns `409` if the seat is already occupied/reserved by someone else, or
+  if there isn't enough contiguous adjacent room for the whole party (no partial
+  assignment — the prior arrangement is left untouched). Kept as the keyboard/click
+  accessibility fallback for the drag-and-drop UI.
 - `DELETE /seating/tables/{tableId}/seats/{seatIndex}?eventId={guid}` — unseats whoever is
-  there; a no-op success if the seat is already empty.
+  there, including their whole party if the targeted seat belongs to one; a no-op success
+  if the seat is already empty.
 - `PUT /seating/assignments` (body: `{ eventId, ops: [{ op: "Assign"|"Unassign", guestId,
   tableId?, seatIndex? }] }`) — the primary write path for the debounced drag-and-drop queue.
   Ops are guest-centric desired-end-state (safe to replay): `Assign` requires `tableId` and
-  `seatIndex`; `Unassign` only needs `guestId`. Applies every op against the layout then a
-  single save; returns per-op status (`Applied`/`Conflict`/`GuestNotFound`/`TableNotFound`/
+  `seatIndex`, and reserves adjacent party seats the same way the single-seat endpoint
+  does; `Unassign` only needs `guestId` and releases their whole party. Applies every op
+  against the layout then a single save; returns per-op status (`Applied`/`Conflict`
+  covers both seat-occupied and not-enough-adjacent-room/`GuestNotFound`/`TableNotFound`/
   `SeatIndexOutOfRange`) plus the authoritative layout, so one bad op in a batch doesn't
   discard the rest. Capped at 200 ops per call.
 

@@ -3,8 +3,11 @@ using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Application.Authorization;
+using GuestManagementService.Application.Guests.Wedding;
 using GuestManagementService.Application.Seating.AssignSeat;
 using GuestManagementService.Domain.EventReferences;
+using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Guests.Wedding;
 using GuestManagementService.Domain.Seating;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -54,13 +57,85 @@ public sealed class AssignSeatCommandHandlerTests
         var provisioner = LayoutProvisioner(eventId, layout);
         var guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ExistsAsync(eventId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guest?)null);
         var handler = CreateHandler(provisioner: provisioner.Object, guestRepository: guests.Object, eventId: eventId);
 
         var result = await handler.Handle(Command(eventId, table.Id, 0, Guid.NewGuid()), CancellationToken.None);
 
         Assert.Equal(AssignSeatStatus.GuestNotFound, result.Status);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGuestHasAccompanyingGuests_ReservesAdjacentSeatsToo()
+    {
+        var eventId = Guid.NewGuid();
+        var layout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Now);
+        var guest = MakeGuest(eventId, plusOnes: 1);
+        var provisioner = LayoutProvisioner(eventId, layout);
+        var guests = GuestRepo(eventId, guest);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var handler = CreateHandler(
+            provisioner: provisioner.Object, guestRepository: guests.Object, unitOfWork: unitOfWork.Object, eventId: eventId);
+
+        var result = await handler.Handle(Command(eventId, table.Id, 3, guest.Id), CancellationToken.None);
+
+        Assert.Equal(AssignSeatStatus.Assigned, result.Status);
+        Assert.NotNull(result.Table);
+        var seats = result.Table.Seats.Where(seat => seat.GuestId is not null || seat.IsReservedForParty).ToList();
+        Assert.Equal(2, seats.Count);
+        Assert.Contains(seats, seat => seat.SeatIndex == 3 && seat.GuestId == guest.Id && !seat.IsReservedForParty);
+        Assert.Contains(seats, seat => seat.IsReservedForParty && seat.PartyOwnerGuestId == guest.Id);
+        unitOfWork.Verify(work => work.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNotEnoughAdjacentSeatsForParty_ReturnsInsufficientAdjacentSeatsAndDoesNotSave()
+    {
+        var eventId = Guid.NewGuid();
+        var layout = SeatingLayout.Create(Guid.NewGuid(), eventId, TestTenantId, Now);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 4, Now);
+        layout.AssignGuest(table.Id, 1, Guid.NewGuid(), Now, out _);
+        layout.AssignGuest(table.Id, 3, Guid.NewGuid(), Now, out _);
+        var guest = MakeGuest(eventId, plusOnes: 1);
+        var provisioner = LayoutProvisioner(eventId, layout);
+        var guests = GuestRepo(eventId, guest);
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var handler = CreateHandler(
+            provisioner: provisioner.Object, guestRepository: guests.Object, unitOfWork: unitOfWork.Object, eventId: eventId);
+
+        var result = await handler.Handle(Command(eventId, table.Id, 0, guest.Id), CancellationToken.None);
+
+        Assert.Equal(AssignSeatStatus.InsufficientAdjacentSeats, result.Status);
+        unitOfWork.Verify(work => work.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static Guest MakeGuest(Guid eventId, int plusOnes = 0)
+    {
+        var metadata = WeddingGuestMetadataMapper.Serialize(WeddingGuestMetadata.Create(null, null, plusOnes, null));
+        return Guest.Create(
+            Guid.NewGuid(),
+            eventId,
+            TestTenantId,
+            "Ada",
+            "Tester",
+            "+15551234567",
+            "+15551234567",
+            null,
+            null,
+            Gender.PreferNotToSay,
+            metadata,
+            Now);
+    }
+
+    private static Mock<IGuestRepository> GuestRepo(Guid eventId, Guest guest)
+    {
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(repository => repository.GetByIdAsync(eventId, guest.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guest);
+        return guests;
     }
 
     [Fact]
@@ -148,8 +223,21 @@ public sealed class AssignSeatCommandHandlerTests
 
         var guests = new Mock<IGuestRepository>();
         guests
-            .Setup(repository => repository.ExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid eventIdArg, Guid guestIdArg, CancellationToken _) =>
+                Guest.Create(
+                    guestIdArg,
+                    eventIdArg,
+                    TestTenantId,
+                    "Ada",
+                    "Tester",
+                    "+15551234567",
+                    "+15551234567",
+                    null,
+                    null,
+                    Gender.PreferNotToSay,
+                    null,
+                    Now));
 
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(provider => provider.GetUtcNow()).Returns(Now);

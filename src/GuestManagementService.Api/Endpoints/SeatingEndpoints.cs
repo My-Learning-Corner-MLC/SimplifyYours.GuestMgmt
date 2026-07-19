@@ -269,6 +269,10 @@ public static class SeatingEndpoints
                 AssignSeatStatus.SeatOccupied => ApiErrorResults.Conflict(
                     "That seat is already taken. Someone else may have just been seated there.",
                     httpContext),
+                AssignSeatStatus.InsufficientAdjacentSeats => ApiErrorResults.Conflict(
+                    "There aren't enough free adjacent seats here for this guest's whole party. " +
+                    "Try a different seat, or another table.",
+                    httpContext),
                 _ => ApiErrorResults.Unexpected(
                     "The seat could not be assigned right now. Please try again later.",
                     httpContext)
@@ -618,7 +622,10 @@ public static class SeatingEndpoints
             table.PositionX,
             table.PositionY,
             table.Rotation,
-            table.Seats.Select(seat => new SeatingSeatResponse(seat.SeatIndex, seat.GuestId, seat.GuestName)).ToList());
+            table.Seats
+                .Select(seat => new SeatingSeatResponse(
+                    seat.SeatIndex, seat.GuestId, seat.GuestName, seat.IsReservedForParty, seat.PartyOwnerGuestId))
+                .ToList());
     }
 
     private static SeatingAreaResponse ToAreaResponse(SeatingAreaDetails area)

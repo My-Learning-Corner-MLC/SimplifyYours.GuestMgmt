@@ -149,6 +149,25 @@ public sealed class SeatingLayoutTests
     }
 
     [Fact]
+    public void AssignGuest_WhenGuestHasAPartyAndMovesViaTheSingleSeatMethod_ReleasesTheirReservedSeatsToo()
+    {
+        // AssignGuest is a thin wrapper over AssignGuestWithParty(..., accompanyingGuestCount: 0, ...)
+        // specifically so it can't strand a guest's party reservations on a move — this proves it.
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuestWithParty(table.Id, 0, guestId, 2, Created, out _);
+        Assert.Equal(3, layout.Assignments.Count);
+
+        var outcome = layout.AssignGuest(table.Id, 5, guestId, Later, out _);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        var only = Assert.Single(layout.Assignments);
+        Assert.Equal(5, only.SeatIndex);
+        Assert.False(only.IsReservedForParty);
+    }
+
+    [Fact]
     public void AssignGuest_WhenReassigningSameGuestToSameSeat_IsIdempotent()
     {
         var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
@@ -182,6 +201,134 @@ public sealed class SeatingLayoutTests
 
         Assert.Throws<InvalidOperationException>(
             () => layout.AssignGuest(Guid.NewGuid(), 0, Guid.NewGuid(), Later, out _));
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_WithNoAccompanyingGuests_BehavesLikeAssignGuest()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+
+        var outcome = layout.AssignGuestWithParty(table.Id, 2, guestId, 0, Later, out var assignments);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        var assignment = Assert.Single(assignments);
+        Assert.Equal(2, assignment.SeatIndex);
+        Assert.Equal(guestId, assignment.GuestId);
+        Assert.False(assignment.IsReservedForParty);
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_ReservesAdjacentSeatsForAccompanyingGuests()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+
+        var outcome = layout.AssignGuestWithParty(table.Id, 2, guestId, 2, Later, out var assignments);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        Assert.Equal(3, assignments.Count);
+        Assert.Equal(3, layout.Assignments.Count);
+        var primary = Assert.Single(assignments, a => !a.IsReservedForParty);
+        Assert.Equal(2, primary.SeatIndex);
+        Assert.Equal(guestId, primary.GuestId);
+        var reserved = assignments.Where(a => a.IsReservedForParty).ToList();
+        Assert.Equal(2, reserved.Count);
+        Assert.All(reserved, a => Assert.Null(a.GuestId));
+        Assert.All(reserved, a => Assert.Equal(guestId, a.PartyOwnerGuestId));
+        Assert.All(reserved, a => Assert.Contains(a.SeatIndex, new[] { 1, 3 }));
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_WhenNotEnoughAdjacentSeats_ReturnsInsufficientAndDoesNotMutate()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 4, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuest(table.Id, 1, Guid.NewGuid(), Created, out _);
+        layout.AssignGuest(table.Id, 3, Guid.NewGuid(), Created, out _);
+
+        // Seat 0 is free but boxed in by occupied seats 1 and 3 on a 4-seat ring —
+        // only 1 contiguous free seat is reachable, not enough for a party of 2.
+        var outcome = layout.AssignGuestWithParty(table.Id, 0, guestId, 1, Later, out var assignments);
+
+        Assert.Equal(SeatAssignmentOutcome.InsufficientAdjacentSeats, outcome);
+        Assert.Empty(assignments);
+        Assert.Equal(2, layout.Assignments.Count);
+        Assert.DoesNotContain(layout.Assignments, a => a.PartyOwnerGuestId == guestId);
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_WhenAnchorSeatOccupiedByAnotherGuest_ReturnsSeatOccupied()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        layout.AssignGuest(table.Id, 0, Guid.NewGuid(), Created, out _);
+
+        var outcome = layout.AssignGuestWithParty(table.Id, 0, Guid.NewGuid(), 1, Later, out var assignments);
+
+        Assert.Equal(SeatAssignmentOutcome.SeatOccupied, outcome);
+        Assert.Empty(assignments);
+        Assert.Single(layout.Assignments);
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_WhenGuestAlreadyHasAParty_MovesTheWholePartyTogether()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var tableA = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var tableB = layout.AddTable(Guid.NewGuid(), "Friends", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuestWithParty(tableA.Id, 0, guestId, 2, Created, out _);
+        Assert.Equal(3, layout.Assignments.Count);
+
+        var outcome = layout.AssignGuestWithParty(tableB.Id, 4, guestId, 1, Later, out var assignments);
+
+        Assert.Equal(SeatAssignmentOutcome.Assigned, outcome);
+        Assert.Equal(2, assignments.Count);
+        Assert.All(layout.Assignments, a => Assert.Equal(tableB.Id, a.SeatingTableId));
+        Assert.Equal(2, layout.Assignments.Count);
+    }
+
+    [Fact]
+    public void AssignGuestWithParty_WhenAccompanyingCountNegative_Throws()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => layout.AssignGuestWithParty(table.Id, 0, Guid.NewGuid(), -1, Later, out _));
+    }
+
+    [Fact]
+    public void UnassignGuest_AlsoReleasesSeatsReservedForTheirParty()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuestWithParty(table.Id, 0, guestId, 2, Created, out _);
+
+        var removed = layout.UnassignGuest(guestId, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Assignments);
+    }
+
+    [Fact]
+    public void UnassignSeat_OnAReservedSeat_ReleasesTheWholeParty()
+    {
+        var layout = SeatingLayout.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Created);
+        var table = layout.AddTable(Guid.NewGuid(), "Family", TableShape.Round, 8, Created);
+        var guestId = Guid.NewGuid();
+        layout.AssignGuestWithParty(table.Id, 0, guestId, 2, Created, out _);
+
+        // Seat 1 is a reserved (anonymous) seat, not the guest's own seat.
+        var removed = layout.UnassignSeat(table.Id, 1, Later);
+
+        Assert.True(removed);
+        Assert.Empty(layout.Assignments);
     }
 
     [Fact]

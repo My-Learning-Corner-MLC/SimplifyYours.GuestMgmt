@@ -2,6 +2,7 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
+using GuestManagementService.Application.Guests;
 using GuestManagementService.Domain.Seating;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -53,8 +54,8 @@ public sealed class AssignSeatCommandHandler(
             return AssignSeatResult.SeatIndexOutOfRange();
         }
 
-        var guestExists = await guestRepository.ExistsAsync(request.EventId, request.GuestId, cancellationToken);
-        if (!guestExists)
+        var guest = await guestRepository.GetByIdAsync(request.EventId, request.GuestId, cancellationToken);
+        if (guest is null)
         {
             logger.LogWarning(
                 "Seat assignment requested but guest was not found for this event. EventId: {EventId}. GuestId: {GuestId}.",
@@ -64,7 +65,9 @@ public sealed class AssignSeatCommandHandler(
         }
 
         var now = timeProvider.GetUtcNow();
-        var outcome = layout.AssignGuest(request.TableId, request.SeatIndex, request.GuestId, now, out _);
+        var accompanyingGuestCount = GuestPartySize.AccompanyingGuestCount(guest);
+        var outcome = layout.AssignGuestWithParty(
+            request.TableId, request.SeatIndex, request.GuestId, accompanyingGuestCount, now, out _);
 
         if (outcome == SeatAssignmentOutcome.SeatOccupied)
         {
@@ -74,6 +77,18 @@ public sealed class AssignSeatCommandHandler(
                 request.TableId,
                 request.SeatIndex);
             return AssignSeatResult.SeatOccupied();
+        }
+
+        if (outcome == SeatAssignmentOutcome.InsufficientAdjacentSeats)
+        {
+            logger.LogWarning(
+                "Seat assignment rejected because there weren't enough adjacent free seats for the guest's party. " +
+                "EventId: {EventId}. TableId: {TableId}. SeatIndex: {SeatIndex}. AccompanyingGuestCount: {AccompanyingGuestCount}.",
+                request.EventId,
+                request.TableId,
+                request.SeatIndex,
+                accompanyingGuestCount);
+            return AssignSeatResult.InsufficientAdjacentSeats();
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

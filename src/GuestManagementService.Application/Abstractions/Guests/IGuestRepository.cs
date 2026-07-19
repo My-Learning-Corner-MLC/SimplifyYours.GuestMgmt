@@ -8,6 +8,11 @@ public interface IGuestRepository
 
     Task<GuestListPage> ListAsync(GuestListQueryOptions options, CancellationToken cancellationToken);
 
+    Task<Guest?> GetByIdAsync(
+        Guid eventId,
+        Guid guestId,
+        CancellationToken cancellationToken);
+
     Task<bool> ExistsByPhoneAsync(
         Guid eventId,
         string normalizedPhoneNumber,
@@ -16,10 +21,5 @@ public interface IGuestRepository
     Task<bool> ExistsByEmailAsync(
         Guid eventId,
         string normalizedEmailAddress,
-        CancellationToken cancellationToken);
-
-    Task<bool> ExistsAsync(
-        Guid eventId,
-        Guid guestId,
         CancellationToken cancellationToken);
 }

@@ -26,6 +26,16 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
         return new GuestListPage(items, options.PageNumber, options.PageSize, totalCount);
     }
 
+    public async Task<Guest?> GetByIdAsync(
+        Guid eventId,
+        Guid guestId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .FirstOrDefaultAsync(guest => guest.EventId == eventId && guest.Id == guestId, cancellationToken);
+    }
+
     public async Task<bool> ExistsByPhoneAsync(
         Guid eventId,
         string normalizedPhoneNumber,
@@ -50,15 +60,5 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
                 guest => guest.EventId == eventId
                     && guest.NormalizedEmailAddress == normalizedEmailAddress,
                 cancellationToken);
-    }
-
-    public async Task<bool> ExistsAsync(
-        Guid eventId,
-        Guid guestId,
-        CancellationToken cancellationToken)
-    {
-        return await dbContext.Guests
-            .AsNoTracking()
-            .AnyAsync(guest => guest.EventId == eventId && guest.Id == guestId, cancellationToken);
     }
 }

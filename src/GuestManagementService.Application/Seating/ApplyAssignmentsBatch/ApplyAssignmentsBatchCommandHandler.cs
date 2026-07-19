@@ -2,7 +2,9 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Seating;
+using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Seating;
+using GuestManagementService.Domain.Guests;
 using GuestManagementService.Domain.Seating;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -34,14 +36,14 @@ public sealed class ApplyAssignmentsBatchCommandHandler(
 
         var layout = await seatingLayoutProvisioner.GetOrCreateAsync(request.EventId, currentUser.TenantId, cancellationToken);
         var guests = await GuestRoster.LoadAllAsync(guestRepository, request.EventId, currentUser.TenantId, cancellationToken);
-        var guestIds = guests.Select(guest => guest.Id).ToHashSet();
+        var guestsById = guests.ToDictionary(guest => guest.Id);
 
         var now = timeProvider.GetUtcNow();
         var opResults = new List<SeatingBatchOpResult>(request.Ops.Count);
 
         foreach (var op in request.Ops)
         {
-            opResults.Add(Apply(layout, guestIds, op, now));
+            opResults.Add(Apply(layout, guestsById, op, now));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -58,7 +60,7 @@ public sealed class ApplyAssignmentsBatchCommandHandler(
 
     private static SeatingBatchOpResult Apply(
         SeatingLayout layout,
-        IReadOnlySet<Guid> guestIds,
+        IReadOnlyDictionary<Guid, Guest> guestsById,
         SeatingBatchOpInput op,
         DateTimeOffset now)
     {
@@ -70,7 +72,7 @@ public sealed class ApplyAssignmentsBatchCommandHandler(
             return new SeatingBatchOpResult(op.GuestId, SeatingBatchOpStatus.Applied);
         }
 
-        if (!guestIds.Contains(op.GuestId))
+        if (!guestsById.TryGetValue(op.GuestId, out var guest))
         {
             return new SeatingBatchOpResult(op.GuestId, SeatingBatchOpStatus.GuestNotFound);
         }
@@ -86,10 +88,15 @@ public sealed class ApplyAssignmentsBatchCommandHandler(
             return new SeatingBatchOpResult(op.GuestId, SeatingBatchOpStatus.SeatIndexOutOfRange);
         }
 
-        var outcome = layout.AssignGuest(table.Id, op.SeatIndex.Value, op.GuestId, now, out _);
-        var status = outcome == SeatAssignmentOutcome.Assigned
-            ? SeatingBatchOpStatus.Applied
-            : SeatingBatchOpStatus.Conflict;
+        var accompanyingGuestCount = GuestPartySize.AccompanyingGuestCount(guest);
+        var outcome = layout.AssignGuestWithParty(
+            table.Id, op.SeatIndex.Value, op.GuestId, accompanyingGuestCount, now, out _);
+        var status = outcome switch
+        {
+            SeatAssignmentOutcome.Assigned => SeatingBatchOpStatus.Applied,
+            SeatAssignmentOutcome.InsufficientAdjacentSeats => SeatingBatchOpStatus.InsufficientAdjacentSeats,
+            _ => SeatingBatchOpStatus.Conflict,
+        };
         return new SeatingBatchOpResult(op.GuestId, status);
     }
 }

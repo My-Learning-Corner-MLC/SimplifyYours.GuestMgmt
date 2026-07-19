@@ -3,6 +3,7 @@ using System;
 using GuestManagementService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GuestManagementService.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(GuestManagementServiceDbContext))]
-    partial class GuestManagementServiceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711230223_AddSeatingPartyReservations")]
+    partial class AddSeatingPartyReservations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,12 +36,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("event_name");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("event_type");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()

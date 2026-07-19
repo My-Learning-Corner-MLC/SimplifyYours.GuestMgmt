@@ -90,9 +90,14 @@ public sealed class SeatingLayout
         return true;
     }
 
-    // A guest occupies at most one seat in the layout: assigning them elsewhere
-    // (or re-assigning the same seat) first drops any prior assignment for that
-    // guest, so this call is idempotent and doubles as "move".
+    // A guest occupies at most one seat directly in the layout, plus whatever seats are
+    // reserved for their party (see AssignGuestWithParty): assigning them elsewhere (or
+    // re-assigning the same seat) first drops every prior assignment tied to that guest
+    // — their own seat and any party reservations — so this call is idempotent and
+    // doubles as "move". A thin wrapper over AssignGuestWithParty with zero accompanying
+    // guests, so there's one implementation of the occupancy/move rules to keep correct —
+    // this can never silently strand a party's reserved seats the way a separate
+    // single-seat implementation could.
     public SeatAssignmentOutcome AssignGuest(
         Guid tableId,
         int seatIndex,
@@ -100,9 +105,78 @@ public sealed class SeatingLayout
         DateTimeOffset now,
         out SeatAssignment? assignment)
     {
+        var outcome = AssignGuestWithParty(tableId, seatIndex, guestId, 0, now, out var assignments);
+        assignment = assignments.Count > 0 ? assignments[0] : null;
+        return outcome;
+    }
+
+    // Assigns guestId to seatIndex and, when accompanyingGuestCount > 0, reserves that many
+    // additional contiguous adjacent seats for their party (see SeatAdjacency) — anonymous
+    // seats with no guest record of their own. All-or-nothing: if there isn't enough
+    // contiguous room, nothing changes and InsufficientAdjacentSeats is returned. Like
+    // AssignGuest, this drops every prior assignment tied to the guest first, so it also
+    // doubles as "move the whole party".
+    public SeatAssignmentOutcome AssignGuestWithParty(
+        Guid tableId,
+        int seatIndex,
+        Guid guestId,
+        int accompanyingGuestCount,
+        DateTimeOffset now,
+        out IReadOnlyList<SeatAssignment> assignments)
+    {
+        if (accompanyingGuestCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(accompanyingGuestCount),
+                accompanyingGuestCount,
+                "Accompanying guest count must not be negative.");
+        }
+
         var table = FindTable(tableId)
             ?? throw new InvalidOperationException($"Table {tableId} does not belong to this layout.");
 
+        ValidateSeatIndex(table, seatIndex);
+
+        // Seats already held by this guest's own party aren't "occupied" for this search —
+        // they'll be released and re-claimed as part of the move.
+        var occupiedSeatIndexes = _assignments
+            .Where(a => a.SeatingTableId == tableId && a.PartyOwnerGuestId != guestId)
+            .Select(a => a.SeatIndex)
+            .ToHashSet();
+
+        if (occupiedSeatIndexes.Contains(seatIndex))
+        {
+            assignments = [];
+            return SeatAssignmentOutcome.SeatOccupied;
+        }
+
+        var requiredSeatCount = 1 + accompanyingGuestCount;
+        var chosenSeatIndexes = SeatAdjacency.FindContiguousFreeSeats(
+            table.Shape, table.SeatCount, seatIndex, requiredSeatCount, occupiedSeatIndexes);
+
+        if (chosenSeatIndexes is null)
+        {
+            assignments = [];
+            return SeatAssignmentOutcome.InsufficientAdjacentSeats;
+        }
+
+        _assignments.RemoveAll(a => a.PartyOwnerGuestId == guestId);
+
+        var created = new List<SeatAssignment>(chosenSeatIndexes.Count)
+        {
+            SeatAssignment.Create(Guid.NewGuid(), tableId, guestId, chosenSeatIndexes[0], now),
+        };
+        created.AddRange(chosenSeatIndexes.Skip(1)
+            .Select(reservedSeatIndex => SeatAssignment.CreateReservedForParty(Guid.NewGuid(), tableId, guestId, reservedSeatIndex, now)));
+
+        _assignments.AddRange(created);
+        UpdatedAt = now.ToUniversalTime();
+        assignments = created;
+        return SeatAssignmentOutcome.Assigned;
+    }
+
+    private static void ValidateSeatIndex(SeatingTable table, int seatIndex)
+    {
         if (seatIndex < 0 || seatIndex >= table.SeatCount)
         {
             throw new ArgumentOutOfRangeException(
@@ -110,22 +184,11 @@ public sealed class SeatingLayout
                 seatIndex,
                 $"Seat index must be between 0 and {table.SeatCount - 1} for this table.");
         }
-
-        var occupant = _assignments.FirstOrDefault(a => a.SeatingTableId == tableId && a.SeatIndex == seatIndex);
-        if (occupant is not null && occupant.GuestId != guestId)
-        {
-            assignment = null;
-            return SeatAssignmentOutcome.SeatOccupied;
-        }
-
-        _assignments.RemoveAll(a => a.GuestId == guestId);
-
-        assignment = SeatAssignment.Create(Guid.NewGuid(), tableId, guestId, seatIndex, now);
-        _assignments.Add(assignment);
-        UpdatedAt = now.ToUniversalTime();
-        return SeatAssignmentOutcome.Assigned;
     }
 
+    // Releases the seat and, when it belongs to a party (a primary seat with reservations,
+    // or a reserved seat itself), every other seat held by the same party — so unseating
+    // one member of a group doesn't leave their reserved seats stranded.
     public bool UnassignSeat(Guid tableId, int seatIndex, DateTimeOffset now)
     {
         var assignment = _assignments.FirstOrDefault(a => a.SeatingTableId == tableId && a.SeatIndex == seatIndex);
@@ -134,20 +197,24 @@ public sealed class SeatingLayout
             return false;
         }
 
-        _assignments.Remove(assignment);
-        UpdatedAt = now.ToUniversalTime();
-        return true;
+        return UnassignParty(assignment.PartyOwnerGuestId, now);
     }
 
+    // Releases every seat held by guestId's party (their own seat plus any reserved for
+    // their accompanying attendees).
     public bool UnassignGuest(Guid guestId, DateTimeOffset now)
     {
-        var assignment = _assignments.FirstOrDefault(a => a.GuestId == guestId);
-        if (assignment is null)
+        return UnassignParty(guestId, now);
+    }
+
+    private bool UnassignParty(Guid partyOwnerGuestId, DateTimeOffset now)
+    {
+        var removed = _assignments.RemoveAll(a => a.PartyOwnerGuestId == partyOwnerGuestId);
+        if (removed == 0)
         {
             return false;
         }
 
-        _assignments.Remove(assignment);
         UpdatedAt = now.ToUniversalTime();
         return true;
     }

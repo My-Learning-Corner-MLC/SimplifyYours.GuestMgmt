@@ -18,8 +18,34 @@ public sealed class SeatAssignmentTests
         Assert.Equal(id, assignment.Id);
         Assert.Equal(tableId, assignment.SeatingTableId);
         Assert.Equal(guestId, assignment.GuestId);
+        Assert.Equal(guestId, assignment.PartyOwnerGuestId);
         Assert.Equal(3, assignment.SeatIndex);
         Assert.Equal(Now, assignment.CreatedAt);
+        Assert.False(assignment.IsReservedForParty);
+    }
+
+    [Fact]
+    public void CreateReservedForParty_SetsNullGuestIdAndPartyOwner()
+    {
+        var id = Guid.NewGuid();
+        var tableId = Guid.NewGuid();
+        var partyOwnerGuestId = Guid.NewGuid();
+
+        var assignment = SeatAssignment.CreateReservedForParty(id, tableId, partyOwnerGuestId, 4, Now);
+
+        Assert.Equal(id, assignment.Id);
+        Assert.Equal(tableId, assignment.SeatingTableId);
+        Assert.Null(assignment.GuestId);
+        Assert.Equal(partyOwnerGuestId, assignment.PartyOwnerGuestId);
+        Assert.Equal(4, assignment.SeatIndex);
+        Assert.True(assignment.IsReservedForParty);
+    }
+
+    [Fact]
+    public void CreateReservedForParty_WhenPartyOwnerEmpty_Throws()
+    {
+        Assert.Throws<ArgumentException>(
+            () => SeatAssignment.CreateReservedForParty(Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, 0, Now));
     }
 
     [Fact]

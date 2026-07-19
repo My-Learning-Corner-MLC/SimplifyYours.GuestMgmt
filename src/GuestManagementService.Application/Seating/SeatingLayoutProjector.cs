@@ -17,7 +17,9 @@ public static class SeatingLayoutProjector
             .ToList();
         var areas = layout.Areas.Select(SeatingAreaDetails.From).ToList();
         var seatCount = tables.Sum(table => table.SeatCount);
-        var seatedCount = layout.Assignments.Count;
+        // Seats reserved for a party's accompanying attendees aren't a real guest, so they
+        // don't count toward "seated" (and mustn't reduce "floating").
+        var seatedCount = layout.Assignments.Count(assignment => !assignment.IsReservedForParty);
         var floatingCount = guests.Count - seatedCount;
 
         var summary = new SeatingSummaryDetails(tables.Count, seatCount, seatedCount, floatingCount);

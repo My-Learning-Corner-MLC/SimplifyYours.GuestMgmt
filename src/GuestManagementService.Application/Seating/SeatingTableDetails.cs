@@ -30,8 +30,15 @@ public sealed record SeatingTableDetails(
                     return SeatingSeatDetails.Empty(seatIndex);
                 }
 
-                var guestName = guestNamesById?.GetValueOrDefault(assignment.GuestId);
-                return new SeatingSeatDetails(seatIndex, assignment.GuestId, guestName);
+                var guestName = assignment.GuestId is { } guestId
+                    ? guestNamesById?.GetValueOrDefault(guestId)
+                    : null;
+                return new SeatingSeatDetails(
+                    seatIndex,
+                    assignment.GuestId,
+                    guestName,
+                    assignment.IsReservedForParty,
+                    assignment.PartyOwnerGuestId);
             })
             .ToList();
 

@@ -4,6 +4,7 @@ public enum SeatingBatchOpStatus
 {
     Applied,
     Conflict,
+    InsufficientAdjacentSeats,
     TableNotFound,
     GuestNotFound,
     SeatIndexOutOfRange
