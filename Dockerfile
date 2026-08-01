@@ -39,9 +39,13 @@ EXPOSE 8080 8081
 # librdkafka (via Confluent.Kafka, used by SimplifyYours.Event.Consumer) links against
 # libgssapi_krb5 for optional SASL/GSSAPI support even when it's unused — not present in
 # the minimal aspnet base image, so the Kafka client silently fails to load without it.
+# curl is installed alongside it for HEALTHCHECK below.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl \
     && rm -rf /var/lib/apt/lists/*
+
+HEALTHCHECK --interval=5s --timeout=3s --retries=10 --start-period=10s \
+    CMD curl -fsS http://localhost:8080/ping || exit 1
 
 USER app
 COPY --from=build /app/publish .
