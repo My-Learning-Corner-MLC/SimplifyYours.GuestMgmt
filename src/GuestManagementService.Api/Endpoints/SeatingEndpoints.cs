@@ -25,88 +25,76 @@ public static class SeatingEndpoints
 {
     public static IEndpointRouteBuilder MapSeatingEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints
-            .MapGet("/seating", GetSeatingLayoutAsync)
+        var group = endpoints.MapGroup("/seats").WithTags("Seating");
+
+        group
+            .MapGet("", GetSeatingLayoutAsync)
             .WithName("GetSeatingLayout")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingView);
 
-        endpoints
-            .MapPost("/seating/tables", CreateTablesAsync)
+        group
+            .MapPost("/tables", CreateTablesAsync)
             .WithName("CreateTables")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPut("/seating/tables/{tableId:guid}", UpdateTableAsync)
+        group
+            .MapPut("/tables/{tableId:guid}", UpdateTableAsync)
             .WithName("UpdateTable")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapDelete("/seating/tables/{tableId:guid}", DeleteTableAsync)
+        group
+            .MapDelete("/tables/{tableId:guid}", DeleteTableAsync)
             .WithName("DeleteTable")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPut("/seating/tables/{tableId:guid}/seats/{seatIndex:int}", AssignSeatAsync)
+        group
+            .MapPut("/tables/{tableId:guid}/seats/{seatIndex:int}", AssignSeatAsync)
             .WithName("AssignSeat")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapDelete("/seating/tables/{tableId:guid}/seats/{seatIndex:int}", UnassignSeatAsync)
+        group
+            .MapDelete("/tables/{tableId:guid}/seats/{seatIndex:int}", UnassignSeatAsync)
             .WithName("UnassignSeat")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPut("/seating/assignments", ApplyAssignmentsBatchAsync)
+        group
+            .MapPut("/assignments", ApplyAssignmentsBatchAsync)
             .WithName("ApplyAssignmentsBatch")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPatch("/seating/tables/{tableId:guid}/position", UpdateTablePositionAsync)
+        group
+            .MapPatch("/tables/{tableId:guid}/position", UpdateTablePositionAsync)
             .WithName("UpdateTablePosition")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPatch("/seating/tables/positions", ApplyTablePositionsBatchAsync)
+        group
+            .MapPatch("/tables/positions", ApplyTablePositionsBatchAsync)
             .WithName("ApplyTablePositionsBatch")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPost("/seating/areas", CreateAreaAsync)
+        group
+            .MapPost("/areas", CreateAreaAsync)
             .WithName("CreateArea")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPut("/seating/areas/{areaId:guid}", UpdateAreaAsync)
+        group
+            .MapPut("/areas/{areaId:guid}", UpdateAreaAsync)
             .WithName("UpdateArea")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapDelete("/seating/areas/{areaId:guid}", DeleteAreaAsync)
+        group
+            .MapDelete("/areas/{areaId:guid}", DeleteAreaAsync)
             .WithName("DeleteArea")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPatch("/seating/areas/{areaId:guid}/position", UpdateAreaPositionAsync)
+        group
+            .MapPatch("/areas/{areaId:guid}/position", UpdateAreaPositionAsync)
             .WithName("UpdateAreaPosition")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
-        endpoints
-            .MapPatch("/seating/areas/positions", ApplyAreaPositionsBatchAsync)
+        group
+            .MapPatch("/areas/positions", ApplyAreaPositionsBatchAsync)
             .WithName("ApplyAreaPositionsBatch")
-            .WithTags("Seating")
             .RequireAuthorization(Permissions.SeatingManage);
 
         return endpoints;
@@ -154,7 +142,7 @@ public static class SeatingEndpoints
             return result.Status switch
             {
                 CreateTablesStatus.Created => Results.Created(
-                    "/seating",
+                    "/seats",
                     new CreateTablesResponse(result.Tables.Select(ToTableResponse).ToList())),
                 CreateTablesStatus.EventNotFound => ApiErrorResults.NotFound(
                     "The event was not found. It may have been deleted or the id may be incorrect.",
@@ -447,7 +435,7 @@ public static class SeatingEndpoints
 
             return result.Status switch
             {
-                CreateAreaStatus.Created when result.Area is not null => Results.Created("/seating", ToAreaResponse(result.Area)),
+                CreateAreaStatus.Created when result.Area is not null => Results.Created("/seats", ToAreaResponse(result.Area)),
                 CreateAreaStatus.EventNotFound => ApiErrorResults.NotFound(
                     "The event was not found. It may have been deleted or the id may be incorrect.",
                     httpContext),
