@@ -13,16 +13,16 @@ public static class GuestEndpoints
 {
     public static IEndpointRouteBuilder MapGuestEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints
-            .MapPost("/guest", AddGuestAsync)
+        var group = endpoints.MapGroup("/guests").WithTags("Guests");
+
+        group
+            .MapPost("", AddGuestAsync)
             .WithName("AddGuest")
-            .WithTags("Guests")
             .RequireAuthorization(Permissions.GuestsAdd);
 
-        endpoints
-            .MapPost("/guests/query", ListGuestsAsync)
+        group
+            .MapPost("/query", ListGuestsAsync)
             .WithName("QueryGuests")
-            .WithTags("Guests")
             .RequireAuthorization(Permissions.GuestsView);
 
         return endpoints;
@@ -143,7 +143,7 @@ public static class GuestEndpoints
                 guest.EventMetadata),
             guest.CreatedAt);
 
-        return Results.Created($"/guest/{response.Id}", response);
+        return Results.Created($"/guests/{response.Id}", response);
     }
 
     private static GuestListItemResponse ToListItem(GuestDetails guest)
