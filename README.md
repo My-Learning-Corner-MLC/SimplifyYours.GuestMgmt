@@ -2,6 +2,15 @@
 
 Backend service for Simplify Yours guest management capabilities.
 
+## Run in Docker
+
+This service has a `Dockerfile` for containerized local dev, but it's meant to run
+as part of the application stack — see `code/infra/local-dev` for the orchestration
+compose (identity-service, event-service, guest-management-service, api-gateway,
+real HTTPS between containers). That stack connects to Postgres and Kafka running
+in a separate `code/infra/shared-infrastructure` stack, which must be started
+first — see that repo's README for the startup order.
+
 ## Current API
 
 Protected guest resource endpoints require `Authorization: Bearer <access_token>`.
