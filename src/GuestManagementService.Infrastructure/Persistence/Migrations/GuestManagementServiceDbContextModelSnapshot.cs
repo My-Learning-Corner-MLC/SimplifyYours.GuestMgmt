@@ -147,6 +147,222 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                     b.ToTable("guests", (string)null);
                 });
 
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.FloorPlanArea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision")
+                        .HasColumnName("height");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<double?>("PositionX")
+                        .HasColumnType("double precision")
+                        .HasColumnName("position_x");
+
+                    b.Property<double?>("PositionY")
+                        .HasColumnType("double precision")
+                        .HasColumnName("position_y");
+
+                    b.Property<double>("Rotation")
+                        .HasColumnType("double precision")
+                        .HasColumnName("rotation");
+
+                    b.Property<Guid>("SeatingLayoutId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seating_layout_id");
+
+                    b.Property<string>("Shape")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("shape");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id")
+                        .HasName("pk_floor_plan_areas");
+
+                    b.HasIndex("SeatingLayoutId")
+                        .HasDatabaseName("ix_floor_plan_areas_seating_layout_id");
+
+                    b.ToTable("floor_plan_areas", (string)null);
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("guest_id");
+
+                    b.Property<Guid>("PartyOwnerGuestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("party_owner_guest_id");
+
+                    b.Property<int>("SeatIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("seat_index");
+
+                    b.Property<Guid>("SeatingLayoutId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seating_layout_id");
+
+                    b.Property<Guid>("SeatingTableId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seating_table_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_seat_assignments");
+
+                    b.HasIndex("GuestId");
+
+                    b.HasIndex("PartyOwnerGuestId");
+
+                    b.HasIndex("SeatingLayoutId", "GuestId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_seat_assignments_layout_id_guest_id");
+
+                    b.HasIndex("SeatingTableId", "SeatIndex")
+                        .IsUnique()
+                        .HasDatabaseName("ux_seat_assignments_table_id_seat_index");
+
+                    b.ToTable("seat_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatingLayout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_seating_layouts");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_seating_layouts_event_id");
+
+                    b.HasIndex("TenantId", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_seating_layouts_tenant_id_event_id");
+
+                    b.ToTable("seating_layouts", (string)null);
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatingTable", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsFull")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_full");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<double?>("PositionX")
+                        .HasColumnType("double precision")
+                        .HasColumnName("position_x");
+
+                    b.Property<double?>("PositionY")
+                        .HasColumnType("double precision")
+                        .HasColumnName("position_y");
+
+                    b.Property<double>("Rotation")
+                        .HasColumnType("double precision")
+                        .HasColumnName("rotation");
+
+                    b.Property<int>("SeatCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("seat_count");
+
+                    b.Property<Guid>("SeatingLayoutId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seating_layout_id");
+
+                    b.Property<string>("Shape")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("shape");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_seating_tables");
+
+                    b.HasIndex("SeatingLayoutId")
+                        .HasDatabaseName("ix_seating_tables_seating_layout_id");
+
+                    b.ToTable("seating_tables", (string)null);
+                });
+
             modelBuilder.Entity("GuestManagementService.Infrastructure.Persistence.Inbox.InboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -188,6 +404,65 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasName("pk_inbox_messages");
 
                     b.ToTable("inbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.FloorPlanArea", b =>
+                {
+                    b.HasOne("GuestManagementService.Domain.Seating.SeatingLayout", null)
+                        .WithMany("Areas")
+                        .HasForeignKey("SeatingLayoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_floor_plan_areas_seating_layout_id");
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatAssignment", b =>
+                {
+                    b.HasOne("GuestManagementService.Domain.Guests.Guest", null)
+                        .WithMany()
+                        .HasForeignKey("GuestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_seat_assignments_guest_id");
+
+                    b.HasOne("GuestManagementService.Domain.Guests.Guest", null)
+                        .WithMany()
+                        .HasForeignKey("PartyOwnerGuestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_seat_assignments_party_owner_guest_id");
+
+                    b.HasOne("GuestManagementService.Domain.Seating.SeatingLayout", null)
+                        .WithMany("Assignments")
+                        .HasForeignKey("SeatingLayoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_seat_assignments_seating_layout_id");
+
+                    b.HasOne("GuestManagementService.Domain.Seating.SeatingTable", null)
+                        .WithMany()
+                        .HasForeignKey("SeatingTableId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_seat_assignments_seating_table_id");
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatingTable", b =>
+                {
+                    b.HasOne("GuestManagementService.Domain.Seating.SeatingLayout", null)
+                        .WithMany("Tables")
+                        .HasForeignKey("SeatingLayoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_seating_tables_seating_layout_id");
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Seating.SeatingLayout", b =>
+                {
+                    b.Navigation("Areas");
+
+                    b.Navigation("Assignments");
+
+                    b.Navigation("Tables");
                 });
 #pragma warning restore 612, 618
         }

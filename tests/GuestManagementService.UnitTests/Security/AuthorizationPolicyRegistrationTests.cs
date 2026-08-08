@@ -36,6 +36,34 @@ public class AuthorizationPolicyRegistrationTests
         Assert.Contains(Permissions.GuestsView, claimRequirement.AllowedValues!);
     }
 
+    [Fact]
+    public async Task AddPermissionPolicies_registers_seating_view_policy()
+    {
+        var provider = BuildPolicyProvider();
+
+        var policy = await provider.GetPolicyAsync(Permissions.SeatingView);
+
+        Assert.NotNull(policy);
+        var claimRequirement = Assert.Single(policy!.Requirements.OfType<ClaimsAuthorizationRequirement>());
+        Assert.Equal(Permissions.ClaimType, claimRequirement.ClaimType);
+        Assert.NotNull(claimRequirement.AllowedValues);
+        Assert.Contains(Permissions.SeatingView, claimRequirement.AllowedValues!);
+    }
+
+    [Fact]
+    public async Task AddPermissionPolicies_registers_seating_manage_policy()
+    {
+        var provider = BuildPolicyProvider();
+
+        var policy = await provider.GetPolicyAsync(Permissions.SeatingManage);
+
+        Assert.NotNull(policy);
+        var claimRequirement = Assert.Single(policy!.Requirements.OfType<ClaimsAuthorizationRequirement>());
+        Assert.Equal(Permissions.ClaimType, claimRequirement.ClaimType);
+        Assert.NotNull(claimRequirement.AllowedValues);
+        Assert.Contains(Permissions.SeatingManage, claimRequirement.AllowedValues!);
+    }
+
     [Theory]
     [InlineData("events.create")]
     [InlineData("events.view")]

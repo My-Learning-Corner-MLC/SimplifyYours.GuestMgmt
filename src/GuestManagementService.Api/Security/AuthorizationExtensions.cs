@@ -11,7 +11,11 @@ public static class AuthorizationExtensions
             .AddPolicy(Permissions.GuestsAdd, policy =>
                 policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsAdd))
             .AddPolicy(Permissions.GuestsView, policy =>
-                policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsView));
+                policy.RequireClaim(Permissions.ClaimType, Permissions.GuestsView))
+            .AddPolicy(Permissions.SeatingView, policy =>
+                policy.RequireClaim(Permissions.ClaimType, Permissions.SeatingView))
+            .AddPolicy(Permissions.SeatingManage, policy =>
+                policy.RequireClaim(Permissions.ClaimType, Permissions.SeatingManage));
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, PermissionDeniedResultHandler>();
 

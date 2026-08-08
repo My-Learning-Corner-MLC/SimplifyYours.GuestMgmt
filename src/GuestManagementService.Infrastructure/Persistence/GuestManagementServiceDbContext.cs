@@ -1,5 +1,6 @@
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Seating;
 using GuestManagementService.Infrastructure.Persistence.Inbox;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,8 @@ public sealed class GuestManagementServiceDbContext(DbContextOptions<GuestManage
     public DbSet<Guest> Guests => Set<Guest>();
 
     public DbSet<EventReference> EventReferences => Set<EventReference>();
+
+    public DbSet<SeatingLayout> SeatingLayouts => Set<SeatingLayout>();
 
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
