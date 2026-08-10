@@ -1,7 +1,9 @@
+using FluentValidation;
 using GuestManagementService.Api.Responses;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
+using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Contracts.Invitations;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
@@ -35,6 +37,13 @@ public static class InvitationEndpoints
         group
             .MapGet("{token}/render", RenderInvitationAsync)
             .WithName("RenderInvitation")
+            .AllowAnonymous();
+
+        // POST only. Email link-scanners pre-fetch every URL they see, so a GET that recorded an
+        // answer would manufacture phantom RSVPs from bots.
+        group
+            .MapPost("{token}/rsvp", SubmitRsvpAsync)
+            .WithName("SubmitRsvp")
             .AllowAnonymous();
 
         return endpoints;
@@ -85,6 +94,50 @@ public static class InvitationEndpoints
         var html = renderer.Render(ToRenderModel(result.Guest!, result.Event!));
 
         return Results.Content(html, "text/html; charset=utf-8");
+    }
+
+    internal static async Task<IResult> SubmitRsvpAsync(
+        string token,
+        SubmitRsvpRequest request,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(
+                new SubmitRsvpCommand(
+                    token,
+                    request?.RsvpStatus,
+                    request?.PlusOnesConfirmed,
+                    request?.DietaryNotes),
+                cancellationToken);
+
+            ApplyPublicHeaders(httpContext);
+
+            return result.Status switch
+            {
+                SubmitRsvpStatus.Accepted => Results.Ok(
+                    ToResponse(result.Guest!, result.Event!, result.Deadline, isOpen: true)),
+                SubmitRsvpStatus.Closed => ApiErrorResults.Conflict(
+                    "Responses for this event are closed.",
+                    httpContext),
+                _ => ApiErrorResults.NotFound("This invitation could not be found.", httpContext),
+            };
+        }
+        catch (ValidationException exception)
+        {
+            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
+        }
+    }
+
+    private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
+    {
+        return exception.Errors
+            .GroupBy(error => error.PropertyName)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(error => error.ErrorMessage).ToArray());
     }
 
     public static InvitationRenderModel ToRenderModel(Guest guest, EventReference eventReference)

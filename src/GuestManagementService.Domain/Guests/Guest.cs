@@ -82,6 +82,28 @@ public sealed class Guest
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>
+    /// Records the guest's own RSVP.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="metadata"/> already carries the guest's answers merged over the organiser's
+    /// fields — the caller builds it so that the organiser's plus-ones allowance survives untouched.
+    /// <see cref="RespondedAt"/> marks the <em>first</em> response and is not moved by later edits,
+    /// so "when did they reply" stays answerable after someone changes their mind.
+    /// </remarks>
+    public void RecordRsvp(RsvpStatus status, string? metadata, DateTimeOffset respondedAt)
+    {
+        if (status == RsvpStatus.NoResponse)
+        {
+            throw new ArgumentException("A recorded RSVP cannot be NoResponse.", nameof(status));
+        }
+
+        RsvpStatus = status;
+        Metadata = NormalizeOptionalText(metadata);
+        RespondedAt ??= respondedAt.ToUniversalTime();
+        UpdatedAt = respondedAt.ToUniversalTime();
+    }
+
     public static Guest Create(
         Guid id,
         Guid eventId,
