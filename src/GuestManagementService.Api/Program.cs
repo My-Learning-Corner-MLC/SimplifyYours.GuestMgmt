@@ -1,6 +1,7 @@
 using GuestManagementService.Api.Endpoints;
 using GuestManagementService.Api.Middleware;
 using GuestManagementService.Api.Observability;
+using GuestManagementService.Api.RateLimiting;
 using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
 using GuestManagementService.Application;
@@ -18,6 +19,11 @@ builder.Services.AddScoped<CurrentUserAccessor>();
 builder.Services.AddScoped<ICurrentUserAccessor>(sp => sp.GetRequiredService<CurrentUserAccessor>());
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = InvitationRateLimits.CreateLimiter();
+});
 
 var app = builder.Build();
 
@@ -34,6 +40,10 @@ app.UseRequestLogging();
 app.UseAuthentication();
 app.UseCurrentUser();
 app.UseAuthorization();
+
+// After authorization so an authenticated caller's request is still counted, but before endpoint
+// execution so a throttled request never reaches a handler or the database.
+app.UseRateLimiter();
 
 app.MapPingEndpoints();
 app.MapGuestEndpoints();
