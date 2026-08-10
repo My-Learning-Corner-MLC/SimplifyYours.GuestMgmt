@@ -12,6 +12,20 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
         await dbContext.Guests.AddAsync(guest, cancellationToken);
     }
 
+    public async Task<Guest?> GetByInvitationTokenAsync(string invitationToken, CancellationToken cancellationToken)
+    {
+        // Tracked, not AsNoTracking: the RSVP write path mutates the entity it loads here.
+        return await dbContext.Guests
+            .SingleOrDefaultAsync(guest => guest.InvitationToken == invitationToken, cancellationToken);
+    }
+
+    public Task UpdateAsync(Guest guest, CancellationToken cancellationToken)
+    {
+        dbContext.Guests.Update(guest);
+
+        return Task.CompletedTask;
+    }
+
     public async Task<Guest?> GetByIdAsync(Guid guestId, Guid tenantId, CancellationToken cancellationToken)
     {
         return await dbContext.Guests
