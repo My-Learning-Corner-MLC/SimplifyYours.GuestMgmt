@@ -30,7 +30,6 @@ public sealed class WeddingGuestMetadataMapperTests
             relationship = "Family",
             side = "Bride",
             plusOnes = 2,
-            dietaryNotes = "Pescatarian"
         });
 
         var json = mapper.Serialize(element);
@@ -57,14 +56,6 @@ public sealed class WeddingGuestMetadataMapperTests
         Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.PlusOnes");
     }
 
-    [Fact]
-    public void InstanceSerialize_WhenDietaryNotesTooLong_ThrowsValidationException()
-    {
-        var element = ParseElement(new { dietaryNotes = new string('a', 501) });
-
-        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
-        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.DietaryNotes");
-    }
 
     [Fact]
     public void ToContract_WhenStoredMetadataIsNull_ReturnsNull()

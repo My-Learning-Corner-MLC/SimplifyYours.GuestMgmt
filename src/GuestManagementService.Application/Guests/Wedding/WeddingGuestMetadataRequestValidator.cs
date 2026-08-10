@@ -18,9 +18,5 @@ public sealed class WeddingGuestMetadataRequestValidator : AbstractValidator<Wed
             .InclusiveBetween(0, 20)
             .When(request => request.PlusOnes.HasValue)
             .WithMessage("Plus-ones must be between 0 and 20.");
-
-        RuleFor(request => request.DietaryNotes)
-            .MaximumLength(500)
-            .WithMessage("Dietary notes must be 500 characters or fewer.");
     }
 }

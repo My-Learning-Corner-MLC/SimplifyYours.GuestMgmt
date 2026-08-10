@@ -132,7 +132,9 @@ public sealed class AddGuestCommandHandlerTests
         Assert.Equal("Family", metadata.Relationship);
         Assert.Equal("Bride", metadata.Side);
         Assert.Equal(2, metadata.PlusOnes);
-        Assert.Equal("Pescatarian", metadata.DietaryNotes);
+        // The organiser no longer supplies dietary notes; the guest does, through the RSVP
+        // form. Anything sent on this path is ignored rather than stored.
+        Assert.Null(metadata.DietaryNotes);
         Assert.NotNull(savedGuest);
         Assert.NotNull(savedGuest.Metadata);
         Assert.Contains("\"relationship\":\"Family\"", savedGuest.Metadata);
@@ -185,7 +187,9 @@ public sealed class AddGuestCommandHandlerTests
         Assert.NotNull(result.Guest);
         var metadata = Assert.IsType<BirthdayGuestMetadataResponse>(result.Guest.EventMetadata);
         Assert.Equal(2, metadata.PlusOnes);
-        Assert.Equal("Pescatarian", metadata.DietaryNotes);
+        // The organiser no longer supplies dietary notes; the guest does, through the RSVP
+        // form. Anything sent on this path is ignored rather than stored.
+        Assert.Null(metadata.DietaryNotes);
         Assert.NotNull(savedGuest);
         Assert.NotNull(savedGuest.Metadata);
         Assert.DoesNotContain("relationship", savedGuest.Metadata);
