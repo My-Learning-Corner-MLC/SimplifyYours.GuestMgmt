@@ -31,6 +31,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
 
+        services.AddSingleton<IInvitationTokenGenerator, Guests.InvitationTokenGenerator>();
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();
         services.AddScoped<IEventInboxStore, GuestManagementInboxStore>();

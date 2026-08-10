@@ -29,6 +29,11 @@ public sealed class AddGuestCommandHandlerTests
             new BirthdayGuestMetadataMapper(new BirthdayGuestMetadataRequestValidator())
         ]);
 
+    // Deterministic stand-in for the real CSPRNG generator: these tests assert that a token is
+    // stored, not that it is unpredictable. Randomness is covered in InvitationTokenGeneratorTests.
+    private static readonly IInvitationTokenGenerator TestInvitationTokenGenerator =
+        new StubInvitationTokenGenerator();
+
     [Fact]
     public async Task Handle_WhenEventExists_CreatesGuest()
     {
@@ -51,6 +56,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -102,6 +108,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -154,6 +161,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -200,6 +208,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -239,6 +248,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -485,8 +495,14 @@ public sealed class AddGuestCommandHandlerTests
             eventReferenceRepository ?? eventReferences.Object,
             guestRepository ?? guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
+    }
+
+    private sealed class StubInvitationTokenGenerator : IInvitationTokenGenerator
+    {
+        public string Generate() => "tok-test-invitation-token";
     }
 }
