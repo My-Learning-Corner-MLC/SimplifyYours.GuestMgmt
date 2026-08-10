@@ -12,6 +12,15 @@ internal sealed class EfCoreGuestRepository(GuestManagementServiceDbContext dbCo
         await dbContext.Guests.AddAsync(guest, cancellationToken);
     }
 
+    public async Task<Guest?> GetByIdAsync(Guid guestId, Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Guests
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                guest => guest.Id == guestId && guest.TenantId == tenantId,
+                cancellationToken);
+    }
+
     public async Task<GuestListPage> ListAsync(GuestListQueryOptions options, CancellationToken cancellationToken)
     {
         var query = GuestListQueryBuilder.ApplyFilters(dbContext.Guests.AsNoTracking(), options);
