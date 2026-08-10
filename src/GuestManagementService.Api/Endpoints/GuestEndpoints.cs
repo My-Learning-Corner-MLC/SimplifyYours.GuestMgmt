@@ -186,6 +186,10 @@ public static class GuestEndpoints
             guest.EmailAddress,
             guest.Gender,
             guest.EventMetadata,
+            guest.DeliveryStatus,
+            guest.RsvpStatus,
+            guest.RespondedAt,
+            guest.PlusOnesConfirmed,
             guest.CreatedAt);
     }
 
