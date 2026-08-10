@@ -1,4 +1,5 @@
 using GuestManagementService.Api.Responses;
+using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Contracts.Invitations;
@@ -31,6 +32,11 @@ public static class InvitationEndpoints
             .WithName("GetInvitation")
             .AllowAnonymous();
 
+        group
+            .MapGet("{token}/render", RenderInvitationAsync)
+            .WithName("RenderInvitation")
+            .AllowAnonymous();
+
         return endpoints;
     }
 
@@ -52,6 +58,45 @@ public static class InvitationEndpoints
         ApplyPublicHeaders(httpContext);
 
         return Results.Ok(ToResponse(result.Guest!, result.Event!, result.Deadline, result.IsOpen));
+    }
+
+    internal static async Task<IResult> RenderInvitationAsync(
+        string token,
+        HttpContext httpContext,
+        ISender sender,
+        IInvitationRenderer renderer,
+        IConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetInvitationQuery(token), cancellationToken);
+
+        if (result.Status != GetInvitationStatus.Found)
+        {
+            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
+        }
+
+        ApplyPublicHeaders(httpContext);
+
+        // The app must be able to frame this, so frame-ancestors names the SPA origin rather than
+        // denying framing outright.
+        var spaOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "'self'";
+        httpContext.Response.Headers.ContentSecurityPolicy = $"frame-ancestors {spaOrigin}";
+
+        var html = renderer.Render(ToRenderModel(result.Guest!, result.Event!));
+
+        return Results.Content(html, "text/html; charset=utf-8");
+    }
+
+    public static InvitationRenderModel ToRenderModel(Guest guest, EventReference eventReference)
+    {
+        return new InvitationRenderModel(
+            guest.FirstName,
+            eventReference.EventName,
+            eventReference.EventDate?.ToString("D") ?? string.Empty,
+            eventReference.EventStartTime?.ToString("t") ?? string.Empty,
+            eventReference.VenueName ?? string.Empty,
+            eventReference.VenueAddress ?? string.Empty,
+            eventReference.EventDescription ?? string.Empty);
     }
 
     /// <summary>

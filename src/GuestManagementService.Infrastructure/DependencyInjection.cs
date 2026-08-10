@@ -1,6 +1,7 @@
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Contracts.IntegrationEvents;
 using GuestManagementService.Infrastructure.Messaging;
 using GuestManagementService.Infrastructure.Persistence;
@@ -32,6 +33,7 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<IInvitationTokenGenerator, Guests.InvitationTokenGenerator>();
+        services.AddSingleton<IInvitationRenderer>(_ => new Invitations.ScribanInvitationRenderer(configuration));
         services.AddSingleton<IInvitationLinkBuilder>(_ => new Guests.InvitationLinkBuilder(configuration));
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();

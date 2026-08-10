@@ -1,0 +1,15 @@
+<div class="inv">
+  <p class="inv-eyebrow">You're invited</p>
+  <h1 class="inv-title">{{ eventName }}</h1>
+  <p class="inv-greeting">Dear {{ guestName }},</p>
+  <p class="inv-lede">{{ eventDescription }}</p>
+
+  <dl class="inv-details">
+    <dt>When</dt>
+    <dd>{{ eventDate }} {{ eventTime }}</dd>
+    <dt>Where</dt>
+    <dd>{{ venueName }} {{ venueAddress }}</dd>
+  </dl>
+
+  <button type="button" class="sy-rsvp-trigger">Respond to this invitation</button>
+</div>
