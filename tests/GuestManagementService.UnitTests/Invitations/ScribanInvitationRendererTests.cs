@@ -15,16 +15,18 @@ public sealed class ScribanInvitationRendererTests
             .Build());
 
     private static InvitationRenderModel Model(string guestName = "Ada") =>
-        new(guestName, "Eleanor & Sam", "12 September 2026", "18:30", "Rosewood Hall", "12 Sample Street", "An evening reception");
+        new(guestName, "Amara & Julian", "Saturday, September 12, 2026", "Villa Astoria, Lake Como");
 
     [Fact]
     public void Render_FillsTheAllowlistedTokens()
     {
-        var html = Renderer.Render(Model());
+        var html = Renderer.Render(Model("Priya Nair"));
 
-        Assert.Contains("Dear Ada,", html, StringComparison.Ordinal);
-        Assert.Contains("Rosewood Hall", html, StringComparison.Ordinal);
-        Assert.Contains("12 September 2026", html, StringComparison.Ordinal);
+        Assert.Contains("Priya Nair", html, StringComparison.Ordinal);
+        Assert.Contains("Villa Astoria, Lake Como", html, StringComparison.Ordinal);
+        Assert.Contains("Saturday, September 12, 2026", html, StringComparison.Ordinal);
+        // "&" in the event name must survive as an entity, not as raw markup.
+        Assert.Contains("Amara &amp; Julian", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -52,21 +54,33 @@ public sealed class ScribanInvitationRendererTests
     {
         var html = Renderer.Render(Model());
 
-        // An unknown token must render empty, never as literal "{{ ... }}" text on the page.
         Assert.DoesNotContain("{{", html, StringComparison.Ordinal);
         Assert.DoesNotContain("}}", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Render_ProducesACompleteDocumentWithInlinedCssAndTheBridge()
+    public void Render_KeepsTheTemplatesOwnDocumentAndStyling()
+    {
+        // Marigold ships its own doctype, head and CSS — the design is the document. The renderer
+        // must inject into it, never wrap it in a second skeleton.
+        var html = Renderer.Render(Model());
+
+        Assert.StartsWith("<!DOCTYPE html>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, CountOccurrences(html, "<!DOCTYPE"));
+        Assert.Equal(1, CountOccurrences(html, "<body"));
+        Assert.Contains("#C98D6B", html, StringComparison.Ordinal);   // Marigold terracotta field
+        Assert.Contains("A seat is saved for", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_InjectsTheBridgeBeforeTheClosingBodyTag()
     {
         var html = Renderer.Render(Model());
 
-        Assert.StartsWith("<!doctype html>", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<style>", html, StringComparison.Ordinal);
-        Assert.Contains(".sy-rsvp-trigger", html, StringComparison.Ordinal);
         Assert.Contains("sy:rsvp", html, StringComparison.Ordinal);
-        Assert.Contains("noindex", html, StringComparison.Ordinal);
+        Assert.True(
+            html.IndexOf("sy:rsvp", StringComparison.Ordinal) < html.LastIndexOf("</body>", StringComparison.Ordinal),
+            "The bridge script must sit inside the document body.");
     }
 
     [Fact]
@@ -79,15 +93,38 @@ public sealed class ScribanInvitationRendererTests
     }
 
     [Fact]
-    public void Template_ContainsExactlyOneRsvpTrigger()
+    public void InjectRuntime_ThrowsWhenTheTemplateHasNoClosingBody()
     {
-        // Guards the authoring contract: a template shipped without a trigger would leave guests
-        // physically unable to respond, and two would double-fire the dialog.
+        // Such a template would ship an RSVP button that does nothing. Better to fail loudly than
+        // to serve a guest a dead page.
+        Assert.Throws<InvalidOperationException>(
+            () => Renderer.InjectRuntime("<html><head></head></html>"));
+    }
+
+    [Fact]
+    public void Template_ContainsExactlyOneRsvpTriggerAndOneGuestOnlyBlock()
+    {
+        // Guards the authoring contract. No trigger leaves guests unable to respond at all; two
+        // would double-fire the dialog. The guest-only block is what slice 2 strips for the public
+        // event link, so it has to be present and singular now.
         var source = ScribanInvitationRenderer.ReadResource($"{ScribanInvitationRenderer.DefaultTemplateId}.html");
 
-        var occurrences = source.Split("sy-rsvp-trigger").Length - 1;
+        // Counts the class *attribute*, not every mention — a template also names these classes in
+        // its CSS, and styling them any number of times is fine.
+        Assert.Equal(1, CountOccurrences(source, $"class=\"{ScribanInvitationRenderer.RsvpTriggerClass}\""));
+        Assert.Equal(1, CountOccurrences(source, $"class=\"{ScribanInvitationRenderer.GuestOnlyClass}\""));
+    }
 
-        Assert.Equal(1, occurrences);
+    [Fact]
+    public void Template_ReferencesOnlyAllowlistedTokens()
+    {
+        var source = ScribanInvitationRenderer.ReadResource($"{ScribanInvitationRenderer.DefaultTemplateId}.html");
+        var allowed = ScribanInvitationRenderer.BuildValues(Model()).Keys.ToHashSet(StringComparer.Ordinal);
+
+        foreach (var token in ExtractTokens(source))
+        {
+            Assert.True(allowed.Contains(token), $"Template references non-allowlisted token '{token}'.");
+        }
     }
 
     [Fact]
@@ -105,8 +142,27 @@ public sealed class ScribanInvitationRendererTests
     {
         var keys = ScribanInvitationRenderer.BuildValues(Model()).Keys.OrderBy(k => k, StringComparer.Ordinal);
 
-        Assert.Equal(
-            new[] { "eventDate", "eventDescription", "eventName", "eventTime", "guestName", "venueAddress", "venueName" },
-            keys);
+        Assert.Equal(new[] { "eventDate", "eventName", "guestName", "venue" }, keys);
+    }
+
+    private static int CountOccurrences(string source, string value) =>
+        source.Split(value).Length - 1;
+
+    private static IEnumerable<string> ExtractTokens(string source)
+    {
+        var index = 0;
+
+        while ((index = source.IndexOf("{{", index, StringComparison.Ordinal)) >= 0)
+        {
+            var end = source.IndexOf("}}", index, StringComparison.Ordinal);
+
+            if (end < 0)
+            {
+                yield break;
+            }
+
+            yield return source[(index + 2)..end].Trim();
+            index = end + 2;
+        }
     }
 }

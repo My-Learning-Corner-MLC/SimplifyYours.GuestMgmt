@@ -1,20 +1,21 @@
 namespace GuestManagementService.Application.Abstractions.Invitations;
 
 /// <summary>
-/// The merge values an invitation template can reference. Every value is plain text; the renderer
-/// is responsible for escaping it.
+/// The fixed merge-token allowlist a template may reference. Every value is plain text; the
+/// renderer is responsible for escaping it.
 /// </summary>
+/// <remarks>
+/// Venue is a single display string rather than separate name/address fields: templates lay it out
+/// as one "Where" line, and splitting it would push formatting decisions into template markup.
+/// </remarks>
 public sealed record InvitationRenderModel(
     string GuestName,
     string EventName,
     string EventDate,
-    string EventTime,
-    string VenueName,
-    string VenueAddress,
-    string EventDescription);
+    string Venue);
 
 public interface IInvitationRenderer
 {
-    /// <summary>Renders a complete HTML document for the sandboxed iframe.</summary>
+    /// <summary>Renders the complete HTML document served to the sandboxed iframe.</summary>
     string Render(InvitationRenderModel model);
 }

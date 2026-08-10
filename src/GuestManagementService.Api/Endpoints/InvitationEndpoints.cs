@@ -89,14 +89,17 @@ public static class InvitationEndpoints
 
     public static InvitationRenderModel ToRenderModel(Guest guest, EventReference eventReference)
     {
+        // Venue reads as one line on the invitation: name first, address after, whichever exist.
+        var venue = string.Join(
+            ", ",
+            new[] { eventReference.VenueName, eventReference.VenueAddress }
+                .Where(part => !string.IsNullOrWhiteSpace(part)));
+
         return new InvitationRenderModel(
             guest.FirstName,
             eventReference.EventName,
             eventReference.EventDate?.ToString("D") ?? string.Empty,
-            eventReference.EventStartTime?.ToString("t") ?? string.Empty,
-            eventReference.VenueName ?? string.Empty,
-            eventReference.VenueAddress ?? string.Empty,
-            eventReference.EventDescription ?? string.Empty);
+            venue);
     }
 
     /// <summary>
