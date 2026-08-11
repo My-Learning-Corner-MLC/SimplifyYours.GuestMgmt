@@ -14,16 +14,29 @@ public sealed class ScribanInvitationRendererTests
             })
             .Build());
 
+    private const string Wedding = "wedding";
+    private const string Birthday = "birthday";
+
     private static InvitationRenderModel Model(string guestName = "Ada") =>
-        new(guestName, "Amara & Julian", "Saturday, September 12, 2026", "Villa Astoria, Lake Como");
+        new(
+            guestName,
+            "Amara & Julian",
+            "Saturday, September 12, 2026",
+            "18:30",
+            "Villa Astoria",
+            "Lake Como",
+            "Parking at the rear",
+            BrideName: "Amara",
+            GroomName: "Julian");
 
     [Fact]
     public void Render_FillsTheAllowlistedTokens()
     {
-        var html = Renderer.Render(Model("Priya Nair"));
+        var html = Renderer.Render(Model("Priya Nair"), Wedding);
 
         Assert.Contains("Priya Nair", html, StringComparison.Ordinal);
-        Assert.Contains("Villa Astoria, Lake Como", html, StringComparison.Ordinal);
+        Assert.Contains("Villa Astoria", html, StringComparison.Ordinal);
+        Assert.Contains("Lake Como", html, StringComparison.Ordinal);
         Assert.Contains("Saturday, September 12, 2026", html, StringComparison.Ordinal);
         // "&" in the event name must survive as an entity, not as raw markup.
         Assert.Contains("Amara &amp; Julian", html, StringComparison.Ordinal);
@@ -34,7 +47,7 @@ public sealed class ScribanInvitationRendererTests
     {
         // The single most important test here: a guest name is attacker-influenced text rendered on
         // a public page. It must appear as literal text, never as markup.
-        var html = Renderer.Render(Model("Ben & <b>Jerry</b>"));
+        var html = Renderer.Render(Model("Ben & <b>Jerry</b>"), Wedding);
 
         Assert.Contains("Ben &amp; &lt;b&gt;Jerry&lt;/b&gt;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<b>Jerry</b>", html, StringComparison.Ordinal);
@@ -43,7 +56,7 @@ public sealed class ScribanInvitationRendererTests
     [Fact]
     public void Render_EscapesAScriptTagInAMergeValue()
     {
-        var html = Renderer.Render(Model("<script>alert(1)</script>"));
+        var html = Renderer.Render(Model("<script>alert(1)</script>"), Wedding);
 
         Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
         Assert.Contains("&lt;script&gt;", html, StringComparison.Ordinal);
@@ -52,7 +65,7 @@ public sealed class ScribanInvitationRendererTests
     [Fact]
     public void Render_LeavesNoUnresolvedPlaceholdersVisibleToAGuest()
     {
-        var html = Renderer.Render(Model());
+        var html = Renderer.Render(Model(), Wedding);
 
         Assert.DoesNotContain("{{", html, StringComparison.Ordinal);
         Assert.DoesNotContain("}}", html, StringComparison.Ordinal);
@@ -63,7 +76,7 @@ public sealed class ScribanInvitationRendererTests
     {
         // Marigold ships its own doctype, head and CSS — the design is the document. The renderer
         // must inject into it, never wrap it in a second skeleton.
-        var html = Renderer.Render(Model());
+        var html = Renderer.Render(Model(), Wedding);
 
         Assert.StartsWith("<!DOCTYPE html>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(1, CountOccurrences(html, "<!DOCTYPE"));
@@ -75,7 +88,7 @@ public sealed class ScribanInvitationRendererTests
     [Fact]
     public void Render_InjectsTheBridgeBeforeTheClosingBodyTag()
     {
-        var html = Renderer.Render(Model());
+        var html = Renderer.Render(Model(), Wedding);
 
         Assert.Contains("sy:rsvp", html, StringComparison.Ordinal);
         Assert.True(
@@ -87,7 +100,7 @@ public sealed class ScribanInvitationRendererTests
     public void Render_PinsThePostMessageTargetToTheConfiguredOrigin()
     {
         // The frame must not be able to post to an arbitrary origin.
-        var html = Renderer.Render(Model());
+        var html = Renderer.Render(Model(), Wedding);
 
         Assert.Contains("data-parent-origin=\"https://app.example.test\"", html, StringComparison.Ordinal);
     }
@@ -119,7 +132,7 @@ public sealed class ScribanInvitationRendererTests
     public void Template_ReferencesOnlyAllowlistedTokens()
     {
         var source = ScribanInvitationRenderer.ReadResource($"{ScribanInvitationRenderer.DefaultTemplateId}.html");
-        var allowed = ScribanInvitationRenderer.BuildValues(Model()).Keys.ToHashSet(StringComparer.Ordinal);
+        var allowed = ScribanInvitationRenderer.BuildValues(Model(), Wedding).Keys.ToHashSet(StringComparer.Ordinal);
 
         foreach (var token in ExtractTokens(source))
         {
@@ -138,11 +151,40 @@ public sealed class ScribanInvitationRendererTests
     }
 
     [Fact]
-    public void BuildValues_ExposesExactlyTheAllowlistedTokens()
+    public void BuildValues_ForBirthday_ExposesTheBirthdayAllowlist()
     {
-        var keys = ScribanInvitationRenderer.BuildValues(Model()).Keys.OrderBy(k => k, StringComparer.Ordinal);
+        var keys = ScribanInvitationRenderer.BuildValues(Model(), Birthday)
+            .Keys.OrderBy(k => k, StringComparer.Ordinal);
 
-        Assert.Equal(new[] { "eventDate", "eventName", "guestName", "venue" }, keys);
+        Assert.Equal(
+            new[] { "eventDate", "eventName", "eventTime", "guestName", "venueAddress", "venueName", "venueNotes" },
+            keys);
+    }
+
+    [Fact]
+    public void BuildValues_ForWedding_AddsTheCoupleNames()
+    {
+        var keys = ScribanInvitationRenderer.BuildValues(Model(), Wedding)
+            .Keys.OrderBy(k => k, StringComparer.Ordinal);
+
+        // eventName and eventDate are retained for wedding despite being absent from the approved
+        // list: Marigold is a wedding template and references both. See AC 12.
+        Assert.Equal(
+            new[]
+            {
+                "brideName", "eventDate", "eventName", "eventTime", "groomName",
+                "guestName", "venueAddress", "venueName", "venueNotes",
+            },
+            keys);
+    }
+
+    [Fact]
+    public void BuildValues_DoesNotLeakCoupleNamesIntoBirthdayTemplates()
+    {
+        var keys = ScribanInvitationRenderer.BuildValues(Model(), Birthday).Keys;
+
+        Assert.DoesNotContain("brideName", keys);
+        Assert.DoesNotContain("groomName", keys);
     }
 
     private static int CountOccurrences(string source, string value) =>

@@ -50,12 +50,12 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
         _parentOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "*";
     }
 
-    public string Render(InvitationRenderModel model)
+    public string Render(InvitationRenderModel model, string eventType)
     {
         var template = GetParsedTemplate(DefaultTemplateId);
         var values = new ScriptObject();
 
-        foreach (var (key, value) in BuildValues(model))
+        foreach (var (key, value) in BuildValues(model, eventType))
         {
             values[key] = WebUtility.HtmlEncode(value ?? string.Empty);
         }
@@ -75,19 +75,47 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     }
 
     /// <summary>
-    /// The fixed merge-token allowlist. Anything else a template references resolves to empty
-    /// rather than rendering literal <c>{{...}}</c> at a guest.
+    /// The merge-token allowlist for an event type. Anything a template references outside its own
+    /// type's list resolves to empty rather than rendering literal <c>{{...}}</c> at a guest.
     /// </summary>
-    public static IReadOnlyDictionary<string, string?> BuildValues(InvitationRenderModel model)
+    /// <remarks>
+    /// Wedding keeps <c>eventName</c> and <c>eventDate</c> even though the approved list omits
+    /// them: the shipped Marigold template is a wedding template and references both, so dropping
+    /// them would render every wedding invitation with a blank headline and no date. See AC 12.
+    /// <para>
+    /// <c>brideName</c> and <c>groomName</c> are allowlisted but have no source yet, so they
+    /// currently resolve to empty — allowlisting them now means a wedding template can be authored
+    /// against them the moment the data exists.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string?> BuildValues(
+        InvitationRenderModel model,
+        string eventType)
     {
-        return new Dictionary<string, string?>(StringComparer.Ordinal)
+        var shared = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["guestName"] = model.GuestName,
             ["eventName"] = model.EventName,
             ["eventDate"] = model.EventDate,
-            ["venue"] = model.Venue,
+            ["eventTime"] = model.EventTime,
+            ["venueName"] = model.VenueName,
+            ["venueAddress"] = model.VenueAddress,
+            ["venueNotes"] = model.VenueNotes,
         };
+
+        if (!IsWedding(eventType))
+        {
+            return shared;
+        }
+
+        shared["brideName"] = model.BrideName;
+        shared["groomName"] = model.GroomName;
+
+        return shared;
     }
+
+    private static bool IsWedding(string? eventType) =>
+        string.Equals(eventType, "wedding", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Adds the parent origin and the bridge script to a template's own document.

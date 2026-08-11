@@ -32,12 +32,14 @@ public sealed class SubmitRsvpCommandValidator : AbstractValidator<SubmitRsvpCom
             .MaximumLength(DietaryNotesMaxLength)
             .WithMessage($"Notes must be {DietaryNotesMaxLength} characters or fewer.");
 
-        // Only "Attending" plans for extra people. Maybe and Declined show no guest stepper at all
-        // in the design, so a count arriving with either is a client that has drifted from it.
+        // Declined is the only answer that cannot carry a count — nobody is coming. Maybe can: a
+        // guest who might attend can still say how many they would bring. Only Accepted figures
+        // are totalled for catering, so a Maybe count informs the organiser without committing
+        // them to cater for it.
         RuleFor(command => command.PlusOnesConfirmed)
             .Must(count => count is null or 0)
-            .When(command => !IsAccepted(command.RsvpStatus))
-            .WithMessage("Guests can only be added when you are attending.");
+            .When(command => IsDeclined(command.RsvpStatus))
+            .WithMessage("Guests cannot be added when you are not attending.");
     }
 
     private static bool BeARespondableStatus(string? value)
@@ -45,9 +47,9 @@ public sealed class SubmitRsvpCommandValidator : AbstractValidator<SubmitRsvpCom
         return TryParse(value, out var status) && status != Domain.Guests.RsvpStatus.NoResponse;
     }
 
-    private static bool IsAccepted(string? value)
+    private static bool IsDeclined(string? value)
     {
-        return TryParse(value, out var status) && status == Domain.Guests.RsvpStatus.Accepted;
+        return TryParse(value, out var status) && status == Domain.Guests.RsvpStatus.Declined;
     }
 
     /// <summary>Parses the contract-facing value, case-insensitively.</summary>

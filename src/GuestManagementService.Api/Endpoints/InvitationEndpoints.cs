@@ -91,7 +91,9 @@ public static class InvitationEndpoints
         var spaOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "'self'";
         httpContext.Response.Headers.ContentSecurityPolicy = $"frame-ancestors {spaOrigin}";
 
-        var html = renderer.Render(ToRenderModel(result.Guest!, result.Event!));
+        var html = renderer.Render(
+            ToRenderModel(result.Guest!, result.Event!),
+            result.Event!.EventType);
 
         return Results.Content(html, "text/html; charset=utf-8");
     }
@@ -142,17 +144,14 @@ public static class InvitationEndpoints
 
     public static InvitationRenderModel ToRenderModel(Guest guest, EventReference eventReference)
     {
-        // Venue reads as one line on the invitation: name first, address after, whichever exist.
-        var venue = string.Join(
-            ", ",
-            new[] { eventReference.VenueName, eventReference.VenueAddress }
-                .Where(part => !string.IsNullOrWhiteSpace(part)));
-
         return new InvitationRenderModel(
             guest.FirstName,
             eventReference.EventName,
             eventReference.EventDate?.ToString("D") ?? string.Empty,
-            venue);
+            eventReference.EventStartTime?.ToString("t") ?? string.Empty,
+            eventReference.VenueName ?? string.Empty,
+            eventReference.VenueAddress ?? string.Empty,
+            eventReference.VenueNotes ?? string.Empty);
     }
 
     /// <summary>

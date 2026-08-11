@@ -133,6 +133,29 @@ public sealed class SubmitRsvpCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_AllowsAMaybeToSayHowManyTheyWouldBring()
+    {
+        // AC 43: a guest who might come can still state a number. It is stored and shown, but only
+        // Accepted figures are totalled — so an organiser is never led into catering for maybes.
+        var guest = NewGuest("{\"plusOnes\":2}");
+
+        var result = await Handle(guest, Command("Maybe", 2, null));
+
+        Assert.Equal(SubmitRsvpStatus.Accepted, result.Status);
+        Assert.Equal(RsvpStatus.Maybe, guest.RsvpStatus);
+        Assert.Equal(2, InvitationMetadata.ReadPlusOnesConfirmed(guest.Metadata));
+    }
+
+    [Fact]
+    public async Task Handle_StillCapsAMaybeAtTheOrganisersAllowance()
+    {
+        var guest = NewGuest("{\"plusOnes\":1}");
+
+        await Assert.ThrowsAsync<ValidationException>(
+            () => Handle(guest, Command("Maybe", 2, null)));
+    }
+
+    [Fact]
     public async Task Handle_PersistsThroughTheUnitOfWork()
     {
         var guest = NewGuest("{\"plusOnes\":1}");
