@@ -16,7 +16,7 @@ public sealed class SubmitRsvpCommandHandlerTests
     private const string Token = "tok-abc123";
     private static readonly Guid EventId = Guid.Parse("6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55");
     private static readonly DateTimeOffset BeforeDeadline = new(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset AfterDeadline = new(2026, 9, 13, 0, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset AfterDeadline = new(2026, 9, 12, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task Handle_RecordsTheGuestsAnswer()

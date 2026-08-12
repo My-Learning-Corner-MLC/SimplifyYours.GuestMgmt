@@ -25,7 +25,7 @@ public sealed class GetInvitationQueryHandlerTests
         Assert.Equal("Ada", result.Guest!.FirstName);
         Assert.Equal("Eleanor & Sam", result.Event!.EventName);
         Assert.True(result.IsOpen);
-        Assert.Equal(new DateTimeOffset(2026, 9, 12, 16, 59, 59, TimeSpan.Zero), result.Deadline);
+        Assert.Equal(new DateTimeOffset(2026, 9, 11, 16, 59, 59, TimeSpan.Zero), result.Deadline);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class GetInvitationQueryHandlerTests
     [Fact]
     public async Task Handle_AfterTheDeadline_ReportsRsvpClosed()
     {
-        var result = await Handle(NewGuest(), NewEvent(), now: new DateTimeOffset(2026, 9, 13, 0, 0, 0, TimeSpan.Zero));
+        var result = await Handle(NewGuest(), NewEvent(), now: new DateTimeOffset(2026, 9, 12, 0, 0, 0, TimeSpan.Zero));
 
         Assert.Equal(GetInvitationStatus.Found, result.Status);
         Assert.False(result.IsOpen);
@@ -104,7 +104,7 @@ public sealed class GetInvitationQueryHandlerTests
         var response = InvitationEndpoints.ToResponse(
             NewGuest(),
             Content(),
-            new DateTimeOffset(2026, 9, 12, 16, 59, 59, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 11, 16, 59, 59, TimeSpan.Zero),
             isOpen: true);
 
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions(JsonSerializerDefaults.Web));

@@ -5,13 +5,13 @@ namespace GuestManagementService.UnitTests.Invitations;
 public sealed class RsvpDeadlineTests
 {
     [Fact]
-    public void Compute_IsEndOfTheEventDayInTheEventsZone()
+    public void Compute_IsEndOfTheDayBeforeTheEventInTheEventsZone()
     {
-        // Event on 12 Sep in Ho Chi Minh City (UTC+7): RSVPs close at 23:59:59 local on 12 Sep,
-        // which is 16:59:59 UTC on the 12th. The guest's own location is irrelevant.
+        // Event on 12 Sep in Ho Chi Minh City (UTC+7): RSVPs close at 23:59:59 local on 11 Sep,
+        // which is 16:59:59 UTC. The guest's own location is irrelevant.
         var deadline = RsvpDeadline.Compute(new DateOnly(2026, 9, 12), "Asia/Ho_Chi_Minh");
 
-        Assert.Equal(new DateTimeOffset(2026, 9, 12, 16, 59, 59, TimeSpan.Zero), deadline);
+        Assert.Equal(new DateTimeOffset(2026, 9, 11, 16, 59, 59, TimeSpan.Zero), deadline);
     }
 
     [Fact]
@@ -27,18 +27,18 @@ public sealed class RsvpDeadlineTests
     [Fact]
     public void Compute_HandlesADaylightSavingBoundary()
     {
-        // 2026-03-08 is the US spring-forward date, so end of that day is already EDT (UTC-4).
-        // This pins the offset actually in force at the deadline instant.
+        // 2026-03-08 is the US spring-forward date. The deadline falls on 7 Mar, still EST (UTC-5),
+        // so this pins the offset in force on the deadline day rather than on event day.
         var deadline = RsvpDeadline.Compute(new DateOnly(2026, 3, 8), "America/New_York");
 
-        Assert.Equal(new DateTimeOffset(2026, 3, 9, 3, 59, 59, TimeSpan.Zero), deadline);
+        Assert.Equal(new DateTimeOffset(2026, 3, 8, 4, 59, 59, TimeSpan.Zero), deadline);
     }
 
     [Fact]
     public void Compute_FallsBackToUtcWhenTheZoneIsMissing()
     {
         Assert.Equal(
-            new DateTimeOffset(2026, 9, 12, 23, 59, 59, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 11, 23, 59, 59, TimeSpan.Zero),
             RsvpDeadline.Compute(new DateOnly(2026, 9, 12), null));
     }
 
@@ -48,7 +48,7 @@ public sealed class RsvpDeadlineTests
         // Reference data replicated from another service can name a zone this host does not know.
         // Degrading to UTC keeps the invitation readable; throwing would 500 the whole page.
         Assert.Equal(
-            new DateTimeOffset(2026, 9, 12, 23, 59, 59, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 11, 23, 59, 59, TimeSpan.Zero),
             RsvpDeadline.Compute(new DateOnly(2026, 9, 12), "Not/AZone"));
     }
 
@@ -59,9 +59,9 @@ public sealed class RsvpDeadlineTests
     }
 
     [Theory]
-    [InlineData("2026-09-12T16:59:58Z", true)]
-    [InlineData("2026-09-12T16:59:59Z", true)]
-    [InlineData("2026-09-12T17:00:00Z", false)]
+    [InlineData("2026-09-11T16:59:58Z", true)]
+    [InlineData("2026-09-11T16:59:59Z", true)]
+    [InlineData("2026-09-11T17:00:00Z", false)]
     public void IsOpen_ClosesExactlyAtTheDeadline(string now, bool expected)
     {
         Assert.Equal(
