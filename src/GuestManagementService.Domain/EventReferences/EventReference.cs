@@ -12,14 +12,26 @@ public sealed class EventReference
         Guid tenantId,
         bool isDeleted,
         DateTimeOffset lastSyncedAt,
-        string eventType)
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         EventId = eventId;
         EventName = NormalizeEventName(eventName);
         TenantId = tenantId;
+        EventType = NormalizeEventType(eventType);
+        EventDate = eventDate;
+        EventStartTime = eventStartTime;
+        TimeZoneId = NormalizeOptionalText(timeZoneId);
+        VenueName = NormalizeOptionalText(venueName);
+        VenueAddress = NormalizeOptionalText(venueAddress);
+        VenueNotes = NormalizeOptionalText(venueNotes);
         IsDeleted = isDeleted;
         LastSyncedAt = lastSyncedAt.ToUniversalTime();
-        EventType = NormalizeEventType(eventType);
     }
 
     public Guid EventId { get; private set; }
@@ -34,12 +46,30 @@ public sealed class EventReference
 
     public string EventType { get; private set; } = string.Empty;
 
+    public DateOnly? EventDate { get; private set; }
+
+    public TimeOnly? EventStartTime { get; private set; }
+
+    public string? TimeZoneId { get; private set; }
+
+    public string? VenueName { get; private set; }
+
+    public string? VenueAddress { get; private set; }
+
+    public string? VenueNotes { get; private set; }
+
     public static EventReference Active(
         Guid eventId,
         string eventName,
         Guid tenantId,
         DateTimeOffset syncedAt,
-        string eventType)
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         if (eventId == Guid.Empty)
         {
@@ -51,10 +81,34 @@ public sealed class EventReference
             throw new ArgumentException("Tenant id must not be empty.", nameof(tenantId));
         }
 
-        return new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
+        var reference = new EventReference(
+            eventId, 
+            eventName, 
+            tenantId, 
+            isDeleted: false, 
+            syncedAt, 
+            eventType, 
+            eventDate, 
+            eventStartTime, 
+            timeZoneId,
+            venueName,
+            venueAddress,
+            venueNotes);
+
+        return reference;
     }
 
-    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt, string eventType)
+    public void MarkActive(
+        string eventName,
+        Guid tenantId,
+        DateTimeOffset syncedAt,
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         if (tenantId == Guid.Empty)
         {
@@ -66,6 +120,12 @@ public sealed class EventReference
         IsDeleted = false;
         LastSyncedAt = syncedAt.ToUniversalTime();
         EventType = NormalizeEventType(eventType);
+        EventDate = eventDate;
+        EventStartTime = eventStartTime;
+        TimeZoneId = NormalizeOptionalText(timeZoneId);
+        VenueName = NormalizeOptionalText(venueName);
+        VenueAddress = NormalizeOptionalText(venueAddress);
+        VenueNotes = NormalizeOptionalText(venueNotes);
     }
 
     public void MarkDeleted(DateTimeOffset syncedAt)
@@ -82,6 +142,11 @@ public sealed class EventReference
         }
 
         return eventName.Trim();
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static string NormalizeEventType(string eventType)

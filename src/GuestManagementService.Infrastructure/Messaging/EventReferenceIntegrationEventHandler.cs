@@ -20,7 +20,13 @@ internal sealed class EventReferenceIntegrationEventHandler(ISender sender)
                 context.Payload.EventName,
                 context.Envelope.OccurredAt,
                 context.Payload.EventType,
-                context.Payload.TenantId),
+                context.Payload.TenantId,
+                context.Payload.EventDate,
+                context.Payload.EventStartTime,
+                context.Payload.TimeZoneId,
+                context.Payload.Location?.VenueName,
+                context.Payload.Location?.Address,
+                context.Payload.Location?.Notes),
             cancellationToken);
     }
 }

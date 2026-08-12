@@ -25,7 +25,14 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventName,
                 request.TenantId,
                 request.OccurredAt,
-                request.PlannedEventType);
+                request.PlannedEventType,
+                request.EventDate,
+                request.EventStartTime,
+                request.TimeZoneId,
+                request.VenueName,
+                request.VenueAddress,
+                request.VenueNotes);
+
             logger.LogInformation(
                 "Event reference created from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,
@@ -47,7 +54,14 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventName,
                 request.TenantId,
                 request.OccurredAt,
-                request.PlannedEventType);
+                request.PlannedEventType,
+                request.EventDate,
+                request.EventStartTime,
+                request.TimeZoneId,
+                request.VenueName,
+                request.VenueAddress,
+                request.VenueNotes);
+                
             logger.LogInformation(
                 "Event reference marked active from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,

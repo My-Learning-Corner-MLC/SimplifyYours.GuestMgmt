@@ -39,5 +39,27 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
             .HasColumnName("event_type")
             .HasMaxLength(50)
             .IsRequired();
+
+        builder.Property(reference => reference.EventDate)
+            .HasColumnName("event_date");
+
+        builder.Property(reference => reference.EventStartTime)
+            .HasColumnName("event_start_time");
+
+        builder.Property(reference => reference.TimeZoneId)
+            .HasColumnName("time_zone_id")
+            .HasMaxLength(100);
+
+        builder.Property(reference => reference.VenueName)
+            .HasColumnName("venue_name")
+            .HasMaxLength(200);
+
+        builder.Property(reference => reference.VenueAddress)
+            .HasColumnName("venue_address")
+            .HasMaxLength(500);
+
+        builder.Property(reference => reference.VenueNotes)
+            .HasColumnName("venue_notes")
+            .HasMaxLength(2000);
     }
 }

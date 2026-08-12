@@ -9,5 +9,11 @@ public sealed record ApplyEventReferenceEventCommand(
     string EventName,
     DateTimeOffset OccurredAt,
     string PlannedEventType,
-    Guid TenantId = default)
+    Guid TenantId = default,
+    DateOnly? EventDate = null,
+    TimeOnly? EventStartTime = null,
+    string? TimeZoneId = null,
+    string? VenueName = null,
+    string? VenueAddress = null,
+    string? VenueNotes = null)
     : IRequest<bool>;

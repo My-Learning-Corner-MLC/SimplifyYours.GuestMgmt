@@ -88,6 +88,83 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
         Assert.True(existing.IsDeleted);
     }
 
+    [Fact]
+    public async Task Handle_WhenEventCreated_StoresDisplayFieldsForTheInvitationPage()
+    {
+        EventReference? savedReference = null;
+        var references = new Mock<IEventReferenceRepository>();
+        references
+            .Setup(repository => repository.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventReference?)null);
+        references
+            .Setup(repository => repository.UpsertAsync(It.IsAny<EventReference>(), It.IsAny<CancellationToken>()))
+            .Callback<EventReference, CancellationToken>((reference, _) => savedReference = reference)
+            .Returns(Task.CompletedTask);
+        var handler = CreateHandler(references.Object);
+
+        var applied = await handler.Handle(
+            ValidCommand("EventCreated") with
+            {
+                EventDate = new DateOnly(2026, 9, 12),
+                EventStartTime = new TimeOnly(18, 30),
+                TimeZoneId = "Asia/Ho_Chi_Minh",
+                VenueName = "Rosewood Hall",
+                VenueAddress = "12 Sample Street",
+                VenueNotes = "  ",
+            },
+            CancellationToken.None);
+
+        Assert.True(applied);
+        Assert.NotNull(savedReference);
+        Assert.Equal(new DateOnly(2026, 9, 12), savedReference.EventDate);
+        Assert.Equal(new TimeOnly(18, 30), savedReference.EventStartTime);
+        Assert.Equal("Asia/Ho_Chi_Minh", savedReference.TimeZoneId);
+        Assert.Equal("Rosewood Hall", savedReference.VenueName);
+        Assert.Equal("12 Sample Street", savedReference.VenueAddress);
+        Assert.Null(savedReference.VenueNotes);
+    }
+
+    [Fact]
+    public async Task Handle_WhenEventUpdated_ReplacesDisplayFieldsWithTheIncomingPayload()
+    {
+        var eventId = Guid.NewGuid();
+        var existing = EventReference.Active(
+            eventId,
+            "Launch",
+            TenantId,
+            DateTimeOffset.UtcNow,
+            "wedding",
+            new DateOnly(2026, 9, 12),
+            new TimeOnly(18, 30),
+            "Asia/Ho_Chi_Minh",
+            "An evening reception",
+            "Rosewood Hall",
+            "12 Sample Street");
+        var references = new Mock<IEventReferenceRepository>();
+        references
+            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        var handler = CreateHandler(references.Object);
+
+        var applied = await handler.Handle(
+            new ApplyEventReferenceEventCommand(
+                Guid.NewGuid(),
+                "EventUpdated",
+                eventId,
+                "Launch",
+                DateTimeOffset.UtcNow,
+                "wedding",
+                TenantId,
+                EventDate: new DateOnly(2026, 9, 12)),
+            CancellationToken.None);
+
+        Assert.True(applied);
+        Assert.Null(existing.VenueName);
+        Assert.Null(existing.VenueAddress);
+        Assert.Null(existing.TimeZoneId);
+        Assert.Equal(new DateOnly(2026, 9, 12), existing.EventDate);
+    }
+
     private static ApplyEventReferenceEventCommand ValidCommand(string eventType)
     {
         return new ApplyEventReferenceEventCommand(
