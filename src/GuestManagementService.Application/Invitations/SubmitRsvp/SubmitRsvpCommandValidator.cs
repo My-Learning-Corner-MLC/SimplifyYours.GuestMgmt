@@ -32,14 +32,13 @@ public sealed class SubmitRsvpCommandValidator : AbstractValidator<SubmitRsvpCom
             .MaximumLength(DietaryNotesMaxLength)
             .WithMessage($"Notes must be {DietaryNotesMaxLength} characters or fewer.");
 
-        // Declined is the only answer that cannot carry a count — nobody is coming. Maybe can: a
-        // guest who might attend can still say how many they would bring. Only Accepted figures
-        // are totalled for catering, so a Maybe count informs the organiser without committing
-        // them to cater for it.
+        // Only "Attending" carries a guest count. The RSVP design shows no stepper on Maybe
+        // ("nothing to plan for yet") or Declined, so a count arriving with either is a client that
+        // has drifted from it.
         RuleFor(command => command.PlusOnesConfirmed)
             .Must(count => count is null or 0)
-            .When(command => IsDeclined(command.RsvpStatus))
-            .WithMessage("Guests cannot be added when you are not attending.");
+            .When(command => !IsAccepted(command.RsvpStatus))
+            .WithMessage("Guests can only be added when you are attending.");
     }
 
     private static bool BeARespondableStatus(string? value)
@@ -47,9 +46,9 @@ public sealed class SubmitRsvpCommandValidator : AbstractValidator<SubmitRsvpCom
         return TryParse(value, out var status) && status != Domain.Guests.RsvpStatus.NoResponse;
     }
 
-    private static bool IsDeclined(string? value)
+    private static bool IsAccepted(string? value)
     {
-        return TryParse(value, out var status) && status == Domain.Guests.RsvpStatus.Declined;
+        return TryParse(value, out var status) && status == Domain.Guests.RsvpStatus.Accepted;
     }
 
     /// <summary>Parses the contract-facing value, case-insensitively.</summary>

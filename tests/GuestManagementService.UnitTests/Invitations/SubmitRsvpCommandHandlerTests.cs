@@ -133,26 +133,16 @@ public sealed class SubmitRsvpCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllowsAMaybeToSayHowManyTheyWouldBring()
+    public async Task Handle_AcceptsAMaybeWithoutAGuestCount()
     {
-        // AC 43: a guest who might come can still state a number. It is stored and shown, but only
-        // Accepted figures are totalled — so an organiser is never led into catering for maybes.
+        // The RSVP design shows no stepper on Maybe — nothing to plan for yet.
         var guest = NewGuest("{\"plusOnes\":2}");
 
-        var result = await Handle(guest, Command("Maybe", 2, null));
+        var result = await Handle(guest, Command("Maybe", 0, "Waiting on a flight schedule"));
 
         Assert.Equal(SubmitRsvpStatus.Accepted, result.Status);
         Assert.Equal(RsvpStatus.Maybe, guest.RsvpStatus);
-        Assert.Equal(2, InvitationMetadata.ReadPlusOnesConfirmed(guest.Metadata));
-    }
-
-    [Fact]
-    public async Task Handle_StillCapsAMaybeAtTheOrganisersAllowance()
-    {
-        var guest = NewGuest("{\"plusOnes\":1}");
-
-        await Assert.ThrowsAsync<ValidationException>(
-            () => Handle(guest, Command("Maybe", 2, null)));
+        Assert.Equal("Waiting on a flight schedule", InvitationMetadata.ReadDietaryNotes(guest.Metadata));
     }
 
     [Fact]
