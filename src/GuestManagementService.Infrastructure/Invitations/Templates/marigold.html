@@ -5,26 +5,31 @@ body{background:#C98D6B;color:#3B2A24;font-family:Helvetica,Arial,sans-serif;-we
 .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:clamp(28px,6vw,72px) clamp(20px,5vw,48px);}
 .card{width:100%;max-width:480px;text-align:center;background:#FBF3E8;border-radius:20px;padding:clamp(36px,6vw,60px) clamp(24px,4vw,44px);}
 .label{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#B97A4E;font-weight:600;}
-h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(34px,7vw,48px);color:#3B2A24;margin:16px 0;line-height:1.15;}
-.rule{width:48px;height:2px;background:#B97A4E;border-radius:2px;margin:20px auto;}
+.names{margin:16px 0;}
+.name{font-family:Georgia,serif;font-weight:400;font-size:clamp(28px,5.5vw,40px);color:#3B2A24;line-height:1.25;}
+.divider{width:5px;height:5px;border-radius:50%;background:#B97A4E;margin:9px auto;}
+.rule{width:48px;height:2px;background:#B97A4E;border-radius:2px;margin:18px auto;}
 .msg{font-size:clamp(15px,2vw,16.5px);line-height:1.7;color:#5c4636;max-width:340px;margin:0 auto 24px;}
 .row{margin-bottom:16px;}
 .row .k{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#B97A4E;font-weight:600;margin-bottom:3px;}
 .row .v{font-family:Georgia,serif;font-size:clamp(17px,2.2vw,19px);color:#3B2A24;}
-.guest-box{margin:26px auto 0;max-width:320px;background:#F1E0CE;border-radius:14px;padding:14px 20px;}
+.row .time{font-size:13.5px;color:#8a6a52;margin-top:2px;}
+.row .addr{font-size:13.5px;color:#5c4636;margin-top:2px;}
+.row .notes{font-size:12px;color:#B97A4E;margin-top:5px;font-style:italic;}
+.guest-box{margin:24px auto 0;max-width:320px;background:#F1E0CE;border-radius:14px;padding:14px 20px;}
 .guest-box .label{margin-bottom:4px;}
 .guest-name{font-family:Georgia,serif;font-size:clamp(17px,2.2vw,19px);color:#3B2A24;}
 .sy-rsvp-trigger{margin-top:22px;padding:14px 42px;background:#B97A4E;color:#FBF3E8;border:none;border-radius:99px;font-size:15px;font-weight:600;cursor:pointer;}
 .sy-rsvp-trigger:focus-visible{outline:3px solid #3B2A24;outline-offset:3px;}
-.dress{font-size:13px;color:#a9764f;margin-top:20px;}
+.dress{font-size:13px;color:#a9764f;margin-top:18px;}
 </style></head>
 <body><div class="wrap"><div class="card">
 <div class="label">You're warmly invited</div>
-<h1>{{brideName}} &amp; {{groomName}}</h1>
+<div class="names"><div class="name">{{brideName}}</div><div class="divider"></div><div class="name">{{groomName}}</div></div>
 <div class="rule"></div>
 <p class="msg" data-sy-field="welcomeMessage">We'd love nothing more than to share this day with the people who matter most to us.</p>
-<div class="row"><div class="k">When</div><div class="v">{{eventDate}}</div></div>
-<div class="row"><div class="k">Where</div><div class="v">{{venueName}}</div><div class="v">{{venueAddress}}</div></div>
+<div class="row"><div class="k">When</div><div class="v">{{eventDate}}</div><div class="time">{{eventTime}}</div></div>
+<div class="row"><div class="k">Where</div><div class="v">{{venueName}}</div><div class="addr">{{venueAddress}}</div><div class="notes">{{venueNotes}}</div></div>
 <div class="sy-guest-only"><div class="guest-box"><div class="label">A seat is saved for</div><div class="guest-name">{{guestName}}</div></div></div>
 <button class="sy-rsvp-trigger" type="button">RSVP</button>
 <div class="dress" data-sy-field="dressCode">Semi-formal attire · we can't wait to see you</div>
