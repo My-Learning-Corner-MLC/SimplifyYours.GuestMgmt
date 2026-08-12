@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using GuestManagementService.Application.Abstractions.Invitations;
+using GuestManagementService.Application.Invitations;
 using Microsoft.Extensions.Configuration;
 using Scriban;
 using Scriban.Runtime;
@@ -50,12 +51,17 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
         _parentOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "*";
     }
 
-    public string Render(InvitationRenderModel model, string eventType)
+    public string Render(
+        IReadOnlyDictionary<string, string?> fieldValues,
+        string guestName,
+        string eventType)
     {
         var template = GetParsedTemplate(DefaultTemplateId);
         var values = new ScriptObject();
 
-        foreach (var (key, value) in BuildValues(model, eventType))
+        // The organiser is now an input source for a public page, so their text is escaped exactly
+        // as a guest's name always has been. Neither is trusted over the other.
+        foreach (var (key, value) in BuildValues(fieldValues, guestName, eventType))
         {
             values[key] = WebUtility.HtmlEncode(value ?? string.Empty);
         }
@@ -89,33 +95,25 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     /// </para>
     /// </remarks>
     public static IReadOnlyDictionary<string, string?> BuildValues(
-        InvitationRenderModel model,
+        IReadOnlyDictionary<string, string?> fieldValues,
+        string guestName,
         string eventType)
     {
-        var shared = new Dictionary<string, string?>(StringComparer.Ordinal)
+        var values = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["guestName"] = model.GuestName,
-            ["eventName"] = model.EventName,
-            ["eventDate"] = model.EventDate,
-            ["eventTime"] = model.EventTime,
-            ["venueName"] = model.VenueName,
-            ["venueAddress"] = model.VenueAddress,
-            ["venueNotes"] = model.VenueNotes,
+            // Never typed by the organiser — it is whichever guest opened the link.
+            ["guestName"] = guestName,
         };
 
-        if (!IsWedding(eventType))
+        // Only fields the event type declares. A value saved under a key this type does not use
+        // cannot reach the template, so the allowlist holds even if storage somehow contains more.
+        foreach (var field in InvitationFieldSchema.AllFor(eventType))
         {
-            return shared;
+            values[field] = fieldValues.TryGetValue(field, out var value) ? value : null;
         }
 
-        shared["brideName"] = model.BrideName;
-        shared["groomName"] = model.GroomName;
-
-        return shared;
+        return values;
     }
-
-    private static bool IsWedding(string? eventType) =>
-        string.Equals(eventType, "wedding", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Adds the parent origin and the bridge script to a template's own document.

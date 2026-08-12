@@ -74,6 +74,7 @@ public static class InvitationEndpoints
         HttpContext httpContext,
         ISender sender,
         IInvitationRenderer renderer,
+        IEventInvitationSettingsRepository settingsRepository,
         IConfiguration configuration,
         CancellationToken cancellationToken)
     {
@@ -81,6 +82,17 @@ public static class InvitationEndpoints
 
         if (result.Status != GetInvitationStatus.Found)
         {
+            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
+        }
+
+        var settings = await settingsRepository.GetByEventIdAsync(
+            result.Event!.EventId,
+            cancellationToken);
+
+        if (settings is null)
+        {
+            // An invitation whose template was never chosen is not a half-rendered page — it does
+            // not exist yet. Same response as an unknown token, so nothing is leaked either way.
             return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
@@ -92,7 +104,8 @@ public static class InvitationEndpoints
         httpContext.Response.Headers.ContentSecurityPolicy = $"frame-ancestors {spaOrigin}";
 
         var html = renderer.Render(
-            ToRenderModel(result.Guest!, result.Event!),
+            InvitationFieldValues.Parse(settings.FieldValues),
+            result.Guest!.FirstName,
             result.Event!.EventType);
 
         return Results.Content(html, "text/html; charset=utf-8");
@@ -142,17 +155,6 @@ public static class InvitationEndpoints
                 group => group.Select(error => error.ErrorMessage).ToArray());
     }
 
-    public static InvitationRenderModel ToRenderModel(Guest guest, EventReference eventReference)
-    {
-        return new InvitationRenderModel(
-            guest.FirstName,
-            eventReference.EventName,
-            eventReference.EventDate?.ToString("D") ?? string.Empty,
-            eventReference.EventStartTime?.ToString("t") ?? string.Empty,
-            eventReference.VenueName ?? string.Empty,
-            eventReference.VenueAddress ?? string.Empty,
-            eventReference.VenueNotes ?? string.Empty);
-    }
 
     /// <summary>
     /// Response carries a named person, so it must never be cached by a shared cache or indexed by
