@@ -111,4 +111,51 @@ public class EndpointPolicyMappingTests
             .SelectMany(source => source.Endpoints)
             .ToList();
     }
+
+    [Fact]
+    public void Invitation_settings_endpoints_are_both_protected()
+    {
+        // Authorization is opt-in per endpoint in this service, so an endpoint added to this group
+        // without a policy would be silently public. Reading is guests.view; writing reuses
+        // events.update, because composing an invitation is editing the event's presentation.
+        var endpoints = MapInvitationSettingsEndpointsForTest();
+
+        var policies = endpoints
+            .SelectMany(e => e.Metadata.GetOrderedMetadata<IAuthorizeData>())
+            .Select(data => data.Policy)
+            .Where(policy => policy is not null)
+            .OrderBy(policy => policy)
+            .ToArray();
+
+        Assert.Equal(new[] { Permissions.EventsUpdate, Permissions.GuestsView }.OrderBy(p => p), policies);
+    }
+
+    [Fact]
+    public void Invitation_settings_save_requires_events_update()
+    {
+        var endpoints = MapInvitationSettingsEndpointsForTest();
+
+        var endpoint = endpoints.SingleOrDefault(e =>
+            string.Equals(e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName, "SaveInvitationSettings", StringComparison.Ordinal));
+
+        Assert.NotNull(endpoint);
+        Assert.Contains(
+            Permissions.EventsUpdate,
+            endpoint!.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(d => d.Policy));
+    }
+
+    private static IReadOnlyList<Endpoint> MapInvitationSettingsEndpointsForTest()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddRouting();
+        builder.Services.AddPermissionPolicies();
+        builder.Services.AddSingleton(Mock.Of<ISender>());
+
+        var app = builder.Build();
+        app.MapInvitationSettingsEndpoints();
+
+        return ((IEndpointRouteBuilder)app).DataSources
+            .SelectMany(source => source.Endpoints)
+            .ToList();
+    }
 }

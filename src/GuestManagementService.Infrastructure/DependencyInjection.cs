@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddSingleton<IInvitationLinkBuilder>(_ => new Guests.InvitationLinkBuilder(configuration));
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();
+        services.AddScoped<IEventInvitationSettingsRepository, EfCoreEventInvitationSettingsRepository>();
         services.AddScoped<IEventInboxStore, GuestManagementInboxStore>();
         services.AddScoped<IIntegrationEventHandler<EventReferencePayload>, EventReferenceIntegrationEventHandler>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork>();

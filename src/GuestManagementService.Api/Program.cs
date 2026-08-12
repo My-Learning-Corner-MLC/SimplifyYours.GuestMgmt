@@ -48,5 +48,6 @@ app.UseRateLimiter();
 app.MapPingEndpoints();
 app.MapGuestEndpoints();
 app.MapInvitationEndpoints();
+app.MapInvitationSettingsEndpoints();
 
 app.Run();
