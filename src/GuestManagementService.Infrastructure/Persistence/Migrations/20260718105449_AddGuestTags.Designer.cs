@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using GuestManagementService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GuestManagementService.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(GuestManagementServiceDbContext))]
-    partial class GuestManagementServiceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260718105449_AddGuestTags")]
+    partial class AddGuestTags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,19 +32,11 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("event_id");
 
-                    b.Property<DateOnly?>("EventDate")
-                        .HasColumnType("date")
-                        .HasColumnName("event_date");
-
                     b.Property<string>("EventName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("event_name");
-
-                    b.Property<TimeOnly?>("EventStartTime")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("event_start_time");
 
                     b.Property<string>("EventType")
                         .IsRequired()
@@ -62,26 +57,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
-
-                    b.Property<string>("TimeZoneId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("time_zone_id");
-
-                    b.Property<string>("VenueAddress")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("venue_address");
-
-                    b.Property<string>("VenueName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("venue_name");
-
-                    b.Property<string>("VenueNotes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("venue_notes");
 
                     b.HasKey("EventId")
                         .HasName("pk_event_references");

@@ -11,6 +11,7 @@ public sealed record GuestDetails(
     string? EmailAddress,
     string Gender,
     object? EventMetadata,
+    IReadOnlyList<string> Tags,
     DateTimeOffset CreatedAt)
 {
     /// <summary>
@@ -29,6 +30,7 @@ public sealed record GuestDetails(
             guest.EmailAddress,
             GuestParsing.ToContractValue(guest.Gender),
             metadataMapper.ToContract(guest.Metadata),
+            guest.Tags,
             guest.CreatedAt);
     }
 }

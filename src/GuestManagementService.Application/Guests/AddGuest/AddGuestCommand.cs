@@ -11,4 +11,5 @@ public sealed record AddGuestCommand(
     string? PhoneNumber,
     string? EmailAddress,
     string? Gender,
-    JsonElement? EventMetadata = null) : BaseCommand, IRequest<AddGuestResult>;
+    JsonElement? EventMetadata = null,
+    IReadOnlyList<string>? Tags = null) : BaseCommand, IRequest<AddGuestResult>;

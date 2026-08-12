@@ -435,6 +435,39 @@ public sealed class AddGuestCommandHandlerTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task Handle_WhenTagsProvided_PersistsAndReturnsThem()
+    {
+        var eventId = Guid.NewGuid();
+        Guest? savedGuest = null;
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(repository => repository.AddAsync(It.IsAny<Guest>(), It.IsAny<CancellationToken>()))
+            .Callback<Guest, CancellationToken>((guest, _) => savedGuest = guest)
+            .Returns(Task.CompletedTask);
+        var handler = CreateHandler(guestRepository: guests.Object, eventId: eventId);
+
+        var result = await handler.Handle(new AddGuestCommand(
+            eventId,
+            "Ada",
+            "Tester",
+            "+1 555 123 4567",
+            "test@example.com",
+            null,
+            EventMetadata: null,
+            Tags: new[] { "College friends", "college friends", "Head table" })
+        {
+            CurrentUser = TestUser
+        },
+            CancellationToken.None);
+
+        Assert.Equal(AddGuestStatus.Created, result.Status);
+        Assert.NotNull(result.Guest);
+        Assert.Equal(new[] { "College friends", "Head table" }, result.Guest.Tags);
+        Assert.NotNull(savedGuest);
+        Assert.Equal(new[] { "College friends", "Head table" }, savedGuest.Tags);
+    }
+
     private static JsonElement WeddingMetadata(
         string? relationship,
         string? side,

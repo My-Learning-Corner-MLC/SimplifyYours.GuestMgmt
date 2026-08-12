@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.Results;
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
@@ -70,19 +72,31 @@ public sealed class AddGuestCommandHandler(
         var metadataJson = metadataMapper.Serialize(request.EventMetadata);
 
         var now = timeProvider.GetUtcNow();
-        var guest = Guest.Create(
-            Guid.NewGuid(),
-            request.EventId,
-            currentUser.TenantId,
-            request.FirstName ?? string.Empty,
-            request.LastName ?? string.Empty,
-            request.PhoneNumber ?? string.Empty,
-            normalizedPhone,
-            request.EmailAddress,
-            normalizedEmail,
-            gender,
-            metadataJson,
-            now);
+        Guest guest;
+        try
+        {
+            guest = Guest.Create(
+                Guid.NewGuid(),
+                request.EventId,
+                currentUser.TenantId,
+                request.FirstName ?? string.Empty,
+                request.LastName ?? string.Empty,
+                request.PhoneNumber ?? string.Empty,
+                normalizedPhone,
+                request.EmailAddress,
+                normalizedEmail,
+                gender,
+                metadataJson,
+                request.Tags,
+                now);
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "tags")
+        {
+            throw new ValidationException(new[]
+            {
+                new ValidationFailure("Tags", exception.Message),
+            });
+        }
 
         await guestRepository.AddAsync(guest, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
