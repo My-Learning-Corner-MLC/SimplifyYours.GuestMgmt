@@ -7,19 +7,9 @@ public sealed record EventReferencePayload(
     string EventType,
     DateOnly? EventDate = null,
     TimeOnly? EventStartTime = null,
-    TimeOnly? EventEndTime = null,
     string? TimeZoneId = null,
     string? EventDescription = null,
-    EventReferenceLocationPayload? Location = null)
-{
-    /// <summary>
-    /// First envelope version in which event-service publishes the display fields
-    /// (date, times, time zone, description, location). Messages below this version carry
-    /// none of them, so their absence must not be mistaken for "cleared" — see
-    /// <c>ApplyEventReferenceEventCommandHandler</c>.
-    /// </summary>
-    public const int DisplayFieldsVersion = 4;
-}
+    EventReferenceLocationPayload? Location = null);
 
 public sealed record EventReferenceLocationPayload(
     string? VenueName,

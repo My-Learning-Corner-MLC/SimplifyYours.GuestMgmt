@@ -25,12 +25,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<TimeOnly>(
-                name: "event_end_time",
-                table: "event_references",
-                type: "time without time zone",
-                nullable: true);
-
-            migrationBuilder.AddColumn<TimeOnly>(
                 name: "event_start_time",
                 table: "event_references",
                 type: "time without time zone",
@@ -74,10 +68,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropColumn(
                 name: "event_description",
-                table: "event_references");
-
-            migrationBuilder.DropColumn(
-                name: "event_end_time",
                 table: "event_references");
 
             migrationBuilder.DropColumn(

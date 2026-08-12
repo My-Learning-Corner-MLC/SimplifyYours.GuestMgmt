@@ -37,10 +37,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("event_description");
 
-                    b.Property<TimeOnly?>("EventEndTime")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("event_end_time");
-
                     b.Property<string>("EventName")
                         .IsRequired()
                         .HasMaxLength(200)

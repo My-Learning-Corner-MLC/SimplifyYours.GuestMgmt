@@ -40,17 +40,11 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
             .HasMaxLength(50)
             .IsRequired();
 
-        // Display fields replicated for public invitation pages. All nullable: rows synced before
-        // event-service began publishing them (envelope version < 4) have none.
-        // Lengths mirror EventService.Domain.Events.EventLocation so valid source data cannot overflow.
         builder.Property(reference => reference.EventDate)
             .HasColumnName("event_date");
 
         builder.Property(reference => reference.EventStartTime)
             .HasColumnName("event_start_time");
-
-        builder.Property(reference => reference.EventEndTime)
-            .HasColumnName("event_end_time");
 
         builder.Property(reference => reference.TimeZoneId)
             .HasColumnName("time_zone_id")

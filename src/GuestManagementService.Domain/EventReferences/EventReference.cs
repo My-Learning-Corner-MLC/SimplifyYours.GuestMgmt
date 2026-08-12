@@ -38,8 +38,6 @@ public sealed class EventReference
 
     public TimeOnly? EventStartTime { get; private set; }
 
-    public TimeOnly? EventEndTime { get; private set; }
-
     public string? TimeZoneId { get; private set; }
 
     public string? EventDescription { get; private set; }
@@ -50,43 +48,19 @@ public sealed class EventReference
 
     public string? VenueNotes { get; private set; }
 
-    /// <summary>
-    /// Replaces the display fields rendered on public invitation pages. The producer is the source
-    /// of truth and always sends its full current state, so a null here means "cleared", not
-    /// "unknown". Callers must therefore only invoke this for payloads that actually carry the
-    /// fields (see <c>EventReferencePayload.DisplayFieldsVersion</c>).
-    /// </summary>
-    /// <remarks>
-    /// Deliberately does not throw on over-long text: event-service validates lengths at write
-    /// time, and throwing inside a Kafka consumer would poison the partition by failing the same
-    /// message forever. Values are trimmed and blanks collapsed to null.
-    /// </remarks>
-    public void ApplyDisplayDetails(
-        DateOnly? eventDate,
-        TimeOnly? eventStartTime,
-        TimeOnly? eventEndTime,
-        string? timeZoneId,
-        string? eventDescription,
-        string? venueName,
-        string? venueAddress,
-        string? venueNotes)
-    {
-        EventDate = eventDate;
-        EventStartTime = eventStartTime;
-        EventEndTime = eventEndTime;
-        TimeZoneId = NormalizeOptionalText(timeZoneId);
-        EventDescription = NormalizeOptionalText(eventDescription);
-        VenueName = NormalizeOptionalText(venueName);
-        VenueAddress = NormalizeOptionalText(venueAddress);
-        VenueNotes = NormalizeOptionalText(venueNotes);
-    }
-
     public static EventReference Active(
         Guid eventId,
         string eventName,
         Guid tenantId,
         DateTimeOffset syncedAt,
-        string eventType)
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? eventDescription = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         if (eventId == Guid.Empty)
         {
@@ -98,10 +72,30 @@ public sealed class EventReference
             throw new ArgumentException("Tenant id must not be empty.", nameof(tenantId));
         }
 
-        return new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
+        var reference = new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
+        reference.SetDisplayFields(
+            eventDate,
+            eventStartTime,
+            timeZoneId,
+            eventDescription,
+            venueName,
+            venueAddress,
+            venueNotes);
+        return reference;
     }
 
-    public void MarkActive(string eventName, Guid tenantId, DateTimeOffset syncedAt, string eventType)
+    public void MarkActive(
+        string eventName,
+        Guid tenantId,
+        DateTimeOffset syncedAt,
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? eventDescription = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         if (tenantId == Guid.Empty)
         {
@@ -113,12 +107,38 @@ public sealed class EventReference
         IsDeleted = false;
         LastSyncedAt = syncedAt.ToUniversalTime();
         EventType = NormalizeEventType(eventType);
+        SetDisplayFields(
+            eventDate,
+            eventStartTime,
+            timeZoneId,
+            eventDescription,
+            venueName,
+            venueAddress,
+            venueNotes);
     }
 
     public void MarkDeleted(DateTimeOffset syncedAt)
     {
         IsDeleted = true;
         LastSyncedAt = syncedAt.ToUniversalTime();
+    }
+
+    private void SetDisplayFields(
+        DateOnly? eventDate,
+        TimeOnly? eventStartTime,
+        string? timeZoneId,
+        string? eventDescription,
+        string? venueName,
+        string? venueAddress,
+        string? venueNotes)
+    {
+        EventDate = eventDate;
+        EventStartTime = eventStartTime;
+        TimeZoneId = NormalizeOptionalText(timeZoneId);
+        EventDescription = NormalizeOptionalText(eventDescription);
+        VenueName = NormalizeOptionalText(venueName);
+        VenueAddress = NormalizeOptionalText(venueAddress);
+        VenueNotes = NormalizeOptionalText(venueNotes);
     }
 
     private static string NormalizeEventName(string eventName)
