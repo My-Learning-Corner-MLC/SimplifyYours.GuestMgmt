@@ -182,18 +182,18 @@ public sealed class GetInvitationQueryHandlerTests
 
     private static EventReference NewEvent()
     {
-        var reference = NewEventWithoutVenue();
-        reference.ApplyDisplayDetails(
+        return EventReference.Active(
+            EventId,
+            "Eleanor & Sam",
+            Guid.NewGuid(),
+            Now,
+            "wedding",
             new DateOnly(2026, 9, 12),
             new TimeOnly(18, 30),
-            new TimeOnly(23, 0),
             "Asia/Ho_Chi_Minh",
-            "An evening reception",
             "Rosewood Hall",
             "12 Sample Street",
             null);
-
-        return reference;
     }
 
     private static EventReference NewEventWithoutVenue()

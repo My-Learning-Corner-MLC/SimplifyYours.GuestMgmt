@@ -186,9 +186,7 @@ public static class InvitationEndpoints
                 eventReference.EventName,
                 eventReference.EventDate,
                 eventReference.EventStartTime,
-                eventReference.EventEndTime,
                 eventReference.TimeZoneId,
-                eventReference.EventDescription,
                 venue),
             new InvitationRsvpResponse(
                 guest.RsvpStatus.ToString(),

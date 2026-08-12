@@ -1,6 +1,5 @@
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
-using GuestManagementService.Contracts.IntegrationEvents;
 using GuestManagementService.Domain.EventReferences;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -26,7 +25,14 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventName,
                 request.TenantId,
                 request.OccurredAt,
-                request.PlannedEventType);
+                request.PlannedEventType,
+                request.EventDate,
+                request.EventStartTime,
+                request.TimeZoneId,
+                request.VenueName,
+                request.VenueAddress,
+                request.VenueNotes);
+
             logger.LogInformation(
                 "Event reference created from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,
@@ -48,28 +54,19 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventName,
                 request.TenantId,
                 request.OccurredAt,
-                request.PlannedEventType);
+                request.PlannedEventType,
+                request.EventDate,
+                request.EventStartTime,
+                request.TimeZoneId,
+                request.VenueName,
+                request.VenueAddress,
+                request.VenueNotes);
+                
             logger.LogInformation(
                 "Event reference marked active from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,
                 request.EventId,
                 request.EventType);
-        }
-
-        // Older envelopes carry no display fields at all. Applying them anyway would read their
-        // absence as "cleared" and wipe a venue or date that is still current, so only payloads
-        // that actually carry the fields may overwrite them.
-        if (request.PayloadVersion >= EventReferencePayload.DisplayFieldsVersion)
-        {
-            eventReference.ApplyDisplayDetails(
-                request.EventDate,
-                request.EventStartTime,
-                request.EventEndTime,
-                request.TimeZoneId,
-                request.EventDescription,
-                request.VenueName,
-                request.VenueAddress,
-                request.VenueNotes);
         }
 
         await eventReferenceRepository.UpsertAsync(eventReference, cancellationToken);

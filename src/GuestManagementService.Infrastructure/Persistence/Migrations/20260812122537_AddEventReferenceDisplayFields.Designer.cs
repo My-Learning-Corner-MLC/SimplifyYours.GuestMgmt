@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GuestManagementService.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(GuestManagementServiceDbContext))]
-    [Migration("20260809085318_AddEventReferenceDisplayFields")]
+    [Migration("20260812122537_AddEventReferenceDisplayFields")]
     partial class AddEventReferenceDisplayFields
     {
         /// <inheritdoc />
@@ -34,15 +34,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("EventDate")
                         .HasColumnType("date")
                         .HasColumnName("event_date");
-
-                    b.Property<string>("EventDescription")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("event_description");
-
-                    b.Property<TimeOnly?>("EventEndTime")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("event_end_time");
 
                     b.Property<string>("EventName")
                         .IsRequired()

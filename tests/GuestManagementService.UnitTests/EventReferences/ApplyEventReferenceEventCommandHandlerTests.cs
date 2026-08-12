@@ -1,7 +1,6 @@
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.EventReferences.ApplyEventReferenceEvent;
-using GuestManagementService.Contracts.IntegrationEvents;
 using GuestManagementService.Domain.EventReferences;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -90,7 +89,7 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenPayloadCarriesDisplayFields_StoresThemForTheInvitationPage()
+    public async Task Handle_WhenEventCreated_StoresDisplayFieldsForTheInvitationPage()
     {
         EventReference? savedReference = null;
         var references = new Mock<IEventReferenceRepository>();
@@ -106,12 +105,9 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
         var applied = await handler.Handle(
             ValidCommand("EventCreated") with
             {
-                PayloadVersion = EventReferencePayload.DisplayFieldsVersion,
                 EventDate = new DateOnly(2026, 9, 12),
                 EventStartTime = new TimeOnly(18, 30),
-                EventEndTime = new TimeOnly(23, 0),
                 TimeZoneId = "Asia/Ho_Chi_Minh",
-                EventDescription = "  An evening reception  ",
                 VenueName = "Rosewood Hall",
                 VenueAddress = "12 Sample Street",
                 VenueNotes = "  ",
@@ -122,36 +118,34 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
         Assert.NotNull(savedReference);
         Assert.Equal(new DateOnly(2026, 9, 12), savedReference.EventDate);
         Assert.Equal(new TimeOnly(18, 30), savedReference.EventStartTime);
-        Assert.Equal(new TimeOnly(23, 0), savedReference.EventEndTime);
         Assert.Equal("Asia/Ho_Chi_Minh", savedReference.TimeZoneId);
-        Assert.Equal("An evening reception", savedReference.EventDescription);
         Assert.Equal("Rosewood Hall", savedReference.VenueName);
         Assert.Equal("12 Sample Street", savedReference.VenueAddress);
         Assert.Null(savedReference.VenueNotes);
     }
 
     [Fact]
-    public async Task Handle_WhenPayloadPredatesDisplayFields_LeavesExistingValuesIntact()
+    public async Task Handle_WhenEventUpdated_ReplacesDisplayFieldsWithTheIncomingPayload()
     {
         var eventId = Guid.NewGuid();
-        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow, "wedding");
-        existing.ApplyDisplayDetails(
+        var existing = EventReference.Active(
+            eventId,
+            "Launch",
+            TenantId,
+            DateTimeOffset.UtcNow,
+            "wedding",
             new DateOnly(2026, 9, 12),
             new TimeOnly(18, 30),
-            null,
             "Asia/Ho_Chi_Minh",
             "An evening reception",
             "Rosewood Hall",
-            "12 Sample Street",
-            null);
+            "12 Sample Street");
         var references = new Mock<IEventReferenceRepository>();
         references
             .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
         var handler = CreateHandler(references.Object);
 
-        // An envelope from a producer that has not yet been upgraded: it carries no display
-        // fields at all, so it must not be read as "the organiser cleared the venue".
         var applied = await handler.Handle(
             new ApplyEventReferenceEventCommand(
                 Guid.NewGuid(),
@@ -161,48 +155,6 @@ public sealed class ApplyEventReferenceEventCommandHandlerTests
                 DateTimeOffset.UtcNow,
                 "wedding",
                 TenantId,
-                PayloadVersion: EventReferencePayload.DisplayFieldsVersion - 1),
-            CancellationToken.None);
-
-        Assert.True(applied);
-        Assert.Equal(new DateOnly(2026, 9, 12), existing.EventDate);
-        Assert.Equal("Rosewood Hall", existing.VenueName);
-        Assert.Equal("12 Sample Street", existing.VenueAddress);
-        Assert.Equal("Asia/Ho_Chi_Minh", existing.TimeZoneId);
-    }
-
-    [Fact]
-    public async Task Handle_WhenCurrentPayloadOmitsAVenue_ClearsIt()
-    {
-        var eventId = Guid.NewGuid();
-        var existing = EventReference.Active(eventId, "Launch", TenantId, DateTimeOffset.UtcNow, "wedding");
-        existing.ApplyDisplayDetails(
-            new DateOnly(2026, 9, 12),
-            null,
-            null,
-            "Asia/Ho_Chi_Minh",
-            null,
-            "Rosewood Hall",
-            "12 Sample Street",
-            null);
-        var references = new Mock<IEventReferenceRepository>();
-        references
-            .Setup(repository => repository.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
-        var handler = CreateHandler(references.Object);
-
-        // A current-version payload is the producer's full state, so an absent venue really does
-        // mean the organiser removed it.
-        var applied = await handler.Handle(
-            new ApplyEventReferenceEventCommand(
-                Guid.NewGuid(),
-                "EventUpdated",
-                eventId,
-                "Launch",
-                DateTimeOffset.UtcNow,
-                "wedding",
-                TenantId,
-                PayloadVersion: EventReferencePayload.DisplayFieldsVersion,
                 EventDate: new DateOnly(2026, 9, 12)),
             CancellationToken.None);
 

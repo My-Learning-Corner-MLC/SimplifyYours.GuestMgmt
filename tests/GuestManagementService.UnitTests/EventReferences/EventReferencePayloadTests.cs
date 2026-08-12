@@ -8,10 +8,8 @@ public sealed class EventReferencePayloadTests
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public void Deserialize_WhenMessagePredatesDisplayFields_StillBinds()
+    public void Deserialize_WhenMessageHasNoDisplayFields_StillBinds()
     {
-        // Exactly the shape event-service emits at envelope version 3. Messages in this shape are
-        // already on the topic, so the consumer must keep binding them after the contract grows.
         const string json = """
             {
               "eventId": "6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55",
@@ -34,6 +32,8 @@ public sealed class EventReferencePayloadTests
     [Fact]
     public void Deserialize_WhenMessageCarriesDisplayFields_BindsThemIncludingLocation()
     {
+        // event-service still sends eventEndTime on the wire; this record no longer declares it,
+        // and the field is simply ignored rather than failing deserialization.
         const string json = """
             {
               "eventId": "6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55",
@@ -44,7 +44,6 @@ public sealed class EventReferencePayloadTests
               "eventStartTime": "18:30:00",
               "eventEndTime": "23:00:00",
               "timeZoneId": "Asia/Ho_Chi_Minh",
-              "eventDescription": "An evening reception",
               "location": {
                 "venueName": "Rosewood Hall",
                 "address": "12 Sample Street",
@@ -58,9 +57,7 @@ public sealed class EventReferencePayloadTests
         Assert.NotNull(payload);
         Assert.Equal(new DateOnly(2026, 9, 12), payload.EventDate);
         Assert.Equal(new TimeOnly(18, 30), payload.EventStartTime);
-        Assert.Equal(new TimeOnly(23, 0), payload.EventEndTime);
         Assert.Equal("Asia/Ho_Chi_Minh", payload.TimeZoneId);
-        Assert.Equal("An evening reception", payload.EventDescription);
         Assert.Equal("Rosewood Hall", payload.Location?.VenueName);
         Assert.Equal("12 Sample Street", payload.Location?.Address);
         Assert.Equal("Parking at the rear", payload.Location?.Notes);

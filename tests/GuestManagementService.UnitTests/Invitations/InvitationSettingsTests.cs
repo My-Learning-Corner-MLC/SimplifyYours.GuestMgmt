@@ -339,17 +339,17 @@ public sealed class InvitationSettingsTests
 
     private static EventReference NewEvent()
     {
-        var reference = EventReference.Active(EventId, "Amara & Julian", TenantId, Now, "wedding");
-        reference.ApplyDisplayDetails(
+        return EventReference.Active(
+            EventId,
+            "Amara & Julian",
+            TenantId,
+            Now,
+            "wedding",
             new DateOnly(2026, 9, 12),
             new TimeOnly(18, 30),
-            null,
             "Asia/Ho_Chi_Minh",
-            null,
             "Villa Astoria",
             "Lake Como",
             null);
-
-        return reference;
     }
 }

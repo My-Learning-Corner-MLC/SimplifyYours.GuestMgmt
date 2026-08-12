@@ -14,9 +14,7 @@ public sealed record InvitationEventResponse(
     string Name,
     DateOnly? Date,
     TimeOnly? StartTime,
-    TimeOnly? EndTime,
     string? TimeZoneId,
-    string? Description,
     InvitationVenueResponse? Venue);
 
 public sealed record InvitationVenueResponse(string? Name, string? Address, string? Notes);
