@@ -4,8 +4,13 @@ namespace GuestManagementService.Application.Invitations;
 /// Computes when RSVPs close for an event.
 /// </summary>
 /// <remarks>
-/// Derived rather than stored in this slice: the rule is fixed at one day before the event, and an
-/// organiser-configurable deadline arrives with the invitation settings table in slice 2.
+/// Derived rather than stored: the rule is fixed at the end of the event's own day. An
+/// organiser-configurable deadline can arrive later without changing callers.
+/// <para>
+/// The date comes from the replicated event record, never from the invitation's saved
+/// <c>eventDate</c> — that one is free text an organiser typed ("Saturday, September 12, 2026"),
+/// which cannot be parsed reliably enough to close responses on.
+/// </para>
 /// <para>
 /// The same deadline governs both the first submission and later edits. Letting a guest change
 /// their answer after the deadline would defeat the point of having one — an organiser who has
@@ -15,8 +20,8 @@ namespace GuestManagementService.Application.Invitations;
 public static class RsvpDeadline
 {
     /// <summary>
-    /// End of the day before the event, in the event's own time zone, expressed as UTC.
-    /// Returns null when the event has no date, in which case RSVPs never close.
+    /// End of the event's own day, in the event's time zone, expressed as UTC. Returns null when
+    /// the event has no date, in which case RSVPs never close.
     /// </summary>
     public static DateTimeOffset? Compute(DateOnly? eventDate, string? timeZoneId)
     {
@@ -25,8 +30,7 @@ public static class RsvpDeadline
             return null;
         }
 
-        var lastDay = eventDate.Value.AddDays(-1);
-        var localEndOfDay = lastDay.ToDateTime(new TimeOnly(23, 59, 59));
+        var localEndOfDay = eventDate.Value.ToDateTime(new TimeOnly(23, 59, 59));
         var zone = ResolveZone(timeZoneId);
 
         // The event's zone, never the guest's or the server's: a wedding in Ho Chi Minh City closes
