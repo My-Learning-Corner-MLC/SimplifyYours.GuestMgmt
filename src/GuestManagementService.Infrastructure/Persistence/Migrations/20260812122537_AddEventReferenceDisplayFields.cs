@@ -17,13 +17,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                 type: "date",
                 nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "event_description",
-                table: "event_references",
-                type: "character varying(4000)",
-                maxLength: 4000,
-                nullable: true);
-
             migrationBuilder.AddColumn<TimeOnly>(
                 name: "event_start_time",
                 table: "event_references",
@@ -64,10 +57,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "event_date",
-                table: "event_references");
-
-            migrationBuilder.DropColumn(
-                name: "event_description",
                 table: "event_references");
 
             migrationBuilder.DropColumn(
