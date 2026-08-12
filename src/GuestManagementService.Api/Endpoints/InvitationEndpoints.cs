@@ -53,6 +53,7 @@ public static class InvitationEndpoints
         string token,
         HttpContext httpContext,
         ISender sender,
+        IEventInvitationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetInvitationQuery(token), cancellationToken);
@@ -64,9 +65,22 @@ public static class InvitationEndpoints
             return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
+        var settings = await settingsRepository.GetByEventIdAsync(result.Event!.EventId, cancellationToken);
+
+        if (settings is null)
+        {
+            // Same response as an unknown token: an invitation whose template was never chosen does
+            // not exist yet, and saying so would distinguish a real event from a fictional one.
+            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
+        }
+
         ApplyPublicHeaders(httpContext);
 
-        return Results.Ok(ToResponse(result.Guest!, result.Event!, result.Deadline, result.IsOpen));
+        return Results.Ok(ToResponse(
+            result.Guest!,
+            InvitationFieldValues.Parse(settings.FieldValues),
+            result.Deadline,
+            result.IsOpen));
     }
 
     internal static async Task<IResult> RenderInvitationAsync(
@@ -116,6 +130,7 @@ public static class InvitationEndpoints
         SubmitRsvpRequest request,
         HttpContext httpContext,
         ISender sender,
+        IEventInvitationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         try
@@ -133,7 +148,11 @@ public static class InvitationEndpoints
             return result.Status switch
             {
                 SubmitRsvpStatus.Accepted => Results.Ok(
-                    ToResponse(result.Guest!, result.Event!, result.Deadline, isOpen: true)),
+                    ToResponse(
+                        result.Guest!,
+                        await ReadContentAsync(settingsRepository, result.Event!.EventId, cancellationToken),
+                        result.Deadline,
+                        isOpen: true)),
                 SubmitRsvpStatus.Closed => ApiErrorResults.Conflict(
                     "Responses for this event are closed.",
                     httpContext),
@@ -144,6 +163,18 @@ public static class InvitationEndpoints
         {
             return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
         }
+    }
+
+    private static async Task<IReadOnlyDictionary<string, string?>> ReadContentAsync(
+        IEventInvitationSettingsRepository settingsRepository,
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        var settings = await settingsRepository.GetByEventIdAsync(eventId, cancellationToken);
+
+        return settings is null
+            ? new Dictionary<string, string?>()
+            : InvitationFieldValues.Parse(settings.FieldValues);
     }
 
     private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
@@ -168,28 +199,14 @@ public static class InvitationEndpoints
 
     public static GetInvitationResponse ToResponse(
         Guest guest,
-        EventReference eventReference,
+        IReadOnlyDictionary<string, string?> content,
         DateTimeOffset? deadline,
         bool isOpen)
     {
-        var venue = eventReference.VenueName is null
-                    && eventReference.VenueAddress is null
-                    && eventReference.VenueNotes is null
-            ? null
-            : new InvitationVenueResponse(
-                eventReference.VenueName,
-                eventReference.VenueAddress,
-                eventReference.VenueNotes);
-
         return new GetInvitationResponse(
             // First name only. The page greets the guest; it does not need to prove who they are.
             guest.FirstName,
-            new InvitationEventResponse(
-                eventReference.EventName,
-                eventReference.EventDate,
-                eventReference.EventStartTime,
-                eventReference.TimeZoneId,
-                venue),
+            content,
             new InvitationRsvpResponse(
                 guest.RsvpStatus.ToString(),
                 InvitationMetadata.ReadPlusOnesAllowed(guest.Metadata),
