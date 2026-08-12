@@ -32,11 +32,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("event_date");
 
-                    b.Property<string>("EventDescription")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("event_description");
-
                     b.Property<string>("EventName")
                         .IsRequired()
                         .HasMaxLength(200)

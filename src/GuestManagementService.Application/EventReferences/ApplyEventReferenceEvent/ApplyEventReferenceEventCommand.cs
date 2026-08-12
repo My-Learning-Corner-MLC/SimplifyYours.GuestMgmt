@@ -13,7 +13,6 @@ public sealed record ApplyEventReferenceEventCommand(
     DateOnly? EventDate = null,
     TimeOnly? EventStartTime = null,
     string? TimeZoneId = null,
-    string? EventDescription = null,
     string? VenueName = null,
     string? VenueAddress = null,
     string? VenueNotes = null)

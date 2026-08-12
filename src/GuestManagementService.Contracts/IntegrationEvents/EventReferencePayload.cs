@@ -8,7 +8,6 @@ public sealed record EventReferencePayload(
     DateOnly? EventDate = null,
     TimeOnly? EventStartTime = null,
     string? TimeZoneId = null,
-    string? EventDescription = null,
     EventReferenceLocationPayload? Location = null);
 
 public sealed record EventReferenceLocationPayload(

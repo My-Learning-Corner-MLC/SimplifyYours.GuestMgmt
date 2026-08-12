@@ -12,14 +12,26 @@ public sealed class EventReference
         Guid tenantId,
         bool isDeleted,
         DateTimeOffset lastSyncedAt,
-        string eventType)
+        string eventType,
+        DateOnly? eventDate = null,
+        TimeOnly? eventStartTime = null,
+        string? timeZoneId = null,
+        string? venueName = null,
+        string? venueAddress = null,
+        string? venueNotes = null)
     {
         EventId = eventId;
         EventName = NormalizeEventName(eventName);
         TenantId = tenantId;
+        EventType = NormalizeEventType(eventType);
+        EventDate = eventDate;
+        EventStartTime = eventStartTime;
+        TimeZoneId = NormalizeOptionalText(timeZoneId);
+        VenueName = NormalizeOptionalText(venueName);
+        VenueAddress = NormalizeOptionalText(venueAddress);
+        VenueNotes = NormalizeOptionalText(venueNotes);
         IsDeleted = isDeleted;
         LastSyncedAt = lastSyncedAt.ToUniversalTime();
-        EventType = NormalizeEventType(eventType);
     }
 
     public Guid EventId { get; private set; }
@@ -40,8 +52,6 @@ public sealed class EventReference
 
     public string? TimeZoneId { get; private set; }
 
-    public string? EventDescription { get; private set; }
-
     public string? VenueName { get; private set; }
 
     public string? VenueAddress { get; private set; }
@@ -57,7 +67,6 @@ public sealed class EventReference
         DateOnly? eventDate = null,
         TimeOnly? eventStartTime = null,
         string? timeZoneId = null,
-        string? eventDescription = null,
         string? venueName = null,
         string? venueAddress = null,
         string? venueNotes = null)
@@ -72,15 +81,20 @@ public sealed class EventReference
             throw new ArgumentException("Tenant id must not be empty.", nameof(tenantId));
         }
 
-        var reference = new EventReference(eventId, eventName, tenantId, isDeleted: false, syncedAt, eventType);
-        reference.SetDisplayFields(
-            eventDate,
-            eventStartTime,
+        var reference = new EventReference(
+            eventId, 
+            eventName, 
+            tenantId, 
+            isDeleted: false, 
+            syncedAt, 
+            eventType, 
+            eventDate, 
+            eventStartTime, 
             timeZoneId,
-            eventDescription,
             venueName,
             venueAddress,
             venueNotes);
+
         return reference;
     }
 
@@ -92,7 +106,6 @@ public sealed class EventReference
         DateOnly? eventDate = null,
         TimeOnly? eventStartTime = null,
         string? timeZoneId = null,
-        string? eventDescription = null,
         string? venueName = null,
         string? venueAddress = null,
         string? venueNotes = null)
@@ -107,38 +120,18 @@ public sealed class EventReference
         IsDeleted = false;
         LastSyncedAt = syncedAt.ToUniversalTime();
         EventType = NormalizeEventType(eventType);
-        SetDisplayFields(
-            eventDate,
-            eventStartTime,
-            timeZoneId,
-            eventDescription,
-            venueName,
-            venueAddress,
-            venueNotes);
+        EventDate = eventDate;
+        EventStartTime = eventStartTime;
+        TimeZoneId = NormalizeOptionalText(timeZoneId);
+        VenueName = NormalizeOptionalText(venueName);
+        VenueAddress = NormalizeOptionalText(venueAddress);
+        VenueNotes = NormalizeOptionalText(venueNotes);
     }
 
     public void MarkDeleted(DateTimeOffset syncedAt)
     {
         IsDeleted = true;
         LastSyncedAt = syncedAt.ToUniversalTime();
-    }
-
-    private void SetDisplayFields(
-        DateOnly? eventDate,
-        TimeOnly? eventStartTime,
-        string? timeZoneId,
-        string? eventDescription,
-        string? venueName,
-        string? venueAddress,
-        string? venueNotes)
-    {
-        EventDate = eventDate;
-        EventStartTime = eventStartTime;
-        TimeZoneId = NormalizeOptionalText(timeZoneId);
-        EventDescription = NormalizeOptionalText(eventDescription);
-        VenueName = NormalizeOptionalText(venueName);
-        VenueAddress = NormalizeOptionalText(venueAddress);
-        VenueNotes = NormalizeOptionalText(venueNotes);
     }
 
     private static string NormalizeEventName(string eventName)

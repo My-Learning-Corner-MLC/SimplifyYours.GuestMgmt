@@ -24,7 +24,6 @@ internal sealed class EventReferenceIntegrationEventHandler(ISender sender)
                 context.Payload.EventDate,
                 context.Payload.EventStartTime,
                 context.Payload.TimeZoneId,
-                context.Payload.EventDescription,
                 context.Payload.Location?.VenueName,
                 context.Payload.Location?.Address,
                 context.Payload.Location?.Notes),

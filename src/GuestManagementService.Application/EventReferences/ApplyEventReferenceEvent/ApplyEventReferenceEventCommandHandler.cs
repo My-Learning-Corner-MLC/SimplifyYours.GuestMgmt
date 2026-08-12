@@ -29,10 +29,10 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventDate,
                 request.EventStartTime,
                 request.TimeZoneId,
-                request.EventDescription,
                 request.VenueName,
                 request.VenueAddress,
                 request.VenueNotes);
+
             logger.LogInformation(
                 "Event reference created from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,
@@ -58,10 +58,10 @@ public sealed class ApplyEventReferenceEventCommandHandler(
                 request.EventDate,
                 request.EventStartTime,
                 request.TimeZoneId,
-                request.EventDescription,
                 request.VenueName,
                 request.VenueAddress,
                 request.VenueNotes);
+                
             logger.LogInformation(
                 "Event reference marked active from integration event. MessageId: {MessageId}. EventId: {EventId}. EventType: {EventType}.",
                 request.MessageId,

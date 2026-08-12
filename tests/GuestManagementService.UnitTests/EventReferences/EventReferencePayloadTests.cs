@@ -44,7 +44,6 @@ public sealed class EventReferencePayloadTests
               "eventStartTime": "18:30:00",
               "eventEndTime": "23:00:00",
               "timeZoneId": "Asia/Ho_Chi_Minh",
-              "eventDescription": "An evening reception",
               "location": {
                 "venueName": "Rosewood Hall",
                 "address": "12 Sample Street",
@@ -59,7 +58,6 @@ public sealed class EventReferencePayloadTests
         Assert.Equal(new DateOnly(2026, 9, 12), payload.EventDate);
         Assert.Equal(new TimeOnly(18, 30), payload.EventStartTime);
         Assert.Equal("Asia/Ho_Chi_Minh", payload.TimeZoneId);
-        Assert.Equal("An evening reception", payload.EventDescription);
         Assert.Equal("Rosewood Hall", payload.Location?.VenueName);
         Assert.Equal("12 Sample Street", payload.Location?.Address);
         Assert.Equal("Parking at the rear", payload.Location?.Notes);

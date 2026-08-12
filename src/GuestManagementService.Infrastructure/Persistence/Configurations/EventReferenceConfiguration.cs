@@ -50,10 +50,6 @@ internal sealed class EventReferenceConfiguration : IEntityTypeConfiguration<Eve
             .HasColumnName("time_zone_id")
             .HasMaxLength(100);
 
-        builder.Property(reference => reference.EventDescription)
-            .HasColumnName("event_description")
-            .HasMaxLength(4000);
-
         builder.Property(reference => reference.VenueName)
             .HasColumnName("venue_name")
             .HasMaxLength(200);
