@@ -40,12 +40,20 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                 WHERE invitation_token IS NULL;
                 """);
 
+            // oldNullable/oldClrType are load-bearing, not decoration. Without them Npgsql assumes
+            // the column was already NOT NULL and emits only an ALTER ... TYPE, silently leaving it
+            // nullable — a database that permits a guest with no invitation token, which the domain
+            // forbids.
             migrationBuilder.AlterColumn<string>(
                 name: "invitation_token",
                 table: "guests",
                 type: "character varying(43)",
                 maxLength: 43,
-                nullable: false);
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "character varying(43)",
+                oldMaxLength: 43,
+                oldNullable: true);
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "responded_at",

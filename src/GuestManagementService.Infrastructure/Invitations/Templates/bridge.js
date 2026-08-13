@@ -1,5 +1,9 @@
 // The only script in the rendered document.
 //
+// Its entire job is to tell the host that the guest pressed RSVP. The frame is viewport-sized and
+// scrolls its own content, so nothing here measures or reports layout — an earlier version did,
+// and the resulting resize chatter was what turned a re-applied src binding into a reload loop.
+//
 // The frame is sandboxed with allow-scripts but WITHOUT allow-same-origin, so this code cannot
 // reach the host page's DOM, cookies, or storage. postMessage is the entire interface, and it
 // carries no data: the parent treats a message purely as "the guest clicked RSVP" and reads
@@ -30,19 +34,4 @@
     post({ type: 'sy:rsvp' });
   });
 
-  // The host sizes the frame from this rather than guessing, so a long invitation is never
-  // clipped and never gets a nested scrollbar.
-  function reportHeight() {
-    post({
-      type: 'sy:height',
-      height: Math.ceil(document.documentElement.scrollHeight)
-    });
-  }
-
-  if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(reportHeight).observe(document.documentElement);
-  }
-
-  window.addEventListener('load', reportHeight);
-  reportHeight();
 })();
