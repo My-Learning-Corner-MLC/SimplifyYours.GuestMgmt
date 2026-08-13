@@ -64,7 +64,7 @@ public sealed class BirthdayGuestMetadataMapper(IValidator<BirthdayGuestMetadata
             throw new ValidationException(failures);
         }
 
-        var metadata = BirthdayGuestMetadata.Create(request.PlusOnes ?? 0, request.DietaryNotes);
+        var metadata = BirthdayGuestMetadata.Create(request.PlusOnes ?? 0, dietaryNotes: null);
         return Serialize(metadata);
     }
 

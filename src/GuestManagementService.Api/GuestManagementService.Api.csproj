@@ -20,6 +20,13 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The endpoint handlers stay internal: they are wired by MapInvitationEndpoints, not called
+         by other assemblies. The unit tests assert the response headers they write, which is the
+         only thing in the suite running at response level. -->
+    <InternalsVisibleTo Include="GuestManagementService.UnitTests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

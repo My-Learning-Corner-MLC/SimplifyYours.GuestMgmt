@@ -192,6 +192,64 @@ Response body:
 }
 ```
 
+### Invitation endpoints
+
+Three of these are **anonymous**: the per-guest invitation token in the URL is the only credential.
+They are the service's only unauthenticated surface, and they serve guest data, so they are rate
+limited (30/min per token and 300/min per IP on the reads; 10/min and 60/min on the write) and
+return `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
+
+Every failure returns the same `404` — unknown token, malformed token, deleted event, and an event
+whose invitation was never composed are indistinguishable, so the endpoints cannot be used to probe
+which tokens are real.
+
+#### `GET /guests/{guestId}/invitation-link`
+
+Authenticated, requires `guests.view`. Returns `{ guestId, invitationToken, invitationUrl }`.
+
+Fetched one guest at a time on purpose. The token is credential-like, so it never appears in
+`POST /guests/query`: one captured list response would otherwise expose every live invitation for
+the event at once.
+
+#### `GET /guests/invitations/{token}` — anonymous
+
+Returns the guest's first name, the organiser's saved merge values, and the RSVP state
+(`status`, `plusOnesAllowed`, `plusOnesConfirmed`, `dietaryNotes`, `deadline`, `isOpen`,
+`respondedAt`). Deliberately narrow — no email, phone, guest id, tenant id, or any other guest.
+
+#### `GET /guests/invitations/{token}/render` — anonymous
+
+Returns a complete HTML document, not JSON: the invitation as the guest sees it, rendered from the
+organiser's saved content. Served into a sandboxed iframe, so the response carries
+`Content-Security-Policy: frame-ancestors <Invitations:PublicBaseUrl>`.
+
+All merge values are HTML-encoded as the model is built, since Scriban does not escape output. A
+template cannot opt out of it.
+
+#### `POST /guests/invitations/{token}/rsvp` — anonymous
+
+Records the guest's own answer: `{ rsvpStatus, plusOnesConfirmed, dietaryNotes }`.
+
+`POST` only. Email link-scanners pre-fetch every URL they see, so a `GET` that recorded an answer
+would manufacture phantom RSVPs from bots.
+
+- `rsvpStatus` is one of `Accepted`, `Declined`, `Maybe`.
+- Only `Accepted` may carry a non-zero `plusOnesConfirmed`, and it can never exceed the organiser's
+  allowance — the guest's answer never rewrites `plusOnesAllowed`.
+- `dietaryNotes` caps at 500 characters.
+- A guest may change their answer until the deadline (end of the day before the event, in the
+  event's own timezone). Afterwards both first submissions and edits return `409`.
+- `respondedAt` records the first response and is not moved by later edits.
+
+#### `GET` / `PUT /events/{eventId}/invitation-settings`
+
+Authenticated. Reading requires `guests.view`; writing requires `events.update` — composing an
+invitation is editing the event's presentation, so it reuses that permission rather than adding one.
+
+`PUT` saves `{ templateId, fieldValues }`. Required fields depend on the event type (a wedding needs
+`brideName`/`groomName`, a birthday needs `eventName`; `venueNotes` is always optional). Saving
+re-renders every already-issued link immediately.
+
 ## Configuration
 
 The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
@@ -203,6 +261,20 @@ Protected endpoints also require:
 - `Auth:Issuer`: Identity Service issuer URL, for example `https://localhost:15200/`.
 - `Auth:Audience`: expected access-token audience, currently `simplify-yours-api`.
 - `Auth:AccessTokenEncryptionKeyBase64`: base64-encoded shared access-token encryption key.
+
+The invitation endpoints also require:
+
+- `Invitations:PublicBaseUrl`: the origin the SPA is served from, for example
+  `https://local.simplifyyours.com`. **The service fails to start without it.** It is both the
+  origin named in the render endpoint's `frame-ancestors` CSP and the `postMessage` target baked
+  into every rendered invitation, so a wrong value produces a blank iframe and a dead RSVP button
+  rather than an error. `appsettings.json` ships it blank on purpose so a deployment that forgets to
+  set it fails loudly instead of serving invitations that look fine and do nothing.
+- `Invitations:TrustedProxyNetworks`: optional CIDR list of proxies whose `X-Forwarded-For` is
+  believed, defaulting to the RFC 1918 private ranges plus loopback. This is what makes the per-IP
+  rate limit per-*client*: without it every request carries the API gateway's address and all guests
+  share one bucket. Narrow it to the gateway's own address if the service is ever reachable
+  directly.
 
 Keep real token encryption keys and bearer tokens out of source control.
 
@@ -264,8 +336,12 @@ dotnet test GuestManagementService.sln --configuration Release --no-build
 ### Test With Coverage
 
 ```bash
-dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:Threshold=80 /p:ThresholdType=line /p:ThresholdStat=total
+dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=TestResults/coverage.cobertura.xml
 ```
+
+On a pull request CI then runs `diff-cover` against the base branch and fails under **50% of
+changed lines**. It does not enforce a repo-wide total — this block previously showed an
+`/p:Threshold=80` total-coverage gate that `ci.yml` does not run.
 
 ### Run The API Locally
 
@@ -310,5 +386,9 @@ Keep this README up to date during development. When a feature introduces a new 
 ```bash
 dotnet restore GuestManagementService.sln
 dotnet build GuestManagementService.sln --configuration Release --no-restore
-dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:Threshold=80 /p:ThresholdType=line /p:ThresholdStat=total
+dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=TestResults/coverage.cobertura.xml
 ```
+
+On a pull request CI then runs `diff-cover` against the base branch and fails under **50% of
+changed lines**. It does not enforce a repo-wide total — this block previously showed an
+`/p:Threshold=80` total-coverage gate that `ci.yml` does not run.

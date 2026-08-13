@@ -18,6 +18,7 @@ public sealed class Guest
         string? normalizedEmailAddress,
         Gender gender,
         string? metadata,
+        string invitationToken,
         DateTimeOffset createdAt)
     {
         Id = id;
@@ -31,6 +32,9 @@ public sealed class Guest
         NormalizedEmailAddress = normalizedEmailAddress;
         Gender = gender;
         Metadata = metadata;
+        InvitationToken = invitationToken;
+        DeliveryStatus = DeliveryStatus.NotSent;
+        RsvpStatus = RsvpStatus.NoResponse;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
     }
@@ -60,9 +64,45 @@ public sealed class Guest
     // the domain keeps it opaque so new event types can add fields without a schema change.
     public string? Metadata { get; private set; }
 
+    /// <summary>
+    /// Opaque, unguessable identifier for this guest's invitation link. Minted at creation rather
+    /// than at send time so the link exists whether or not an invitation is ever emailed —
+    /// the organiser can copy it and share it themselves.
+    /// </summary>
+    public string InvitationToken { get; private set; } = string.Empty;
+
+    public DeliveryStatus DeliveryStatus { get; private set; }
+
+    public RsvpStatus RsvpStatus { get; private set; }
+
+    /// <summary>When the guest first responded. Later edits to the answer do not move it.</summary>
+    public DateTimeOffset? RespondedAt { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    /// <summary>
+    /// Records the guest's own RSVP.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="metadata"/> already carries the guest's answers merged over the organiser's
+    /// fields — the caller builds it so that the organiser's plus-ones allowance survives untouched.
+    /// <see cref="RespondedAt"/> marks the <em>first</em> response and is not moved by later edits,
+    /// so "when did they reply" stays answerable after someone changes their mind.
+    /// </remarks>
+    public void RecordRsvp(RsvpStatus status, string? metadata, DateTimeOffset respondedAt)
+    {
+        if (status == RsvpStatus.NoResponse)
+        {
+            throw new ArgumentException("A recorded RSVP cannot be NoResponse.", nameof(status));
+        }
+
+        RsvpStatus = status;
+        Metadata = NormalizeOptionalText(metadata);
+        RespondedAt ??= respondedAt.ToUniversalTime();
+        UpdatedAt = respondedAt.ToUniversalTime();
+    }
 
     public static Guest Create(
         Guid id,
@@ -76,6 +116,7 @@ public sealed class Guest
         string? normalizedEmailAddress,
         Gender gender,
         string? metadata,
+        string invitationToken,
         DateTimeOffset createdAt)
     {
         if (id == Guid.Empty)
@@ -100,6 +141,7 @@ public sealed class Guest
         var cleanEmail = NormalizeOptionalText(emailAddress);
         var comparableEmail = NormalizeOptionalText(normalizedEmailAddress);
         var cleanMetadata = NormalizeOptionalText(metadata);
+        var cleanToken = NormalizeRequiredText(invitationToken, nameof(invitationToken));
 
         return new Guest(
             id,
@@ -113,6 +155,7 @@ public sealed class Guest
             comparableEmail,
             gender,
             cleanMetadata,
+            cleanToken,
             createdAt.ToUniversalTime());
     }
 
