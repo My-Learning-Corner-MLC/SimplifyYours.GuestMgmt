@@ -19,6 +19,7 @@ builder.Services.AddScoped<CurrentUserAccessor>();
 builder.Services.AddScoped<ICurrentUserAccessor>(sp => sp.GetRequiredService<CurrentUserAccessor>());
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddGatewayForwardedHeaders(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -34,6 +35,11 @@ using (var migrationScope = app.Services.CreateScope())
 {
     migrationScope.ServiceProvider.GetRequiredService<GuestManagementServiceDbContext>().Database.Migrate();
 }
+
+// Must come first: everything downstream that reads the client IP — request logging and, above all,
+// the per-IP invitation rate limits — would otherwise see the gateway's address for every caller and
+// share a single rate-limit partition across all guests.
+app.UseForwardedHeaders();
 
 app.UseFriendlyErrorResponses();
 app.UseRequestLogging();

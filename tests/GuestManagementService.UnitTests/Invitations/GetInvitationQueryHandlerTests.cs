@@ -2,9 +2,11 @@ using System.Text.Json;
 using GuestManagementService.Api.Endpoints;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Invitations;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -147,21 +149,44 @@ public sealed class GetInvitationQueryHandlerTests
     private static async Task<GetInvitationResult> Handle(
         Guest? guest,
         EventReference? eventReference,
-        DateTimeOffset? now = null)
+        DateTimeOffset? now = null,
+        bool hasSettings = true)
     {
         var guests = new Mock<IGuestRepository>();
         guests
             .Setup(r => r.GetByInvitationTokenAsync(Token, It.IsAny<CancellationToken>()))
             .ReturnsAsync(guest);
 
-        return await CreateHandler(guests.Object, eventReference, now)
+        return await CreateHandler(guests.Object, eventReference, now, hasSettings)
             .Handle(new GetInvitationQuery(Token), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoTemplateHasBeenChosen_ReturnsTheSameNotFoundAsAnUnknownToken()
+    {
+        // An invitation nobody has composed does not exist yet. Returning anything other than the
+        // ordinary NotFound here would let a caller tell a real event from a fictional one.
+        var result = await Handle(NewGuest(), NewEvent(), hasSettings: false);
+
+        Assert.Equal(GetInvitationStatus.NotFound, result.Status);
+        Assert.Null(result.Guest);
+        Assert.Null(result.Content);
+    }
+
+    [Fact]
+    public async Task Handle_CarriesTheSavedContentSoTheApiNeverLoadsItItself()
+    {
+        var result = await Handle(NewGuest(), NewEvent());
+
+        Assert.Equal(GetInvitationStatus.Found, result.Status);
+        Assert.Equal("Ada's party", result.Content!["eventName"]);
     }
 
     private static GetInvitationQueryHandler CreateHandler(
         IGuestRepository guests,
         EventReference? eventReference,
-        DateTimeOffset? now = null)
+        DateTimeOffset? now = null,
+        bool hasSettings = true)
     {
         var events = new Mock<IEventReferenceRepository>();
         events
@@ -174,9 +199,29 @@ public sealed class GetInvitationQueryHandlerTests
         return new GetInvitationQueryHandler(
             guests,
             events.Object,
+            SettingsRepository(hasSettings).Object,
             timeProvider.Object,
             NullLogger<GetInvitationQueryHandler>.Instance);
     }
+
+    /// <summary>
+    /// Saved invitation settings for the event. An invitation whose template was never chosen is
+    /// indistinguishable from an unknown token, so the "missing" case matters as much as the found
+    /// one — pass <c>hasSettings: false</c> for it.
+    /// </summary>
+    private static Mock<IEventInvitationSettingsRepository> SettingsRepository(bool hasSettings)
+    {
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(hasSettings
+                ? EventInvitationSettings.Create(EventId, Guid.NewGuid(), "marigold", FieldValuesJson, Now)
+                : null);
+
+        return settings;
+    }
+
+    private const string FieldValuesJson = """{"eventName":"Ada's party","venueName":"Villa Astoria"}""";
 
     private static Guest NewGuest(string? metadata = null)
     {

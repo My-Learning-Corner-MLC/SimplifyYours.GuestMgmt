@@ -22,4 +22,9 @@ public sealed record InvitationRsvpResponse(
     string? DietaryNotes,
     /// <summary>Derived from the event's own date and timezone, not from the invitation's copy.</summary>
     DateTimeOffset? Deadline,
-    bool IsOpen);
+    bool IsOpen,
+    /// <summary>
+    /// When the guest first answered — the date in the page's "You responded" chip. Null until they
+    /// answer, and it records the first response only: editing an answer does not move it.
+    /// </summary>
+    DateTimeOffset? RespondedAt);

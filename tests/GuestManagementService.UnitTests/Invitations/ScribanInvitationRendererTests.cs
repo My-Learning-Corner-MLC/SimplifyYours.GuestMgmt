@@ -30,9 +30,9 @@ public sealed class ScribanInvitationRendererTests
     };
 
     [Fact]
-    public void Render_FillsTheAllowlistedTokens()
+    public async Task Render_FillsTheAllowlistedTokens()
     {
-        var html = Renderer.Render(Values(), "Priya Nair", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Priya Nair", Wedding);
 
         Assert.Contains("Priya Nair", html, StringComparison.Ordinal);
         Assert.Contains("Villa Astoria", html, StringComparison.Ordinal);
@@ -45,40 +45,40 @@ public sealed class ScribanInvitationRendererTests
     }
 
     [Fact]
-    public void Render_EscapesMarkupInMergeValues()
+    public async Task Render_EscapesMarkupInMergeValues()
     {
         // The single most important test here: a guest name is attacker-influenced text rendered on
         // a public page. It must appear as literal text, never as markup.
-        var html = Renderer.Render(Values(), "Ben & <b>Jerry</b>", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Ben & <b>Jerry</b>", Wedding);
 
         Assert.Contains("Ben &amp; &lt;b&gt;Jerry&lt;/b&gt;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<b>Jerry</b>", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Render_EscapesAScriptTagInAMergeValue()
+    public async Task Render_EscapesAScriptTagInAMergeValue()
     {
-        var html = Renderer.Render(Values(), "<script>alert(1)</script>", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "<script>alert(1)</script>", Wedding);
 
         Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
         Assert.Contains("&lt;script&gt;", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Render_LeavesNoUnresolvedPlaceholdersVisibleToAGuest()
+    public async Task Render_LeavesNoUnresolvedPlaceholdersVisibleToAGuest()
     {
-        var html = Renderer.Render(Values(), "Ada", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Ada", Wedding);
 
         Assert.DoesNotContain("{{", html, StringComparison.Ordinal);
         Assert.DoesNotContain("}}", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Render_KeepsTheTemplatesOwnDocumentAndStyling()
+    public async Task Render_KeepsTheTemplatesOwnDocumentAndStyling()
     {
         // Marigold ships its own doctype, head and CSS — the design is the document. The renderer
         // must inject into it, never wrap it in a second skeleton.
-        var html = Renderer.Render(Values(), "Ada", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Ada", Wedding);
 
         Assert.StartsWith("<!DOCTYPE html>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(1, CountOccurrences(html, "<!DOCTYPE"));
@@ -88,9 +88,9 @@ public sealed class ScribanInvitationRendererTests
     }
 
     [Fact]
-    public void Render_InjectsTheBridgeBeforeTheClosingBodyTag()
+    public async Task Render_InjectsTheBridgeBeforeTheClosingBodyTag()
     {
-        var html = Renderer.Render(Values(), "Ada", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Ada", Wedding);
 
         Assert.Contains("sy:rsvp", html, StringComparison.Ordinal);
         Assert.True(
@@ -99,10 +99,10 @@ public sealed class ScribanInvitationRendererTests
     }
 
     [Fact]
-    public void Render_PinsThePostMessageTargetToTheConfiguredOrigin()
+    public async Task Render_PinsThePostMessageTargetToTheConfiguredOrigin()
     {
         // The frame must not be able to post to an arbitrary origin.
-        var html = Renderer.Render(Values(), "Ada", Wedding);
+        var html = await Renderer.RenderAsync(Values(), "Ada", Wedding);
 
         Assert.Contains("data-parent-origin=\"https://app.example.test\"", html, StringComparison.Ordinal);
     }

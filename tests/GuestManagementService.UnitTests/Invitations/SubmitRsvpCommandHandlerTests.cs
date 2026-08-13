@@ -2,10 +2,12 @@ using FluentValidation;
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
+using GuestManagementService.Domain.Invitations;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -196,9 +198,51 @@ public sealed class SubmitRsvpCommandHandlerTests
         return new SubmitRsvpCommandHandler(
             guests,
             events.Object,
+            SettingsRepository().Object,
             unitOfWork,
             timeProvider.Object,
             NullLogger<SubmitRsvpCommandHandler>.Instance);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_WhenTokenIsBlank_ReturnsNotFoundWithoutQuerying(string token)
+    {
+        // The read path already guards this. Without the same guard here, a blank token would reach
+        // the repository on the one write anybody can reach without authenticating.
+        var guests = new Mock<IGuestRepository>();
+
+        var handler = CreateHandler(
+            guests.Object,
+            NewEvent(),
+            BeforeDeadline,
+            Mock.Of<IUnitOfWork>());
+
+        var result = await handler.Handle(
+            new SubmitRsvpCommand(token, "Accepted", 0, null),
+            CancellationToken.None);
+
+        Assert.Equal(SubmitRsvpStatus.NotFound, result.Status);
+        guests.Verify(
+            r => r.GetByInvitationTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    /// <summary>The saved invitation, echoed back in the confirmation the guest sees.</summary>
+    private static Mock<IEventInvitationSettingsRepository> SettingsRepository()
+    {
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EventInvitationSettings.Create(
+                EventId,
+                Guid.NewGuid(),
+                "marigold",
+                """{"eventName":"Ada's party"}""",
+                BeforeDeadline));
+
+        return settings;
     }
 
     private static Guest NewGuest(string? metadata)

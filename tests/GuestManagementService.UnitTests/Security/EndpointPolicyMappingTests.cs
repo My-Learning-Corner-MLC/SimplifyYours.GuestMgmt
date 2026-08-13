@@ -1,5 +1,6 @@
 using GuestManagementService.Api.Endpoints;
 using GuestManagementService.Api.Security;
+using GuestManagementService.Application.Abstractions.Invitations;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -153,6 +154,43 @@ public class EndpointPolicyMappingTests
 
         var app = builder.Build();
         app.MapInvitationSettingsEndpoints();
+
+        return ((IEndpointRouteBuilder)app).DataSources
+            .SelectMany(source => source.Endpoints)
+            .ToList();
+    }
+
+    [Fact]
+    public void Invitation_endpoints_are_all_anonymous()
+    {
+        // The mirror image of the settings test. These three carry a guest's name and an event's
+        // address, and the invitation token is their only credential — but "anonymous" here has to
+        // be deliberate, not accidental. A future RequireAuthorization() added to "harden" one of
+        // them would lock every guest out of their own invitation, and nothing else would catch it.
+        var endpoints = MapInvitationEndpointsForTest();
+
+        Assert.Equal(3, endpoints.Count);
+
+        foreach (var endpoint in endpoints)
+        {
+            Assert.Empty(endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>());
+            Assert.NotNull(endpoint.Metadata.GetMetadata<IAllowAnonymous>());
+        }
+    }
+
+    private static IReadOnlyList<Endpoint> MapInvitationEndpointsForTest()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddRouting();
+        builder.Services.AddPermissionPolicies();
+        builder.Services.AddSingleton(Mock.Of<ISender>());
+
+        // Registered so the renderer resolves from services; minimal APIs otherwise infer an
+        // unregistered interface as a request body, which a GET cannot have.
+        builder.Services.AddSingleton(Mock.Of<IInvitationRenderer>());
+
+        var app = builder.Build();
+        app.MapInvitationEndpoints();
 
         return ((IEndpointRouteBuilder)app).DataSources
             .SelectMany(source => source.Endpoints)

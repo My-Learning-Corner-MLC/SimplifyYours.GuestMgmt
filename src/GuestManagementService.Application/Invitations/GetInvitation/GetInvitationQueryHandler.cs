@@ -1,5 +1,6 @@
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Invitations;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +17,7 @@ namespace GuestManagementService.Application.Invitations.GetInvitation;
 public sealed class GetInvitationQueryHandler(
     IGuestRepository guestRepository,
     IEventReferenceRepository eventReferenceRepository,
+    IEventInvitationSettingsRepository settingsRepository,
     TimeProvider timeProvider,
     ILogger<GetInvitationQueryHandler> logger)
     : IRequestHandler<GetInvitationQuery, GetInvitationResult>
@@ -51,12 +53,30 @@ public sealed class GetInvitationQueryHandler(
             return GetInvitationResult.NotFound();
         }
 
+        var settings = await settingsRepository.GetByEventIdAsync(eventReference.EventId, cancellationToken);
+
+        if (settings is null)
+        {
+            // An invitation whose template was never chosen does not exist yet. Same NotFound as an
+            // unknown token, so this cannot be used to tell a real event from a fictional one.
+            logger.LogInformation(
+                "Invitation resolved but no invitation settings are saved. EventId: {EventId}.",
+                guest.EventId);
+
+            return GetInvitationResult.NotFound();
+        }
+
         var deadline = RsvpDeadline.Compute(eventReference.EventDate, eventReference.TimeZoneId);
         var isOpen = RsvpDeadline.IsOpen(
             eventReference.EventDate,
             eventReference.TimeZoneId,
             timeProvider.GetUtcNow());
 
-        return GetInvitationResult.Found(guest, eventReference, deadline, isOpen);
+        return GetInvitationResult.Found(
+            guest,
+            eventReference,
+            deadline,
+            isOpen,
+            InvitationFieldValues.Parse(settings.FieldValues));
     }
 }

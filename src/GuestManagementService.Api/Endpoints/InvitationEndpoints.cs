@@ -53,24 +53,15 @@ public static class InvitationEndpoints
         string token,
         HttpContext httpContext,
         ISender sender,
-        IEventInvitationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetInvitationQuery(token), cancellationToken);
 
         if (result.Status != GetInvitationStatus.Found)
         {
-            // One message for every failure — unknown token, malformed token, deleted event.
-            // Distinguishing them would let someone probe which tokens are real.
-            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
-        }
-
-        var settings = await settingsRepository.GetByEventIdAsync(result.Event!.EventId, cancellationToken);
-
-        if (settings is null)
-        {
-            // Same response as an unknown token: an invitation whose template was never chosen does
-            // not exist yet, and saying so would distinguish a real event from a fictional one.
+            // One message for every failure — unknown token, malformed token, deleted event, and an
+            // event whose template was never chosen. Distinguishing them would let someone probe
+            // which tokens are real.
             return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
@@ -78,7 +69,7 @@ public static class InvitationEndpoints
 
         return Results.Ok(ToResponse(
             result.Guest!,
-            InvitationFieldValues.Parse(settings.FieldValues),
+            result.Content!,
             result.Deadline,
             result.IsOpen));
     }
@@ -88,7 +79,6 @@ public static class InvitationEndpoints
         HttpContext httpContext,
         ISender sender,
         IInvitationRenderer renderer,
-        IEventInvitationSettingsRepository settingsRepository,
         IConfiguration configuration,
         CancellationToken cancellationToken)
     {
@@ -96,17 +86,8 @@ public static class InvitationEndpoints
 
         if (result.Status != GetInvitationStatus.Found)
         {
-            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
-        }
-
-        var settings = await settingsRepository.GetByEventIdAsync(
-            result.Event!.EventId,
-            cancellationToken);
-
-        if (settings is null)
-        {
-            // An invitation whose template was never chosen is not a half-rendered page — it does
-            // not exist yet. Same response as an unknown token, so nothing is leaked either way.
+            // Includes the case where no template has been chosen: an invitation nobody has composed
+            // is not a half-rendered page, it does not exist yet.
             return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
@@ -114,11 +95,14 @@ public static class InvitationEndpoints
 
         // The app must be able to frame this, so frame-ancestors names the SPA origin rather than
         // denying framing outright.
-        var spaOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "'self'";
+        var configuredOrigin = configuration["Invitations:PublicBaseUrl"];
+        var spaOrigin = string.IsNullOrWhiteSpace(configuredOrigin)
+            ? "'self'"
+            : configuredOrigin.TrimEnd('/');
         httpContext.Response.Headers.ContentSecurityPolicy = $"frame-ancestors {spaOrigin}";
 
-        var html = renderer.Render(
-            InvitationFieldValues.Parse(settings.FieldValues),
+        var html = await renderer.RenderAsync(
+            result.Content!,
             result.Guest!.FirstName,
             result.Event!.EventType);
 
@@ -130,7 +114,6 @@ public static class InvitationEndpoints
         SubmitRsvpRequest request,
         HttpContext httpContext,
         ISender sender,
-        IEventInvitationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         try
@@ -150,7 +133,7 @@ public static class InvitationEndpoints
                 SubmitRsvpStatus.Accepted => Results.Ok(
                     ToResponse(
                         result.Guest!,
-                        await ReadContentAsync(settingsRepository, result.Event!.EventId, cancellationToken),
+                        result.Content!,
                         result.Deadline,
                         isOpen: true)),
                 SubmitRsvpStatus.Closed => ApiErrorResults.Conflict(
@@ -163,18 +146,6 @@ public static class InvitationEndpoints
         {
             return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
         }
-    }
-
-    private static async Task<IReadOnlyDictionary<string, string?>> ReadContentAsync(
-        IEventInvitationSettingsRepository settingsRepository,
-        Guid eventId,
-        CancellationToken cancellationToken)
-    {
-        var settings = await settingsRepository.GetByEventIdAsync(eventId, cancellationToken);
-
-        return settings is null
-            ? new Dictionary<string, string?>()
-            : InvitationFieldValues.Parse(settings.FieldValues);
     }
 
     private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
@@ -213,6 +184,7 @@ public static class InvitationEndpoints
                 InvitationMetadata.ReadPlusOnesConfirmed(guest.Metadata),
                 InvitationMetadata.ReadDietaryNotes(guest.Metadata),
                 deadline,
-                isOpen));
+                isOpen,
+                guest.RespondedAt));
     }
 }

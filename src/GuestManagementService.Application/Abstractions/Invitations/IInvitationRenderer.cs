@@ -14,7 +14,12 @@ public interface IInvitationRenderer
     /// The one value that is never typed: it belongs to whichever guest's link is being opened.
     /// </param>
     /// <param name="eventType">Selects which merge tokens the template may resolve.</param>
-    string Render(
+    /// <remarks>
+    /// Asynchronous purely so a render can be abandoned. Scriban honours a cancellation token
+    /// during async evaluation only, so a synchronous signature would leave the wall-clock bound on
+    /// this public, unauthenticated endpoint unenforceable.
+    /// </remarks>
+    Task<string> RenderAsync(
         IReadOnlyDictionary<string, string?> fieldValues,
         string guestName,
         string eventType);

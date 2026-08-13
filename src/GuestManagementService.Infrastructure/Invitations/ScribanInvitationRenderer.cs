@@ -42,16 +42,39 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
 
     private static readonly ConcurrentDictionary<string, Template> ParsedTemplates = new();
 
+    /// <summary>
+    /// The bridge never varies, so it is read from the assembly manifest once. The parsed template
+    /// beside it was already cached; this was being re-read on every single render.
+    /// </summary>
+    private static readonly string BridgeScript = ReadResource("bridge.js");
+
     private readonly string _parentOrigin;
 
     public ScribanInvitationRenderer(IConfiguration configuration)
     {
         // The frame's postMessage target. Configured, never taken from the request, so the document
         // cannot be tricked into posting somewhere else.
-        _parentOrigin = configuration["Invitations:PublicBaseUrl"]?.TrimEnd('/') ?? "*";
+        //
+        // No fallback. A missing key used to degrade to "*", which posts to any origin and hides the
+        // misconfiguration behind a page that still looks healthy. InvitationLinkBuilder already
+        // throws on this same key, so failing at startup is both safer and consistent.
+        var configured = configuration["Invitations:PublicBaseUrl"];
+
+        // Blank counts as missing: appsettings.json ships the key empty precisely so a deployment
+        // that forgets to override it fails here instead of serving invitations that look fine and
+        // do nothing.
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            throw new InvalidOperationException(
+                "Invitations:PublicBaseUrl is not configured. It is the origin the invitation frame "
+                + "posts its RSVP message to, and the origin named in the frame-ancestors CSP; "
+                + "without it every invitation renders unusable.");
+        }
+
+        _parentOrigin = configured.TrimEnd('/');
     }
 
-    public string Render(
+    public async Task<string> RenderAsync(
         IReadOnlyDictionary<string, string?> fieldValues,
         string guestName,
         string eventType)
@@ -77,7 +100,12 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
 
         using var cancellation = new CancellationTokenSource(RenderTimeout);
 
-        return InjectRuntime(template.Render(context));
+        // Scriban reads this during async evaluation only. Assigning it and then calling the
+        // synchronous Render() — as this did — allocates a timer that nothing ever observes, so the
+        // documented wall-clock bound silently did not exist.
+        context.CancellationToken = cancellation.Token;
+
+        return InjectRuntime(await template.RenderAsync(context));
     }
 
     /// <summary>
@@ -85,14 +113,9 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     /// type's list resolves to empty rather than rendering literal <c>{{...}}</c> at a guest.
     /// </summary>
     /// <remarks>
-    /// Wedding keeps <c>eventName</c> and <c>eventDate</c> even though the approved list omits
-    /// them: the shipped Marigold template is a wedding template and references both, so dropping
-    /// them would render every wedding invitation with a blank headline and no date. See AC 12.
-    /// <para>
-    /// <c>brideName</c> and <c>groomName</c> are allowlisted but have no source yet, so they
-    /// currently resolve to empty — allowlisting them now means a wedding template can be authored
-    /// against them the moment the data exists.
-    /// </para>
+    /// The per-type field sets live in <see cref="InvitationFieldSchema"/> and are the single
+    /// source of truth for AC 12. <c>guestName</c> is added here because it is the one value an
+    /// organiser never types — it belongs to whichever guest opened the link.
     /// </remarks>
     public static IReadOnlyDictionary<string, string?> BuildValues(
         IReadOnlyDictionary<string, string?> fieldValues,
@@ -125,7 +148,7 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
             $"<html data-parent-origin=\"{WebUtility.HtmlEncode(_parentOrigin)}\">",
             StringComparison.OrdinalIgnoreCase);
 
-        var bridge = $"<script>{ReadResource("bridge.js")}</script>";
+        var bridge = $"<script>{BridgeScript}</script>";
 
         var closingBody = withOrigin.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
 
