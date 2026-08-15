@@ -38,7 +38,7 @@ public sealed class GuestListStatusFieldsTests
     public void Serialized_NeverCarriesTheInvitationToken()
     {
         // The token is credential-like: whoever holds it can read a guest's personal data without
-        // authenticating. It is served only by GET /guests/{id}/invitation-link, one guest at a
+        // authenticating. It is served only by GET /invitations/guests/{id}/link, one guest at a
         // time — never in a paginated list that gets cached and logged.
         var details = GuestDetails.From(NewGuest(null), Mapper());
 

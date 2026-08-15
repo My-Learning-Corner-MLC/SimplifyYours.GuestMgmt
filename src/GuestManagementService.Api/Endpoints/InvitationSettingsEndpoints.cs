@@ -16,11 +16,17 @@ namespace GuestManagementService.Api.Endpoints;
 /// The organiser's view of the invitation they are composing. Authenticated throughout — the guest
 /// -facing surface is <see cref="InvitationEndpoints"/>.
 /// </summary>
+/// <remarks>
+/// Nested under <c>/invitations/events/{eventId}</c> rather than <c>/events/{eventId}/invitation-
+/// settings</c> — "events" is one of two reserved first-segment literals under the shared
+/// <c>/invitations</c> prefix (see <see cref="InvitationEndpoints"/>'s remarks), so this never
+/// collides with an anonymous invitation token.
+/// </remarks>
 public static class InvitationSettingsEndpoints
 {
     public static IEndpointRouteBuilder MapInvitationSettingsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/events/{eventId:guid}/invitation-settings")
+        var group = endpoints.MapGroup("/invitations/events/{eventId:guid}")
             .WithTags("InvitationSettings");
 
         group

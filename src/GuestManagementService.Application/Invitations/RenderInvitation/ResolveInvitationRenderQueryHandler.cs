@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace GuestManagementService.Application.Invitations.RenderInvitation;
 
 /// <summary>
-/// <c>GET /guests/invitations/{token}/render[?mode=preview&amp;type=public|private]</c> resolves
+/// <c>GET /invitations/{token}/render[?mode=preview&amp;type=public|private]</c> resolves
 /// one of three token types, each with its own rules. See the class remarks on the handler for the
 /// full matrix — this record is the query, not the policy.
 /// </summary>

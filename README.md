@@ -194,7 +194,9 @@ Response body:
 
 ### Invitation endpoints
 
-Three of these are **anonymous**: the per-guest invitation token in the URL is the only credential.
+Every invitation-related route — anonymous or authenticated — lives under the shared `/invitations`
+prefix, so the gateway exposes one dedicated `/api/v1/invitations/{**remainder}` route for all of
+them. Three are **anonymous**: the per-guest invitation token in the URL is the only credential.
 They are the service's only unauthenticated surface, and they serve guest data, so they are rate
 limited (30/min per token and 300/min per IP on the reads; 10/min and 60/min on the write) and
 return `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
@@ -203,7 +205,12 @@ Every failure returns the same `404` — unknown token, malformed token, deleted
 whose invitation was never composed are indistinguishable, so the endpoints cannot be used to probe
 which tokens are real.
 
-#### `GET /guests/{guestId}/invitation-link`
+Two literal first-path-segments are **reserved** under `/invitations` and can never collide with a
+real (128-bit opaque) token: `events` (organiser settings, below) and `guests` (the link-lookup
+endpoint, below). `InvitationRateLimits` explicitly excludes both when deciding whether a request
+is the anonymous, token-rate-limited kind.
+
+#### `GET /invitations/guests/{guestId}/link`
 
 Authenticated, requires `guests.view`. Returns `{ guestId, invitationToken, invitationUrl }`.
 
@@ -211,13 +218,13 @@ Fetched one guest at a time on purpose. The token is credential-like, so it neve
 `POST /guests/query`: one captured list response would otherwise expose every live invitation for
 the event at once.
 
-#### `GET /guests/invitations/{token}` — anonymous
+#### `GET /invitations/{token}` — anonymous
 
 Returns the guest's first name, the organiser's saved merge values, and the RSVP state
 (`status`, `plusOnesAllowed`, `plusOnesConfirmed`, `dietaryNotes`, `deadline`, `isOpen`,
 `respondedAt`). Deliberately narrow — no email, phone, guest id, tenant id, or any other guest.
 
-#### `GET /guests/invitations/{token}/render` — anonymous
+#### `GET /invitations/{token}/render` — anonymous
 
 Returns a complete HTML document, not JSON: the invitation as the guest sees it, rendered from the
 organiser's saved content. Served into a sandboxed iframe, so the response carries
@@ -226,7 +233,7 @@ organiser's saved content. Served into a sandboxed iframe, so the response carri
 All merge values are HTML-encoded as the model is built, since Scriban does not escape output. A
 template cannot opt out of it.
 
-#### `POST /guests/invitations/{token}/rsvp` — anonymous
+#### `POST /invitations/{token}/rsvp` — anonymous
 
 Records the guest's own answer: `{ rsvpStatus, plusOnesConfirmed, dietaryNotes }`.
 
@@ -241,7 +248,7 @@ would manufacture phantom RSVPs from bots.
   event's own timezone). Afterwards both first submissions and edits return `409`.
 - `respondedAt` records the first response and is not moved by later edits.
 
-#### `GET` / `PUT /events/{eventId}/invitation-settings`
+#### `GET` / `PUT /invitations/events/{eventId}`
 
 Authenticated. Reading requires `guests.view`; writing requires `events.update` — composing an
 invitation is editing the event's presentation, so it reuses that permission rather than adding one.
