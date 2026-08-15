@@ -15,3 +15,10 @@ public sealed record InvitationSettingsResponse(
 public sealed record SaveInvitationSettingsRequest(
     string? TemplateId,
     IReadOnlyDictionary<string, string?>? FieldValues);
+
+public sealed record SetPublicLinkRequest(bool Enabled);
+
+/// <summary>Token is the raw value the frontend needs to build the shareable URL.</summary>
+public sealed record PublicLinkResponse(bool Enabled, string? PublicEventToken);
+
+public sealed record PreviewTokenResponse(string Token, DateTimeOffset ExpiresAt);
