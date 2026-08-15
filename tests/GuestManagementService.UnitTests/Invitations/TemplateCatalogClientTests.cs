@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
+using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Infrastructure.Invitations;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,14 +16,10 @@ namespace GuestManagementService.UnitTests.Invitations;
 /// here by reflection rather than by inspection: none of the anonymous-path handlers may declare a
 /// dependency on it at all, so a future change cannot silently wire it in.
 /// </summary>
-/// <remarks>
-/// The render-path resolver (<c>ResolveInvitationRenderQueryHandler</c>) lands in the B3-B6 PR and
-/// is covered by the same assertion there — this PR only has the two anonymous handlers that
-/// already exist on <c>feature-invitation-page-rsvp</c>.
-/// </remarks>
 public sealed class TemplateCatalogClientIsolationTests
 {
     [Theory]
+    [InlineData(typeof(ResolveInvitationRenderQueryHandler))]
     [InlineData(typeof(GetInvitationQueryHandler))]
     [InlineData(typeof(SubmitRsvpCommandHandler))]
     public void AnonymousPathHandler_NeverDependsOnTheTemplateCatalogClient(Type handlerType)

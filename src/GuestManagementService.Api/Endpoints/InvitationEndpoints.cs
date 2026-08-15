@@ -3,6 +3,7 @@ using GuestManagementService.Api.Responses;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
+using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Contracts.Invitations;
 using GuestManagementService.Domain.EventReferences;
@@ -74,37 +75,59 @@ public static class InvitationEndpoints
             result.IsOpen));
     }
 
+    /// <summary>
+    /// Resolves ONE of three token types — a guest's invitation token, the event's public link
+    /// token, or an organiser's preview token — and renders accordingly. See
+    /// <see cref="ResolveInvitationRenderQueryHandler"/> for the full matrix; this method only maps
+    /// its result onto HTTP.
+    /// </summary>
     internal static async Task<IResult> RenderInvitationAsync(
         string token,
+        string? mode,
+        string? type,
         HttpContext httpContext,
         ISender sender,
         IInvitationRenderer renderer,
         IConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetInvitationQuery(token), cancellationToken);
-
-        if (result.Status != GetInvitationStatus.Found)
-        {
-            // Includes the case where no template has been chosen: an invitation nobody has composed
-            // is not a half-rendered page, it does not exist yet.
-            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
-        }
+        var result = await sender.Send(new ResolveInvitationRenderQuery(token, mode, type), cancellationToken);
 
         ApplyPublicHeaders(httpContext);
 
+        switch (result.Status)
+        {
+            case ResolveInvitationRenderStatus.NotFound:
+                // Uniform for every failure — unknown token, wrong-type token, expired preview,
+                // revoked public link. Nothing here may reveal which table nearly matched.
+                return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
+
+            case ResolveInvitationRenderStatus.BadRequest:
+                return ApiErrorResults.ValidationProblem(
+                    new Dictionary<string, string[]>
+                    {
+                        [result.BadRequestField!] = [result.BadRequestMessage!],
+                    },
+                    httpContext);
+        }
+
         // The app must be able to frame this, so frame-ancestors names the SPA origin rather than
-        // denying framing outright.
+        // denying framing outright. script-src bounds what template JS (and the bridge) may load:
+        // both are delivered inline in the served document (no external <script src>), so
+        // 'unsafe-inline' is required and sufficient — no nonce infrastructure exists yet. object-src
+        // and base-uri are locked down as cheap, load-bearing defence in depth.
         var configuredOrigin = configuration["Invitations:PublicBaseUrl"];
         var spaOrigin = string.IsNullOrWhiteSpace(configuredOrigin)
             ? "'self'"
             : configuredOrigin.TrimEnd('/');
-        httpContext.Response.Headers.ContentSecurityPolicy = $"frame-ancestors {spaOrigin}";
+        httpContext.Response.Headers.ContentSecurityPolicy =
+            $"frame-ancestors {spaOrigin}; script-src 'unsafe-inline'; object-src 'none'; base-uri 'none'";
 
         var html = await renderer.RenderAsync(
-            result.Content!,
-            result.Guest!.FirstName,
-            result.Event!.EventType);
+            result.Snapshot!,
+            result.FieldValues!,
+            result.GuestName,
+            result.EventType);
 
         return Results.Content(html, "text/html; charset=utf-8");
     }

@@ -13,26 +13,23 @@ namespace GuestManagementService.Infrastructure.Invitations;
 /// Renders an invitation template into the complete HTML document served to the sandboxed iframe.
 /// </summary>
 /// <remarks>
-/// <para><b>Templates are whole documents.</b> Each gallery template ships its own doctype, head and
-/// CSS — the design is the document, not a fragment dropped into a shared skeleton. The renderer
-/// therefore injects rather than wraps: the parent origin onto <c>&lt;html&gt;</c> and the bridge
-/// script before <c>&lt;/body&gt;</c>.</para>
+/// <para><b>Templates are whole documents, assembled from a snapshot.</b> <c>HtmlContent</c> ships
+/// its own doctype, head and body. The renderer injects rather than wraps: <c>CssContent</c> into
+/// <c>&lt;head&gt;</c>, <c>JsContent</c> before <c>&lt;/body&gt;</c>, then the parent origin onto
+/// <c>&lt;html&gt;</c> and the bridge script — in that order, bridge last, so template script can
+/// never load after the bridge and shadow its event listener.</para>
 /// <para><b>Escaping.</b> Scriban does not escape output. Rather than relying on every template
 /// author to remember <c>| html.escape</c>, every merge value is HTML-encoded here as the model is
 /// built — a template cannot opt out of it, and an author cannot forget.</para>
 /// <para><b>Limits.</b> This runs on a public, unauthenticated endpoint, so loop and recursion
 /// limits and a wall-clock timeout are set: a template bug must not be able to pin a CPU.</para>
-/// <para><b>Caching.</b> Parsing is the expensive part, so parsed templates are cached by identity
-/// and never re-parsed per request.</para>
+/// <para><b>Caching.</b> Parsing is the expensive part, so parsed templates are cached by the pair
+/// <c>(templateId, templateVersion)</c> — never by id alone. Content now arrives per snapshot, so
+/// two events can reference the same template id while holding different versions' content; a
+/// cache keyed on id alone would serve one event's snapshot to the other.</para>
 /// </remarks>
 public sealed class ScribanInvitationRenderer : IInvitationRenderer
 {
-    /// <summary>The only template in slice 1; the gallery arrives in slice 2.</summary>
-    public const string DefaultTemplateId = "marigold";
-
-    /// <summary>Wraps guest-specific markup, stripped for the public event link in slice 2.</summary>
-    public const string GuestOnlyClass = "sy-guest-only";
-
     /// <summary>The element the bridge listens for. Every template must carry exactly one.</summary>
     public const string RsvpTriggerClass = "sy-rsvp-trigger";
 
@@ -40,7 +37,7 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     private const int RecursiveLimit = 10;
     private static readonly TimeSpan RenderTimeout = TimeSpan.FromSeconds(2);
 
-    private static readonly ConcurrentDictionary<string, Template> ParsedTemplates = new();
+    private static readonly ConcurrentDictionary<(Guid TemplateId, int TemplateVersion), Template> ParsedTemplates = new();
 
     /// <summary>
     /// The bridge never varies, so it is read from the assembly manifest once. The parsed template
@@ -75,18 +72,30 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     }
 
     public async Task<string> RenderAsync(
+        InvitationTemplateSnapshot snapshot,
         IReadOnlyDictionary<string, string?> fieldValues,
-        string guestName,
+        string? guestName,
         string eventType)
     {
-        var template = GetParsedTemplate(DefaultTemplateId);
+        var template = GetParsedTemplate(snapshot);
         var values = new ScriptObject();
+
+        // Defence in depth: an empty string is truthy to Scriban, so if some caller ever passes ""
+        // instead of omitting guestName, this still collapses it to null before it reaches the
+        // model. The resolver (ResolveInvitationRenderQueryHandler) is the primary guard — this is
+        // the backstop the trap test in ScribanInvitationRendererTests pins.
+        var normalizedGuestName = string.IsNullOrEmpty(guestName) ? null : guestName;
 
         // The organiser is now an input source for a public page, so their text is escaped exactly
         // as a guest's name always has been. Neither is trusted over the other.
-        foreach (var (key, value) in BuildValues(fieldValues, guestName, eventType))
+        //
+        // A null value is bound as Scriban null, never as an encoded empty string — Scriban's
+        // `{{ if guestName }}` treats only null/false as falsy, and an empty string is truthy. For
+        // guestName specifically this is what keeps the public event link and public preview mode
+        // from leaking an empty guest box and a live-looking RSVP trigger. See BuildValues.
+        foreach (var (key, value) in BuildValues(fieldValues, normalizedGuestName, eventType))
         {
-            values[key] = WebUtility.HtmlEncode(value ?? string.Empty);
+            values[key] = value is null ? null : WebUtility.HtmlEncode(value);
         }
 
         var context = new TemplateContext
@@ -105,8 +114,13 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
         // documented wall-clock bound silently did not exist.
         context.CancellationToken = cancellation.Token;
 
-        return InjectRuntime(await template.RenderAsync(context));
+        var rendered = await template.RenderAsync(context);
+        var assembled = AssembleDocument(rendered, snapshot.CssContent, snapshot.JsContent);
+
+        return InjectRuntime(assembled);
     }
+
+    private const string InvitationFieldSchema_GuestNameKey = "guestName";
 
     /// <summary>
     /// The merge-token allowlist for an event type. Anything a template references outside its own
@@ -114,18 +128,21 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     /// </summary>
     /// <remarks>
     /// The per-type field sets live in <see cref="InvitationFieldSchema"/> and are the single
-    /// source of truth for AC 12. <c>guestName</c> is added here because it is the one value an
-    /// organiser never types — it belongs to whichever guest opened the link.
+    /// source of truth. <c>guestName</c> is added here because it is the one value an organiser
+    /// never types — it belongs to whichever guest opened the link, and is <see langword="null"/>
+    /// (key present, value null) when no guest is bound, so the caller can distinguish "omit the
+    /// key" from "field not collected for this event type".
     /// </remarks>
     public static IReadOnlyDictionary<string, string?> BuildValues(
         IReadOnlyDictionary<string, string?> fieldValues,
-        string guestName,
+        string? guestName,
         string eventType)
     {
         var values = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            // Never typed by the organiser — it is whichever guest opened the link.
-            ["guestName"] = guestName,
+            // Never typed by the organiser — it is whichever guest opened the link, or null when no
+            // guest is bound (public event link, public preview).
+            [InvitationFieldSchema_GuestNameKey] = guestName,
         };
 
         // Only fields the event type declares. A value saved under a key this type does not use
@@ -139,7 +156,44 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
     }
 
     /// <summary>
-    /// Adds the parent origin and the bridge script to a template's own document.
+    /// Composes the served document from the snapshot's three parts. <paramref name="html"/> already
+    /// carries its own doctype and <c>&lt;head&gt;</c>; css goes into a <c>&lt;style&gt;</c> block
+    /// inside it, js goes into a <c>&lt;script&gt;</c> immediately before <c>&lt;/body&gt;</c>.
+    /// </summary>
+    public static string AssembleDocument(string html, string? css, string? js)
+    {
+        var document = html;
+
+        if (!string.IsNullOrWhiteSpace(css))
+        {
+            var headClose = document.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+
+            if (headClose >= 0)
+            {
+                document = document.Insert(headClose, $"<style>{css}</style>");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(js))
+        {
+            var bodyClose = document.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+
+            if (bodyClose < 0)
+            {
+                throw new InvalidOperationException(
+                    "Invitation template has no closing </body> tag, so template script cannot be injected.");
+            }
+
+            document = document.Insert(bodyClose, $"<script>{js}</script>");
+        }
+
+        return document;
+    }
+
+    /// <summary>
+    /// Adds the parent origin and the bridge script to the assembled document. The bridge is
+    /// injected LAST — after any template <c>js_content</c> — so template script can never load
+    /// after it and shadow its <c>click</c> listener.
     /// </summary>
     public string InjectRuntime(string document)
     {
@@ -163,16 +217,19 @@ public sealed class ScribanInvitationRenderer : IInvitationRenderer
         return withOrigin.Insert(closingBody, bridge);
     }
 
-    public static Template GetParsedTemplate(string templateId)
+    public static Template GetParsedTemplate(InvitationTemplateSnapshot snapshot)
     {
-        return ParsedTemplates.GetOrAdd(templateId, id =>
+        var key = (snapshot.TemplateId, snapshot.TemplateVersion);
+
+        return ParsedTemplates.GetOrAdd(key, _ =>
         {
-            var parsed = Template.Parse(ReadResource($"{id}.html"));
+            var parsed = Template.Parse(snapshot.HtmlContent);
 
             if (parsed.HasErrors)
             {
                 throw new InvalidOperationException(
-                    $"Invitation template '{id}' failed to parse: {string.Join("; ", parsed.Messages)}");
+                    $"Invitation template '{snapshot.TemplateId}' v{snapshot.TemplateVersion} failed "
+                    + $"to parse: {string.Join("; ", parsed.Messages)}");
             }
 
             return parsed;
