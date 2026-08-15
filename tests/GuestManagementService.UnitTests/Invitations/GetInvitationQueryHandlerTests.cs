@@ -182,6 +182,45 @@ public sealed class GetInvitationQueryHandlerTests
         Assert.Equal("Ada's party", result.Content!["eventName"]);
     }
 
+    [Fact]
+    public async Task Handle_WhenSettingsExistButCarryNoSnapshot_ReturnsTheSameNotFound()
+    {
+        // B3: a legacy row whose slice-1 test template id did not survive the B1 migration has
+        // saved field values but html_content is null. Must render the same handled NotFound as
+        // "never configured" — never a broken document, never a 500.
+        var guests = new Mock<IGuestRepository>();
+        guests
+            .Setup(r => r.GetByInvitationTokenAsync(Token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(NewGuest());
+
+        var events = new Mock<IEventReferenceRepository>();
+        events
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(NewEvent());
+
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventInvitationSettings?)null); // repository would return a row with a
+                                                              // null TemplateId/HtmlContent in real
+                                                              // storage; the handler treats that the
+                                                              // same as no row at all (settings.HtmlContent is null).
+
+        var timeProvider = new Mock<TimeProvider>();
+        timeProvider.Setup(provider => provider.GetUtcNow()).Returns(Now);
+
+        var handler = new GetInvitationQueryHandler(
+            guests.Object,
+            events.Object,
+            settings.Object,
+            timeProvider.Object,
+            NullLogger<GetInvitationQueryHandler>.Instance);
+
+        var result = await handler.Handle(new GetInvitationQuery(Token), CancellationToken.None);
+
+        Assert.Equal(GetInvitationStatus.NotFound, result.Status);
+    }
+
     private static GetInvitationQueryHandler CreateHandler(
         IGuestRepository guests,
         EventReference? eventReference,
@@ -215,7 +254,16 @@ public sealed class GetInvitationQueryHandlerTests
         settings
             .Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(hasSettings
-                ? EventInvitationSettings.Create(EventId, Guid.NewGuid(), "marigold", FieldValuesJson, Now)
+                ? EventInvitationSettings.Create(
+                    EventId,
+                    Guid.NewGuid(),
+                    FieldValuesJson,
+                    Guid.Parse("aaaaaaaa-1111-2222-3333-444444444444"),
+                    1,
+                    "<html><body></body></html>",
+                    null,
+                    null,
+                    Now)
                 : null);
 
         return settings;

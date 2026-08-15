@@ -62,12 +62,17 @@ public sealed class GetInvitationSettingsQueryHandler(
         {
             // Saved values win outright. Re-opening the form must show what was saved, not a fresh
             // pre-fill that would quietly discard the organiser's edits.
+            //
+            // IsConfigured tracks whether a real snapshot exists, not merely whether a row exists —
+            // a legacy slice-1 row whose test template id did not survive the B1 migration has
+            // saved field values but no snapshot, and must be treated as "not configured" so the UI
+            // prompts the organiser to choose a real template.
             return new GetInvitationSettingsResult(
                 GetInvitationSettingsStatus.Found,
                 eventReference.EventType,
-                saved.TemplateId,
+                saved.TemplateId?.ToString(),
                 InvitationFieldValues.Parse(saved.FieldValues),
-                IsConfigured: true);
+                IsConfigured: saved.HtmlContent is not null);
         }
 
         return new GetInvitationSettingsResult(

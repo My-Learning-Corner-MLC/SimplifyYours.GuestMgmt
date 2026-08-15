@@ -35,6 +35,24 @@ public static class DependencyInjection
         services.AddSingleton<IInvitationTokenGenerator, Guests.InvitationTokenGenerator>();
         services.AddSingleton<IInvitationRenderer>(_ => new Invitations.ScribanInvitationRenderer(configuration));
         services.AddSingleton<IInvitationLinkBuilder>(_ => new Guests.InvitationLinkBuilder(configuration));
+
+        // Typed client for template-management-service's catalog. Called from exactly one place —
+        // the authenticated save path — never from the anonymous render path. See
+        // ITemplateCatalogClient's remarks for why that boundary matters.
+        services.AddHttpClient<ITemplateCatalogClient, Invitations.TemplateCatalogClient>((sp, client) =>
+        {
+            var baseUrl = configuration["TemplateManagement:BaseUrl"];
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                throw new InvalidOperationException(
+                    "Configuration value 'TemplateManagement:BaseUrl' is required to reach the "
+                    + "template catalog.");
+            }
+
+            client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();
         services.AddScoped<IEventInvitationSettingsRepository, EfCoreEventInvitationSettingsRepository>();

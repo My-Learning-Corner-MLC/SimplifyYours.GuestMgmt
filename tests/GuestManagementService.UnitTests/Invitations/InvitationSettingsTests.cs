@@ -17,6 +17,7 @@ public sealed class InvitationSettingsTests
     private static readonly Guid EventId = Guid.Parse("6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55");
     private static readonly Guid TenantId = Guid.Parse("0fa219ed-70ad-4e8d-9f51-6e60409dc659");
     private static readonly Guid OtherTenantId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+    private static readonly Guid TemplateId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     private static readonly DateTimeOffset Now = new(2026, 8, 12, 9, 0, 0, TimeSpan.Zero);
 
     // ---------- field schema ----------
@@ -90,13 +91,12 @@ public sealed class InvitationSettingsTests
     {
         // AC 50: re-opening must show what was saved. Falling back to defaults would quietly
         // discard the organiser's edits every time they reopened the form.
-        var saved = EventInvitationSettings.Create(
-            EventId, TenantId, "marigold", "{\"venueName\":\"The Old Chapel\"}", Now);
+        var saved = NewSnapshottedSettings("{\"venueName\":\"The Old Chapel\"}");
 
         var result = await Get(saved);
 
         Assert.True(result.IsConfigured);
-        Assert.Equal("marigold", result.TemplateId);
+        Assert.Equal(TemplateId.ToString(), result.TemplateId);
         Assert.Equal("The Old Chapel", result.FieldValues!["venueName"]);
     }
 
@@ -119,10 +119,10 @@ public sealed class InvitationSettingsTests
         Assert.Equal(GetInvitationSettingsStatus.EventNotFound, result.Status);
     }
 
-    // ---------- save ----------
+    // ---------- save: happy path ----------
 
     [Fact]
-    public async Task Save_PersistsTemplateAndValues()
+    public async Task Save_FetchesTheTemplateOnceAndSnapshotsItAlongsideFieldValues()
     {
         EventInvitationSettings? added = null;
         var settings = new Mock<IEventInvitationSettingsRepository>();
@@ -134,13 +134,99 @@ public sealed class InvitationSettingsTests
             .Callback<EventInvitationSettings, CancellationToken>((s, _) => added = s)
             .Returns(Task.CompletedTask);
 
-        var result = await Save(WeddingValues(), settings: settings.Object);
+        var catalog = CatalogReturning(TemplateFetchResult.Found(FoundTemplate()));
+
+        var result = await Save(WeddingValues(), settings: settings.Object, catalog: catalog.Object);
 
         Assert.Equal(SaveInvitationSettingsStatus.Saved, result.Status);
         Assert.NotNull(added);
-        Assert.Equal("marigold", added.TemplateId);
+        Assert.Equal(TemplateId, added.TemplateId);
+        Assert.Equal(3, added.TemplateVersion);
+        Assert.Equal("<html><body>marigold v3</body></html>", added.HtmlContent);
         Assert.Contains("Amara", added.FieldValues, StringComparison.Ordinal);
+
+        catalog.Verify(c => c.GetTemplateAsync(TemplateId, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Save_ReSavingTheSameTemplateIsIdempotent()
+    {
+        // AC 12: fetching again and overwriting with identical content is fine — the important
+        // property is that it never touches a DIFFERENT template unless explicitly re-chosen.
+        var existing = NewSnapshottedSettings();
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var catalog = CatalogReturning(TemplateFetchResult.Found(FoundTemplate()));
+
+        var result = await Save(WeddingValues(), settings: settings.Object, catalog: catalog.Object);
+
+        Assert.Equal(SaveInvitationSettingsStatus.Saved, result.Status);
+        Assert.Equal(TemplateId, existing.TemplateId);
+        Assert.Equal(3, existing.TemplateVersion);
+        Assert.Equal("<html><body>marigold v3</body></html>", existing.HtmlContent);
+    }
+
+    // ---------- save: snapshot failure branches (AC 10) ----------
+
+    [Fact]
+    public async Task Save_WhenTheCatalogIsUnreachable_RejectsWithBadRequestAndPersistsNothing()
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var catalog = CatalogReturning(TemplateFetchResult.Unavailable());
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => Save(WeddingValues(), catalog: catalog.Object, unitOfWork: unitOfWork.Object));
+
+        Assert.Contains(exception.Errors, e => e.PropertyName == "TemplateId");
+        unitOfWork.Verify(w => w.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Save_WhenTheTemplateIsNotFound_RejectsWithBadRequestAndPersistsNothing()
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var catalog = CatalogReturning(TemplateFetchResult.NotFound());
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => Save(WeddingValues(), catalog: catalog.Object, unitOfWork: unitOfWork.Object));
+
+        Assert.Contains(exception.Errors, e => e.PropertyName == "TemplateId");
+        unitOfWork.Verify(w => w.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Save_WhenTheTemplateFailsToParse_RejectsWithBadRequestAndPersistsNothing()
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var unparseable = new TemplateCatalogEntry(
+            TemplateId, "Marigold", "wedding", 3, "{{ if unterminated", null, null);
+        var catalog = CatalogReturning(TemplateFetchResult.Found(unparseable));
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => Save(WeddingValues(), catalog: catalog.Object, unitOfWork: unitOfWork.Object));
+
+        Assert.Contains(exception.Errors, e => e.PropertyName == "TemplateId");
+        unitOfWork.Verify(w => w.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Save_RejectsAnInvalidGuidTemplateIdWithoutCallingTheCatalog()
+    {
+        var catalog = new Mock<ITemplateCatalogClient>();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => Save(WeddingValues(), templateId: "not-a-guid", catalog: catalog.Object));
+
+        Assert.Contains(exception.Errors, e => e.PropertyName == "TemplateId");
+        catalog.Verify(
+            c => c.GetTemplateAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // ---------- save: field validation (unchanged from slice 1) ----------
 
     [Fact]
     public async Task Save_RejectsAMissingRequiredField()
@@ -223,7 +309,7 @@ public sealed class InvitationSettingsTests
     [Fact]
     public async Task Save_UpdatesExistingSettingsRatherThanInsertingASecondRow()
     {
-        var existing = EventInvitationSettings.Create(EventId, TenantId, "marigold", "{}", Now);
+        var existing = NewSnapshottedSettings();
         var settings = new Mock<IEventInvitationSettingsRepository>();
         settings
             .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
@@ -272,6 +358,24 @@ public sealed class InvitationSettingsTests
         ["venueNotes"] = "Parking at the rear",
     };
 
+    private static TemplateCatalogEntry FoundTemplate() => new(
+        TemplateId, "Marigold", "wedding", 3, "<html><body>marigold v3</body></html>", "body{}", null);
+
+    private static Mock<ITemplateCatalogClient> CatalogReturning(TemplateFetchResult result)
+    {
+        var catalog = new Mock<ITemplateCatalogClient>();
+        catalog
+            .Setup(c => c.GetTemplateAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        return catalog;
+    }
+
+    private static EventInvitationSettings NewSnapshottedSettings(
+        string fieldValues = "{}") =>
+        EventInvitationSettings.Create(
+            EventId, TenantId, fieldValues, TemplateId, 3, "<html><body>marigold v3</body></html>", "body{}", null, Now);
+
     private static async Task<GetInvitationSettingsResult> Get(
         EventInvitationSettings? saved,
         Guid? callerTenantId = null,
@@ -292,13 +396,21 @@ public sealed class InvitationSettingsTests
             CancellationToken.None);
     }
 
+    private const string UseDefaultTemplateId = "__use-default-template-id__";
+
     private static async Task<SaveInvitationSettingsResult> Save(
         Dictionary<string, string?> values,
-        string? templateId = "marigold",
+        string? templateId = UseDefaultTemplateId,
         Guid? callerTenantId = null,
         IEventInvitationSettingsRepository? settings = null,
-        IUnitOfWork? unitOfWork = null)
+        IUnitOfWork? unitOfWork = null,
+        ITemplateCatalogClient? catalog = null)
     {
+        if (templateId == UseDefaultTemplateId)
+        {
+            templateId = TemplateId.ToString();
+        }
+
         var repo = settings ?? DefaultSettingsRepository();
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(p => p.GetUtcNow()).Returns(Now);
@@ -306,6 +418,7 @@ public sealed class InvitationSettingsTests
         var handler = new SaveInvitationSettingsCommandHandler(
             Events(null),
             repo,
+            catalog ?? CatalogReturning(TemplateFetchResult.Found(FoundTemplate())).Object,
             unitOfWork ?? new Mock<IUnitOfWork>().Object,
             timeProvider.Object);
 
