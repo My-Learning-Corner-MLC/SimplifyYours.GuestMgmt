@@ -26,7 +26,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Invitations\Templates\*" />
+    <!-- Only the bridge script — the runtime that reports an RSVP press to the parent frame. Not
+         scaffolding: template content itself (html/css/js) now lives on EventInvitationSettings as
+         a per-event snapshot, never embedded in this assembly. -->
+    <EmbeddedResource Include="Invitations\Templates\bridge.js" />
   </ItemGroup>
 
 </Project>

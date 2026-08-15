@@ -1,6 +1,7 @@
 using GuestManagementService.Api.Endpoints;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
+using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Contracts.Invitations;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
@@ -30,6 +31,7 @@ public sealed class InvitationEndpointsTests
 {
     private const string SpaOrigin = "https://app.example.test";
     private static readonly Guid EventId = Guid.Parse("2c6f1a8e-9d3b-4f70-8a15-5b2e7c9d0f31");
+    private static readonly Guid TemplateId = Guid.Parse("cccccccc-1111-2222-3333-444444444444");
     private static readonly DateTimeOffset Now = new(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
@@ -57,14 +59,40 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-abc123",
+            mode: null,
+            type: null,
             httpContext,
-            Sender(Found()),
+            RenderSender(GuestFound()),
             Renderer(),
             Configuration(SpaOrigin),
             CancellationToken.None);
 
-        Assert.Equal($"frame-ancestors {SpaOrigin}", httpContext.Response.Headers.ContentSecurityPolicy);
+        var csp = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        Assert.Contains($"frame-ancestors {SpaOrigin}", csp, StringComparison.Ordinal);
         Assert.Equal("no-store", httpContext.Response.Headers.CacheControl);
+    }
+
+    [Fact]
+    public async Task RenderInvitation_BoundsTemplateScriptWithAContentSecurityPolicy()
+    {
+        // B4: script-src bounds what template JS (and the bridge, which shares delivery) may do.
+        // Both are inline in the served document, so 'unsafe-inline' is required; object-src and
+        // base-uri are locked down as cheap defence in depth.
+        var httpContext = new DefaultHttpContext();
+
+        await InvitationEndpoints.RenderInvitationAsync(
+            "tok-abc123",
+            mode: null,
+            type: null,
+            httpContext,
+            RenderSender(GuestFound()),
+            Renderer(),
+            Configuration(SpaOrigin),
+            CancellationToken.None);
+
+        var csp = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        Assert.Contains("script-src 'unsafe-inline'", csp, StringComparison.Ordinal);
+        Assert.Contains("object-src 'none'", csp, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,14 +102,61 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-abc123",
+            mode: null,
+            type: null,
             httpContext,
-            Sender(Found()),
+            RenderSender(GuestFound()),
             Renderer(),
             Configuration(origin: null),
             CancellationToken.None);
 
         // "frame-ancestors " with nothing after it is not a restriction, it is a malformed header.
-        Assert.Equal("frame-ancestors 'self'", httpContext.Response.Headers.ContentSecurityPolicy);
+        var csp = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        Assert.Contains("frame-ancestors 'self'", csp, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RenderInvitation_OnNotFound_ReturnsProblemAndNeverCallsTheRenderer()
+    {
+        var httpContext = new DefaultHttpContext();
+        var renderer = new Mock<IInvitationRenderer>();
+
+        await InvitationEndpoints.RenderInvitationAsync(
+            "tok-unknown",
+            mode: null,
+            type: null,
+            httpContext,
+            RenderSender(ResolveInvitationRenderResult.NotFound()),
+            renderer.Object,
+            Configuration(SpaOrigin),
+            CancellationToken.None);
+
+        renderer.Verify(
+            r => r.RenderAsync(
+                It.IsAny<InvitationTemplateSnapshot>(),
+                It.IsAny<IReadOnlyDictionary<string, string?>>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RenderInvitation_OnBadRequest_ReturnsAValidationProblem()
+    {
+        var httpContext = new DefaultHttpContext();
+
+        var result = await InvitationEndpoints.RenderInvitationAsync(
+            "tok-guest",
+            mode: "preview",
+            type: null,
+            httpContext,
+            RenderSender(ResolveInvitationRenderResult.BadRequest("mode", "mode is not valid for a guest invitation link.")),
+            Renderer(),
+            Configuration(SpaOrigin),
+            CancellationToken.None);
+
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(400, statusCodeResult.StatusCode);
     }
 
     [Fact]
@@ -131,13 +206,24 @@ public sealed class InvitationEndpointsTests
         return sender.Object;
     }
 
+    private static ISender RenderSender(ResolveInvitationRenderResult result)
+    {
+        var sender = new Mock<ISender>();
+        sender
+            .Setup(s => s.Send(It.IsAny<ResolveInvitationRenderQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        return sender.Object;
+    }
+
     private static IInvitationRenderer Renderer()
     {
         var renderer = new Mock<IInvitationRenderer>();
         renderer
             .Setup(r => r.RenderAsync(
+                It.IsAny<InvitationTemplateSnapshot>(),
                 It.IsAny<IReadOnlyDictionary<string, string?>>(),
-                It.IsAny<string>(),
+                It.IsAny<string?>(),
                 It.IsAny<string>()))
             .ReturnsAsync("<html><body>invitation</body></html>");
 
@@ -152,6 +238,16 @@ public sealed class InvitationEndpointsTests
                 ["Invitations:PublicBaseUrl"] = origin,
             })
             .Build();
+    }
+
+    private static ResolveInvitationRenderResult GuestFound()
+    {
+        return new ResolveInvitationRenderResult(
+            ResolveInvitationRenderStatus.Guest,
+            EventType: "wedding",
+            GuestName: "Ada",
+            FieldValues: new Dictionary<string, string?> { ["eventName"] = "Ada's wedding" },
+            Snapshot: new InvitationTemplateSnapshot(TemplateId, 1, "<html><body></body></html>", null, null));
     }
 
     private static GetInvitationResult Found(DateTimeOffset? respondedAt = null)

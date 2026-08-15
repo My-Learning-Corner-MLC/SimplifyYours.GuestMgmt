@@ -55,12 +55,14 @@ public sealed class GetInvitationQueryHandler(
 
         var settings = await settingsRepository.GetByEventIdAsync(eventReference.EventId, cancellationToken);
 
-        if (settings is null)
+        if (settings is null || settings.HtmlContent is null)
         {
-            // An invitation whose template was never chosen does not exist yet. Same NotFound as an
-            // unknown token, so this cannot be used to tell a real event from a fictional one.
+            // An invitation whose template was never chosen — or, transitionally, a slice-1 row
+            // whose test template id did not survive the B1 migration to a real snapshot — does not
+            // exist yet. Same NotFound as an unknown token, so this cannot be used to tell a real
+            // event from a fictional one, or "not configured" from "never existed".
             logger.LogInformation(
-                "Invitation resolved but no invitation settings are saved. EventId: {EventId}.",
+                "Invitation resolved but no invitation snapshot is saved. EventId: {EventId}.",
                 guest.EventId);
 
             return GetInvitationResult.NotFound();

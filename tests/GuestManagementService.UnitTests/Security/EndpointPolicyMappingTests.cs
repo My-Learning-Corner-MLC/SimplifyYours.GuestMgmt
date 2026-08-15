@@ -125,10 +125,15 @@ public class EndpointPolicyMappingTests
             .SelectMany(e => e.Metadata.GetOrderedMetadata<IAuthorizeData>())
             .Select(data => data.Policy)
             .Where(policy => policy is not null)
+            .Distinct()
             .OrderBy(policy => policy)
             .ToArray();
 
+        // Reading is guests.view; every write action — saving, the public-link toggle, revoke, and
+        // preview issuance — reuses events.update, because each is a way of composing the event's
+        // presentation. No endpoint in this group may end up with no policy at all.
         Assert.Equal(new[] { Permissions.EventsUpdate, Permissions.GuestsView }.OrderBy(p => p), policies);
+        Assert.All(endpoints, e => Assert.NotEmpty(e.Metadata.GetOrderedMetadata<IAuthorizeData>()));
     }
 
     [Fact]
