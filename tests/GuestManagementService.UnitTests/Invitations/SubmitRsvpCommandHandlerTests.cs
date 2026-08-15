@@ -238,8 +238,12 @@ public sealed class SubmitRsvpCommandHandlerTests
             .ReturnsAsync(EventInvitationSettings.Create(
                 EventId,
                 Guid.NewGuid(),
-                "marigold",
                 """{"eventName":"Ada's party"}""",
+                Guid.Parse("dddddddd-1111-2222-3333-444444444444"),
+                1,
+                "<html><body></body></html>",
+                null,
+                null,
                 BeforeDeadline));
 
         return settings;

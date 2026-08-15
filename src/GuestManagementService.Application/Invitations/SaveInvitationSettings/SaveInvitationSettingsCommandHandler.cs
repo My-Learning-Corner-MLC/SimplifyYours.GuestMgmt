@@ -6,6 +6,7 @@ using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Domain.Invitations;
 using MediatR;
+using Scriban;
 
 namespace GuestManagementService.Application.Invitations.SaveInvitationSettings;
 
@@ -39,10 +40,21 @@ public sealed record SaveInvitationSettingsResult(
 /// Nothing written here reaches event-service. The organiser is editing the invitation's copy of
 /// these details, not the event — they may legitimately differ.
 /// </para>
+/// <para>
+/// <b>The template fetch happens here, once, and nowhere else.</b> A <c>templateId</c> is fetched
+/// from <c>template-management-service</c>'s current version, validated as parseable Scriban, and
+/// snapshotted onto the settings row in the same <see cref="IUnitOfWork.SaveChangesAsync"/> call as
+/// the field values. Any failure — unreachable service, unknown template, a template that fails to
+/// parse — throws <see cref="ValidationException"/>, which the endpoint turns into a synchronous
+/// 400 with nothing persisted. This is deliberately the only call site for
+/// <see cref="ITemplateCatalogClient"/> in this service: the anonymous render path must never depend
+/// on that service being reachable.
+/// </para>
 /// </remarks>
 public sealed class SaveInvitationSettingsCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IEventInvitationSettingsRepository settingsRepository,
+    ITemplateCatalogClient templateCatalogClient,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<SaveInvitationSettingsCommand, SaveInvitationSettingsResult>
@@ -64,13 +76,25 @@ public sealed class SaveInvitationSettingsCommandHandler(
         InvitationFieldSchema.EnsureSupported(eventType);
 
         var values = request.FieldValues ?? new Dictionary<string, string?>(StringComparer.Ordinal);
-        var failures = Validate(request.TemplateId, values, eventType);
+        var failures = Validate(request.TemplateId, values, eventType, out var templateId);
 
         if (failures.Count > 0)
         {
             throw new ValidationException(failures);
         }
 
+        // Fetch happens once, on this authenticated path, before anything is written. A failure
+        // here must reject the whole save — never leave a partially-updated row.
+        var fetched = await templateCatalogClient.GetTemplateAsync(templateId!.Value, cancellationToken);
+
+        var snapshotFailures = ValidateFetchedTemplate(fetched, eventType);
+
+        if (snapshotFailures.Count > 0)
+        {
+            throw new ValidationException(snapshotFailures);
+        }
+
+        var template = fetched.Template!;
         var serialized = InvitationFieldValues.Serialize(values, eventType);
         var now = timeProvider.GetUtcNow();
 
@@ -85,14 +109,25 @@ public sealed class SaveInvitationSettingsCommandHandler(
                 EventInvitationSettings.Create(
                     request.EventId,
                     request.CurrentUser.TenantId,
-                    request.TemplateId!,
                     serialized,
+                    template.Id,
+                    template.Version,
+                    template.HtmlContent,
+                    template.CssContent,
+                    template.JsContent,
                     now),
                 cancellationToken);
         }
         else
         {
-            existing.Update(request.TemplateId!, serialized, now);
+            existing.UpdateFieldValues(serialized, now);
+            existing.SnapshotTemplate(
+                template.Id,
+                template.Version,
+                template.HtmlContent,
+                template.CssContent,
+                template.JsContent,
+                now);
             await settingsRepository.UpdateAsync(existing, cancellationToken);
         }
 
@@ -101,21 +136,32 @@ public sealed class SaveInvitationSettingsCommandHandler(
         return new SaveInvitationSettingsResult(
             SaveInvitationSettingsStatus.Saved,
             eventType,
-            request.TemplateId,
+            template.Id.ToString(),
             InvitationFieldValues.Parse(serialized));
     }
 
     internal static List<ValidationFailure> Validate(
         string? templateId,
         IReadOnlyDictionary<string, string?> values,
-        string eventType)
+        string eventType,
+        out Guid? parsedTemplateId)
     {
         var failures = new List<ValidationFailure>();
+        parsedTemplateId = null;
 
         if (string.IsNullOrWhiteSpace(templateId))
         {
             failures.Add(new ValidationFailure(nameof(SaveInvitationSettingsCommand.TemplateId),
                 "Choose a template."));
+        }
+        else if (!Guid.TryParse(templateId, out var parsed) || parsed == Guid.Empty)
+        {
+            failures.Add(new ValidationFailure(nameof(SaveInvitationSettingsCommand.TemplateId),
+                "That template id is not valid."));
+        }
+        else
+        {
+            parsedTemplateId = parsed;
         }
 
         var allowed = InvitationFieldSchema.AllFor(eventType).ToHashSet(StringComparer.Ordinal);
@@ -147,5 +193,49 @@ public sealed class SaveInvitationSettingsCommandHandler(
         }
 
         return failures;
+    }
+
+    /// <summary>
+    /// Turns every snapshot failure mode — unreachable, not found, or a template whose html fails
+    /// to parse as Scriban — into the same field-keyed validation failure, so the endpoint's
+    /// existing <c>catch (ValidationException)</c> path produces a consistent 400 for all of them.
+    /// </summary>
+    internal static List<ValidationFailure> ValidateFetchedTemplate(TemplateFetchResult fetched, string eventType)
+    {
+        const string field = nameof(SaveInvitationSettingsCommand.TemplateId);
+
+        switch (fetched.Status)
+        {
+            case TemplateFetchStatus.NotFound:
+                return [new ValidationFailure(field, "That template could not be found.")];
+
+            case TemplateFetchStatus.Unavailable:
+                return
+                [
+                    new ValidationFailure(
+                        field,
+                        "The template catalog could not be reached. Please try again."),
+                ];
+
+            case TemplateFetchStatus.Found:
+            default:
+                break;
+        }
+
+        var template = fetched.Template!;
+        var parsed = Template.Parse(template.HtmlContent);
+
+        if (parsed.HasErrors)
+        {
+            return
+            [
+                new ValidationFailure(
+                    field,
+                    "That template failed to parse and cannot be used: "
+                    + string.Join("; ", parsed.Messages)),
+            ];
+        }
+
+        return [];
     }
 }
