@@ -17,16 +17,18 @@ public sealed class InvitationRateLimitsTests
     [Theory]
     [InlineData("/guests", "POST")]
     [InlineData("/guests/query", "POST")]
-    [InlineData("/invitations/guests/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/link", "GET")]
-    [InlineData("/invitations/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55", "GET")]
-    [InlineData("/invitations/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/preview-token", "POST")]
+    [InlineData("/guests/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/invitation-link", "GET")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55", "GET")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/preview-token", "POST")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/public-token", "POST")]
     [InlineData("/ping", "GET")]
     [InlineData("/", "GET")]
     public void Classify_LeavesNonInvitationRoutesUnlimited(string path, string method)
     {
         // Authenticated organiser traffic must not be throttled by limits designed for anonymous
-        // guests. "events" and "guests" are reserved first-segment literals under /invitations for
-        // exactly this reason — see InvitationRateLimits.ReservedFirstSegments.
+        // guests. "settings" is the reserved first-segment literal under /invitations for exactly
+        // this reason — see InvitationRateLimits.ReservedFirstSegments. The guest-invitation-link
+        // lookup sits under /guests entirely, outside this prefix, so it is unlimited trivially.
         Assert.Equal(InvitationRateLimitKind.None, InvitationRateLimits.Classify(new PathString(path), method));
     }
 
@@ -42,12 +44,11 @@ public sealed class InvitationRateLimitsTests
     [Theory]
     [InlineData("/invitations/")]
     [InlineData("/guests/query")]
-    [InlineData("/invitations/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55")]
-    [InlineData("/invitations/guests/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/link")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55")]
     public void ExtractToken_ReturnsNullWhenThereIsNoToken(string path)
     {
-        // "events" and "guests" are reserved literals, never a real token — see the equivalent
-        // reasoning in Classify_LeavesNonInvitationRoutesUnlimited above.
+        // "settings" is a reserved literal, never a real token — see the equivalent reasoning in
+        // Classify_LeavesNonInvitationRoutesUnlimited above.
         Assert.Null(InvitationRateLimits.ExtractToken(new PathString(path)));
     }
 

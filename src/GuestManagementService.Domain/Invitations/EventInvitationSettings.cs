@@ -72,8 +72,10 @@ public sealed class EventInvitationSettings
     public bool PublicLinkEnabled { get; private set; }
 
     /// <summary>
-    /// Identifies the event, never a person. <see langword="null"/> until first enabled. Rotating
-    /// (revoke) overwrites this so the previous URL stops resolving.
+    /// Identifies the event, never a person. <see langword="null"/> until first enabled, and
+    /// <see langword="null"/> again after <see cref="DisablePublicLink"/> — disabling is a real
+    /// revocation, not just a visibility flag. Rotating overwrites this so the previous URL stops
+    /// resolving while the link stays live.
     /// </summary>
     public string? PublicEventToken { get; private set; }
 
@@ -165,8 +167,10 @@ public sealed class EventInvitationSettings
     }
 
     /// <summary>
-    /// Turns the public event link on. Mints a token only the first time — later calls are a no-op
-    /// on the token so an already-shared URL is not silently invalidated by re-enabling.
+    /// Turns the public event link on. Mints a token whenever none currently exists — including the
+    /// very first enable, and every re-enable after a <see cref="DisablePublicLink"/>, since that
+    /// call clears the token deliberately. A re-enable therefore always produces a fresh URL; it
+    /// never resurrects one that was explicitly revoked.
     /// </summary>
     public void EnablePublicLink(Func<string> tokenGenerator, DateTimeOffset updatedAt)
     {
@@ -179,17 +183,24 @@ public sealed class EventInvitationSettings
         UpdatedAt = updatedAt.ToUniversalTime();
     }
 
+    /// <summary>
+    /// Turns the public event link off <em>and</em> clears the token — a real revocation. The
+    /// previous URL stops resolving immediately, and re-enabling later mints a brand-new one rather
+    /// than reviving the old, possibly-already-shared, one.
+    /// </summary>
     public void DisablePublicLink(DateTimeOffset updatedAt)
     {
         PublicLinkEnabled = false;
+        PublicEventToken = null;
         UpdatedAt = updatedAt.ToUniversalTime();
     }
 
     /// <summary>
-    /// Rotates the public token so the previous URL immediately stops resolving. Leaves the enabled
-    /// flag untouched — revoking is about invalidating the old link, not toggling visibility.
+    /// Rotates the public token so the previous URL immediately stops resolving, while the link
+    /// stays enabled and reachable at a new URL. Distinct from <see cref="DisablePublicLink"/>,
+    /// which turns the link off entirely — this is "I want a fresh link", not "turn it off".
     /// </summary>
-    public void RevokePublicLink(string newToken, DateTimeOffset updatedAt)
+    public void RotatePublicToken(string newToken, DateTimeOffset updatedAt)
     {
         if (string.IsNullOrWhiteSpace(newToken))
         {

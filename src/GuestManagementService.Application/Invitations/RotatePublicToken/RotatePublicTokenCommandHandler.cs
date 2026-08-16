@@ -7,33 +7,37 @@ using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Authorization;
 using MediatR;
 
-namespace GuestManagementService.Application.Invitations.RevokePublicLink;
+namespace GuestManagementService.Application.Invitations.RotatePublicToken;
 
-/// <summary>Rotates the public event token so the previously shared URL immediately 404s.</summary>
-public sealed record RevokePublicLinkCommand(Guid EventId) : BaseCommand, IRequest<RevokePublicLinkResult>;
+/// <summary>
+/// Replaces the public event token so the previously shared URL immediately 404s, while the link
+/// stays enabled at a new URL. Distinct from disabling: that turns the link off, this issues a
+/// fresh one. Requires the link to already be enabled — rotating a disabled link is meaningless.
+/// </summary>
+public sealed record RotatePublicTokenCommand(Guid EventId) : BaseCommand, IRequest<RotatePublicTokenResult>;
 
-public enum RevokePublicLinkStatus
+public enum RotatePublicTokenStatus
 {
-    Revoked = 0,
+    Rotated = 0,
     EventNotFound = 1,
 }
 
-public sealed record RevokePublicLinkResult(RevokePublicLinkStatus Status, string? PublicEventToken = null)
+public sealed record RotatePublicTokenResult(RotatePublicTokenStatus Status, string? PublicEventToken = null)
 {
-    public static RevokePublicLinkResult EventNotFound() => new(RevokePublicLinkStatus.EventNotFound);
+    public static RotatePublicTokenResult EventNotFound() => new(RotatePublicTokenStatus.EventNotFound);
 }
 
-/// <summary>Owner-scoped, same reasoning as <c>SetPublicLinkCommandHandler</c>.</summary>
-public sealed class RevokePublicLinkCommandHandler(
+/// <summary>Owner-scoped, same reasoning as the other invitation-settings handlers.</summary>
+public sealed class RotatePublicTokenCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IEventInvitationSettingsRepository settingsRepository,
     IInvitationTokenGenerator tokenGenerator,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
-    : IRequestHandler<RevokePublicLinkCommand, RevokePublicLinkResult>
+    : IRequestHandler<RotatePublicTokenCommand, RotatePublicTokenResult>
 {
-    public async Task<RevokePublicLinkResult> Handle(
-        RevokePublicLinkCommand request,
+    public async Task<RotatePublicTokenResult> Handle(
+        RotatePublicTokenCommand request,
         CancellationToken cancellationToken)
     {
         var eventReference = await eventReferenceRepository.GetByIdAsync(request.EventId, cancellationToken);
@@ -42,7 +46,7 @@ public sealed class RevokePublicLinkCommandHandler(
             || eventReference.IsDeleted
             || eventReference.TenantId != request.CurrentUser.TenantId)
         {
-            return RevokePublicLinkResult.EventNotFound();
+            return RotatePublicTokenResult.EventNotFound();
         }
 
         var settings = await settingsRepository.GetByEventIdAsync(
@@ -50,22 +54,22 @@ public sealed class RevokePublicLinkCommandHandler(
             request.CurrentUser.TenantId,
             cancellationToken);
 
-        if (settings is null || string.IsNullOrEmpty(settings.PublicEventToken))
+        if (settings is null || !settings.PublicLinkEnabled || string.IsNullOrEmpty(settings.PublicEventToken))
         {
             throw new ValidationException(
             [
                 new ValidationFailure(
-                    nameof(RevokePublicLinkCommand.EventId),
+                    nameof(RotatePublicTokenCommand.EventId),
                     "The public link has not been enabled yet."),
             ]);
         }
 
         var now = timeProvider.GetUtcNow();
-        settings.RevokePublicLink(tokenGenerator.Generate(), now);
+        settings.RotatePublicToken(tokenGenerator.Generate(), now);
 
         await settingsRepository.UpdateAsync(settings, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new RevokePublicLinkResult(RevokePublicLinkStatus.Revoked, settings.PublicEventToken);
+        return new RotatePublicTokenResult(RotatePublicTokenStatus.Rotated, settings.PublicEventToken);
     }
 }

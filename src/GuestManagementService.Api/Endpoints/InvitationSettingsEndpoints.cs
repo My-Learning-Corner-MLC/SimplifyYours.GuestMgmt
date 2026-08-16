@@ -4,9 +4,8 @@ using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitationSettings;
 using GuestManagementService.Application.Invitations.IssuePreviewToken;
-using GuestManagementService.Application.Invitations.RevokePublicLink;
+using GuestManagementService.Application.Invitations.RotatePublicToken;
 using GuestManagementService.Application.Invitations.SaveInvitationSettings;
-using GuestManagementService.Application.Invitations.SetPublicLink;
 using GuestManagementService.Contracts.Invitations;
 using MediatR;
 
@@ -17,38 +16,37 @@ namespace GuestManagementService.Api.Endpoints;
 /// -facing surface is <see cref="InvitationEndpoints"/>.
 /// </summary>
 /// <remarks>
-/// Nested under <c>/invitations/events/{eventId}</c> rather than <c>/events/{eventId}/invitation-
-/// settings</c> — "events" is one of two reserved first-segment literals under the shared
-/// <c>/invitations</c> prefix (see <see cref="InvitationEndpoints"/>'s remarks), so this never
-/// collides with an anonymous invitation token.
+/// Nested under <c>/invitations/settings/events/{eventId}</c>. "settings" is the one reserved
+/// first-segment literal under the shared <c>/invitations</c> prefix (see
+/// <see cref="InvitationEndpoints"/>'s remarks) — it can never collide with an anonymous invitation
+/// token, so the anonymous surface and this authenticated one can share one prefix safely.
 /// </remarks>
 public static class InvitationSettingsEndpoints
 {
     public static IEndpointRouteBuilder MapInvitationSettingsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/invitations/events/{eventId:guid}")
+        var group = endpoints.MapGroup("/invitations/settings/events/{eventId:guid}")
             .WithTags("InvitationSettings");
 
         group
             .MapGet("", GetAsync)
             .WithName("GetInvitationSettings")
-            .RequireAuthorization(Permissions.GuestsView);
+            .RequireAuthorization(Permissions.EventsView);
 
+        // Saving also carries the public-link enable/disable action — see
+        // SaveInvitationSettingsCommandHandler.ApplyPublicLinkChange. There is deliberately no
+        // separate enable/disable endpoint: composing content and turning on the link it's shared
+        // through are one organiser action, not two.
         group
             .MapPut("", SaveAsync)
             .WithName("SaveInvitationSettings")
             .RequireAuthorization(Permissions.EventsUpdate);
 
-        // Public link and preview issuance are composing-the-invitation actions, same as saving the
-        // template and content, so they share EventsUpdate rather than introducing a new permission.
+        // Rotating is narrower than enable/disable: "give me a fresh link" while staying enabled,
+        // not a visibility toggle — so it stays its own action rather than folding into the save.
         group
-            .MapPut("public-link", SetPublicLinkAsync)
-            .WithName("SetInvitationPublicLink")
-            .RequireAuthorization(Permissions.EventsUpdate);
-
-        group
-            .MapPost("public-link/revoke", RevokePublicLinkAsync)
-            .WithName("RevokeInvitationPublicLink")
+            .MapPost("public-token", RotatePublicTokenAsync)
+            .WithName("RotateInvitationPublicToken")
             .RequireAuthorization(Permissions.EventsUpdate);
 
         group
@@ -82,7 +80,9 @@ public static class InvitationSettingsEndpoints
                 result.TemplateId,
                 result.FieldValues ?? new Dictionary<string, string?>(),
                 result.IsConfigured,
-                InvitationFieldSchema.RequiredFor(result.EventType)));
+                InvitationFieldSchema.RequiredFor(result.EventType),
+                result.PublicLinkEnabled,
+                result.PublicEventToken));
         }
         catch (ValidationException exception)
         {
@@ -100,7 +100,11 @@ public static class InvitationSettingsEndpoints
         try
         {
             var result = await sender.Send(
-                new SaveInvitationSettingsCommand(eventId, request?.TemplateId, request?.FieldValues),
+                new SaveInvitationSettingsCommand(
+                    eventId,
+                    request?.TemplateId,
+                    request?.FieldValues,
+                    request?.PublicLinkEnabled),
                 cancellationToken);
 
             if (result.Status != SaveInvitationSettingsStatus.Saved)
@@ -116,7 +120,9 @@ public static class InvitationSettingsEndpoints
                 result.TemplateId,
                 result.FieldValues ?? new Dictionary<string, string?>(),
                 IsConfigured: true,
-                InvitationFieldSchema.RequiredFor(result.EventType)));
+                InvitationFieldSchema.RequiredFor(result.EventType),
+                result.PublicLinkEnabled,
+                result.PublicEventToken));
         }
         catch (ValidationException exception)
         {
@@ -124,50 +130,35 @@ public static class InvitationSettingsEndpoints
         }
     }
 
-    internal static async Task<IResult> SetPublicLinkAsync(
+    internal static async Task<IResult> RotatePublicTokenAsync(
         Guid eventId,
-        SetPublicLinkRequest request,
+        SetPublicTokenRequest request,
         HttpContext httpContext,
         ISender sender,
         CancellationToken cancellationToken)
     {
+        if (!string.Equals(request?.Action, "rotate", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiErrorResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["action"] = ["'action' must be \"rotate\"."],
+                },
+                httpContext);
+        }
+
         try
         {
-            var result = await sender.Send(new SetPublicLinkCommand(eventId, request.Enabled), cancellationToken);
+            var result = await sender.Send(new RotatePublicTokenCommand(eventId), cancellationToken);
 
-            if (result.Status != SetPublicLinkStatus.Updated)
+            if (result.Status != RotatePublicTokenStatus.Rotated)
             {
                 return ApiErrorResults.NotFound(
                     "The event was not found. It may have been deleted or the id may be incorrect.",
                     httpContext);
             }
 
-            return Results.Ok(new PublicLinkResponse(result.Enabled, result.PublicEventToken));
-        }
-        catch (ValidationException exception)
-        {
-            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
-        }
-    }
-
-    internal static async Task<IResult> RevokePublicLinkAsync(
-        Guid eventId,
-        HttpContext httpContext,
-        ISender sender,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await sender.Send(new RevokePublicLinkCommand(eventId), cancellationToken);
-
-            if (result.Status != RevokePublicLinkStatus.Revoked)
-            {
-                return ApiErrorResults.NotFound(
-                    "The event was not found. It may have been deleted or the id may be incorrect.",
-                    httpContext);
-            }
-
-            return Results.Ok(new PublicLinkResponse(Enabled: true, result.PublicEventToken));
+            return Results.Ok(new PublicTokenResponse(Enabled: true, result.PublicEventToken));
         }
         catch (ValidationException exception)
         {

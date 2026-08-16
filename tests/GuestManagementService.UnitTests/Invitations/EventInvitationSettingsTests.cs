@@ -113,32 +113,60 @@ public sealed class EventInvitationSettingsTests
     }
 
     [Fact]
-    public void EnablePublicLink_MintsATokenOnlyTheFirstTime()
+    public void EnablePublicLink_MintsATokenOnlyWhenNoneCurrentlyExists()
     {
         var settings = Create();
-        var generatedTokens = new Queue<string>(["token-one", "token-two"]);
 
-        settings.EnablePublicLink(() => generatedTokens.Dequeue(), Now);
+        settings.EnablePublicLink(() => "token-one", Now);
         var firstToken = settings.PublicEventToken;
 
-        settings.DisablePublicLink(Now);
-        settings.EnablePublicLink(() => generatedTokens.Dequeue(), Now);
+        // Re-enabling without an intervening disable must not silently rotate the URL out from
+        // under an organiser who hasn't touched anything.
+        settings.EnablePublicLink(() => "token-two", Now);
 
-        // Re-enabling must not silently invalidate a URL an organiser already shared.
         Assert.Equal(firstToken, settings.PublicEventToken);
         Assert.True(settings.PublicLinkEnabled);
     }
 
     [Fact]
-    public void RevokePublicLink_RotatesTheToken()
+    public void EnablePublicLink_AfterADisable_MintsABrandNewToken()
+    {
+        // DisablePublicLink is a real revocation (see that test below): it clears the token, so a
+        // later re-enable must never resurrect the old, possibly-already-shared, URL.
+        var settings = Create();
+        settings.EnablePublicLink(() => "original-token", Now);
+        settings.DisablePublicLink(Now);
+
+        settings.EnablePublicLink(() => "fresh-token", Now);
+
+        Assert.Equal("fresh-token", settings.PublicEventToken);
+        Assert.NotEqual("original-token", settings.PublicEventToken);
+        Assert.True(settings.PublicLinkEnabled);
+    }
+
+    [Fact]
+    public void DisablePublicLink_ClearsTheTokenAsARealRevocation()
     {
         var settings = Create();
         settings.EnablePublicLink(() => "original-token", Now);
 
-        settings.RevokePublicLink("rotated-token", Now);
+        settings.DisablePublicLink(Now);
+
+        Assert.False(settings.PublicLinkEnabled);
+        Assert.Null(settings.PublicEventToken);
+    }
+
+    [Fact]
+    public void RotatePublicToken_ReplacesTheTokenWithoutTouchingWhetherTheLinkIsEnabled()
+    {
+        var settings = Create();
+        settings.EnablePublicLink(() => "original-token", Now);
+
+        settings.RotatePublicToken("rotated-token", Now);
 
         Assert.Equal("rotated-token", settings.PublicEventToken);
         Assert.NotEqual("original-token", settings.PublicEventToken);
+        Assert.True(settings.PublicLinkEnabled);
     }
 
     [Fact]

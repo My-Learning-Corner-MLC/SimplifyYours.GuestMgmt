@@ -5,15 +5,18 @@ using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Application.Invitations.IssuePreviewToken;
-using GuestManagementService.Application.Invitations.RevokePublicLink;
-using GuestManagementService.Application.Invitations.SetPublicLink;
+using GuestManagementService.Application.Invitations.RotatePublicToken;
 using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Invitations;
 using Moq;
 
 namespace GuestManagementService.UnitTests.Invitations;
 
-/// <summary>B7: the public event link toggle/revoke, and preview token issuance.</summary>
+/// <summary>
+/// B7: the event-level public link's rotate action, and preview token issuance. Enable/disable
+/// moved onto <c>SaveInvitationSettingsCommandHandler</c> (see <c>InvitationSettingsTests</c>) —
+/// composing content and turning the public link on/off are one organiser action, not two.
+/// </summary>
 public sealed class PublicLinkAndPreviewTests
 {
     private static readonly Guid EventId = Guid.Parse("6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55");
@@ -22,89 +25,61 @@ public sealed class PublicLinkAndPreviewTests
     private static readonly Guid TemplateId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     private static readonly DateTimeOffset Now = new(2026, 8, 12, 9, 0, 0, TimeSpan.Zero);
 
-    // ---------- SetPublicLink ----------
+    // ---------- RotatePublicToken ----------
 
     [Fact]
-    public async Task Enable_DefaultsOff_ThenMintsATokenOnFirstEnable()
-    {
-        var settings = NewSnapshottedSettings();
-        Assert.False(settings.PublicLinkEnabled);
-
-        var result = await SetPublicLink(settings, enabled: true);
-
-        Assert.Equal(SetPublicLinkStatus.Updated, result.Status);
-        Assert.True(result.Enabled);
-        Assert.False(string.IsNullOrEmpty(result.PublicEventToken));
-    }
-
-    [Fact]
-    public async Task Enable_WithoutASavedTemplate_IsRejected()
-    {
-        var settings = new Mock<IEventInvitationSettingsRepository>();
-        settings
-            .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((EventInvitationSettings?)null);
-
-        var exception = await Assert.ThrowsAsync<ValidationException>(
-            () => SetPublicLink(settings, enabled: true));
-
-        Assert.NotEmpty(exception.Errors);
-    }
-
-    [Fact]
-    public async Task Disable_TurnsItOffButKeepsAnyExistingToken()
-    {
-        var settings = NewSnapshottedSettings();
-        settings.EnablePublicLink(() => "existing-token", Now);
-
-        var result = await SetPublicLink(settings, enabled: false);
-
-        Assert.False(result.Enabled);
-        Assert.Equal("existing-token", result.PublicEventToken);
-    }
-
-    [Fact]
-    public async Task Enable_ForAnotherTenantsEvent_ReturnsNotFound()
-    {
-        var settings = NewSnapshottedSettings();
-
-        var result = await SetPublicLink(settings, enabled: true, callerTenantId: OtherTenantId);
-
-        Assert.Equal(SetPublicLinkStatus.EventNotFound, result.Status);
-    }
-
-    // ---------- RevokePublicLink ----------
-
-    [Fact]
-    public async Task Revoke_RotatesTheTokenSoThePreviousUrlStopsResolving()
+    public async Task Rotate_ReplacesTheTokenSoThePreviousUrlStopsResolving()
     {
         var settings = NewSnapshottedSettings();
         settings.EnablePublicLink(() => "original-token", Now);
 
-        var result = await Revoke(settings);
+        var result = await Rotate(settings);
 
-        Assert.Equal(RevokePublicLinkStatus.Revoked, result.Status);
+        Assert.Equal(RotatePublicTokenStatus.Rotated, result.Status);
         Assert.NotEqual("original-token", result.PublicEventToken);
         Assert.NotEqual("original-token", settings.PublicEventToken);
     }
 
     [Fact]
-    public async Task Revoke_WhenNeverEnabled_IsRejected()
-    {
-        var settings = NewSnapshottedSettings();
-
-        await Assert.ThrowsAsync<ValidationException>(() => Revoke(settings));
-    }
-
-    [Fact]
-    public async Task Revoke_ForAnotherTenantsEvent_ReturnsNotFound()
+    public async Task Rotate_LeavesTheLinkEnabled()
     {
         var settings = NewSnapshottedSettings();
         settings.EnablePublicLink(() => "original-token", Now);
 
-        var result = await Revoke(settings, callerTenantId: OtherTenantId);
+        await Rotate(settings);
 
-        Assert.Equal(RevokePublicLinkStatus.EventNotFound, result.Status);
+        Assert.True(settings.PublicLinkEnabled);
+    }
+
+    [Fact]
+    public async Task Rotate_WhenNeverEnabled_IsRejected()
+    {
+        var settings = NewSnapshottedSettings();
+
+        await Assert.ThrowsAsync<ValidationException>(() => Rotate(settings));
+    }
+
+    [Fact]
+    public async Task Rotate_AfterBeingDisabled_IsRejected()
+    {
+        // Disabling clears the token (a real revocation, see EventInvitationSettingsTests), so
+        // there is nothing left to rotate until the organiser explicitly re-enables it.
+        var settings = NewSnapshottedSettings();
+        settings.EnablePublicLink(() => "original-token", Now);
+        settings.DisablePublicLink(Now);
+
+        await Assert.ThrowsAsync<ValidationException>(() => Rotate(settings));
+    }
+
+    [Fact]
+    public async Task Rotate_ForAnotherTenantsEvent_ReturnsNotFound()
+    {
+        var settings = NewSnapshottedSettings();
+        settings.EnablePublicLink(() => "original-token", Now);
+
+        var result = await Rotate(settings, callerTenantId: OtherTenantId);
+
+        Assert.Equal(RotatePublicTokenStatus.EventNotFound, result.Status);
     }
 
     // ---------- IssuePreviewToken ----------
@@ -160,32 +135,10 @@ public sealed class PublicLinkAndPreviewTests
         EventInvitationSettings.Create(
             EventId, TenantId, "{}", TemplateId, 1, "<html><body></body></html>", null, null, Now);
 
-    private static async Task<SetPublicLinkResult> SetPublicLink(
-        EventInvitationSettings settings, bool enabled, Guid? callerTenantId = null) =>
-        await SetPublicLink(Repository(settings), enabled, callerTenantId);
-
-    private static async Task<SetPublicLinkResult> SetPublicLink(
-        Mock<IEventInvitationSettingsRepository> settings, bool enabled, Guid? callerTenantId = null)
-    {
-        var handler = new SetPublicLinkCommandHandler(
-            Events(),
-            settings.Object,
-            TokenGenerator(),
-            Mock.Of<IUnitOfWork>(),
-            TimeProvider(Now));
-
-        return await handler.Handle(
-            new SetPublicLinkCommand(EventId, enabled)
-            {
-                CurrentUser = new CurrentUser(Guid.NewGuid(), callerTenantId ?? TenantId),
-            },
-            CancellationToken.None);
-    }
-
-    private static async Task<RevokePublicLinkResult> Revoke(
+    private static async Task<RotatePublicTokenResult> Rotate(
         EventInvitationSettings settings, Guid? callerTenantId = null)
     {
-        var handler = new RevokePublicLinkCommandHandler(
+        var handler = new RotatePublicTokenCommandHandler(
             Events(),
             Repository(settings).Object,
             TokenGenerator(),
@@ -193,7 +146,7 @@ public sealed class PublicLinkAndPreviewTests
             TimeProvider(Now));
 
         return await handler.Handle(
-            new RevokePublicLinkCommand(EventId)
+            new RotatePublicTokenCommand(EventId)
             {
                 CurrentUser = new CurrentUser(Guid.NewGuid(), callerTenantId ?? TenantId),
             },

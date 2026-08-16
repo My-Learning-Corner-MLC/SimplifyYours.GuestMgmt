@@ -3,6 +3,7 @@ using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Guests;
 using GuestManagementService.Application.Guests.AddGuest;
+using GuestManagementService.Application.Guests.GetInvitationLink;
 using GuestManagementService.Application.Guests.ListGuests;
 using GuestManagementService.Contracts.Guests;
 using MediatR;
@@ -25,10 +26,36 @@ public static class GuestEndpoints
             .WithName("QueryGuests")
             .RequireAuthorization(Permissions.GuestsView);
 
-        // GetGuestInvitationLink lives in InvitationEndpoints under /invitations/guests/{guestId}/link
-        // — every invitation-related route sits under the shared /invitations prefix, not here.
+        group
+            .MapGet("{guestId:guid}/invitation-link", GetInvitationLinkAsync)
+            .WithName("GetGuestInvitationLink")
+            .RequireAuthorization(Permissions.GuestsView);
 
         return endpoints;
+    }
+
+    internal static async Task<IResult> GetInvitationLinkAsync(
+        Guid guestId,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetInvitationLinkQuery(guestId), cancellationToken);
+
+        return result.Status switch
+        {
+            GetInvitationLinkStatus.Found => Results.Ok(
+                new GetInvitationLinkResponse(
+                    result.GuestId,
+                    result.InvitationToken!,
+                    result.InvitationUrl!)),
+            GetInvitationLinkStatus.NotFound => ApiErrorResults.NotFound(
+                "The guest was not found. It may have been deleted or the id may be incorrect.",
+                httpContext),
+            _ => ApiErrorResults.Unexpected(
+                "The invitation link could not be loaded right now. Please try again later.",
+                httpContext)
+        };
     }
 
     private static async Task<IResult> AddGuestAsync(

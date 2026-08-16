@@ -1,15 +1,11 @@
 using FluentValidation;
 using GuestManagementService.Api.Responses;
-using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Abstractions.Invitations;
-using GuestManagementService.Application.Guests.GetInvitationLink;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
-using GuestManagementService.Contracts.Guests;
 using GuestManagementService.Contracts.Invitations;
-using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
 using MediatR;
 
@@ -20,12 +16,12 @@ namespace GuestManagementService.Api.Endpoints;
 /// </summary>
 /// <remarks>
 /// These endpoints are anonymous by design — the invitation token is the only credential. They sit
-/// at the top level of <c>/invitations</c> (not nested under <c>/events</c> or <c>/guests</c>,
-/// which are reserved first-segment literals for the authenticated routes in
-/// <see cref="InvitationSettingsEndpoints"/> and <see cref="GuestEndpoints"/> — see
-/// <c>InvitationRateLimits.ReservedFirstSegments</c>), and rely on <c>InvitationRateLimits</c> for
-/// throttling. The gateway exposes a dedicated <c>/api/v1/invitations/{**remainder}</c> route for
-/// this whole prefix.
+/// at the top level of <c>/invitations</c>; the organiser-authenticated settings routes in
+/// <see cref="InvitationSettingsEndpoints"/> nest under the reserved <c>/invitations/settings</c>
+/// segment instead, so the two surfaces can share this prefix without an authenticated route ever
+/// colliding with a real anonymous token (see <c>InvitationRateLimits.ReservedFirstSegments</c>).
+/// This class relies on <c>InvitationRateLimits</c> for throttling. The gateway exposes a dedicated
+/// <c>/api/v1/invitations/{**remainder}</c> route for the whole prefix.
 /// <para>
 /// Authorization in this service is opt-in per endpoint, so anything added here is public unless
 /// it explicitly says otherwise. Treat that as a standing review item.
@@ -54,39 +50,7 @@ public static class InvitationEndpoints
             .WithName("SubmitRsvp")
             .AllowAnonymous();
 
-        // Authenticated — an organiser fetching the link to copy and hand to one guest, not a
-        // guest-facing route. "guests" is a reserved first-segment literal here (see this class's
-        // remarks), so it can never collide with a real anonymous token above.
-        group
-            .MapGet("guests/{guestId:guid}/link", GetGuestInvitationLinkAsync)
-            .WithName("GetGuestInvitationLink")
-            .RequireAuthorization(Permissions.GuestsView);
-
         return endpoints;
-    }
-
-    internal static async Task<IResult> GetGuestInvitationLinkAsync(
-        Guid guestId,
-        HttpContext httpContext,
-        ISender sender,
-        CancellationToken cancellationToken)
-    {
-        var result = await sender.Send(new GetInvitationLinkQuery(guestId), cancellationToken);
-
-        return result.Status switch
-        {
-            GetInvitationLinkStatus.Found => Results.Ok(
-                new GetInvitationLinkResponse(
-                    result.GuestId,
-                    result.InvitationToken!,
-                    result.InvitationUrl!)),
-            GetInvitationLinkStatus.NotFound => ApiErrorResults.NotFound(
-                "The guest was not found. It may have been deleted or the id may be incorrect.",
-                httpContext),
-            _ => ApiErrorResults.Unexpected(
-                "The invitation link could not be loaded right now. Please try again later.",
-                httpContext)
-        };
     }
 
     internal static async Task<IResult> GetInvitationAsync(

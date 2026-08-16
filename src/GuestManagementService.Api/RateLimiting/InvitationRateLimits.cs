@@ -36,17 +36,16 @@ public static class InvitationRateLimits
     public const string InvitationPathPrefix = "/invitations/";
 
     /// <summary>
-    /// Authenticated organiser routes now live under the same <c>/invitations/</c> prefix as the
-    /// anonymous ones (<c>/invitations/events/{eventId}/...</c>,
-    /// <c>/invitations/guests/{guestId}/link</c>). Neither "events" nor "guests" can ever be a real
-    /// invitation token, so both are reserved first-segment literals this limiter must not mistake
-    /// for one. Getting this wrong would not be a security hole — it is a throttling misclassification
-    /// — but it is a real functional bug: every organiser's settings calls would share one rate-limit
-    /// bucket keyed on the literal "events" or "guests", throttling them against each other instead of
-    /// individually.
+    /// The authenticated organiser settings routes live under
+    /// <c>/invitations/settings/events/{eventId}/...</c> — "settings" is a reserved first-segment
+    /// literal this limiter must not mistake for a real invitation token (a guest's invitation link
+    /// stayed at <c>/guests/{guestId}/invitation-link</c>, entirely outside this prefix). Getting
+    /// this wrong would not be a security hole — it is a throttling misclassification — but it is a
+    /// real functional bug: every organiser's settings calls would share one rate-limit bucket keyed
+    /// on the literal "settings", throttling them against each other instead of individually.
     /// </summary>
     private static readonly HashSet<string> ReservedFirstSegments =
-        new(StringComparer.OrdinalIgnoreCase) { "events", "guests" };
+        new(StringComparer.OrdinalIgnoreCase) { "settings" };
 
     public const int ReadPermitsPerToken = 30;
     public const int ReadPermitsPerIp = 300;
