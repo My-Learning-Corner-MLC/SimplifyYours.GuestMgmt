@@ -133,7 +133,7 @@ public sealed class PublicLinkAndPreviewTests
 
     private static EventInvitationSettings NewSnapshottedSettings() =>
         EventInvitationSettings.Create(
-            EventId, TenantId, "{}", TemplateId, 1, "<html><body></body></html>", null, null, Now);
+            EventId, TenantId, "{}", TemplateId, "Marigold", 1, "<html><body></body></html>", null, null, Now);
 
     private static async Task<RotatePublicTokenResult> Rotate(
         EventInvitationSettings settings, Guid? callerTenantId = null)

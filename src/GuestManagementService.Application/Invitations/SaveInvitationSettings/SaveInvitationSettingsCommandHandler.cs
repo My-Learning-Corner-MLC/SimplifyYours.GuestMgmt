@@ -32,6 +32,7 @@ public sealed record SaveInvitationSettingsResult(
     SaveInvitationSettingsStatus Status,
     string EventType = "",
     string? TemplateId = null,
+    string? TemplateName = null,
     IReadOnlyDictionary<string, string?>? FieldValues = null,
     bool PublicLinkEnabled = false,
     string? PublicEventToken = null)
@@ -122,6 +123,7 @@ public sealed class SaveInvitationSettingsCommandHandler(
                 request.CurrentUser.TenantId,
                 serialized,
                 template.Id,
+                template.Name,
                 template.Version,
                 template.HtmlContent,
                 template.CssContent,
@@ -137,6 +139,7 @@ public sealed class SaveInvitationSettingsCommandHandler(
             existing.UpdateFieldValues(serialized, now);
             existing.SnapshotTemplate(
                 template.Id,
+                template.Name,
                 template.Version,
                 template.HtmlContent,
                 template.CssContent,
@@ -155,6 +158,7 @@ public sealed class SaveInvitationSettingsCommandHandler(
             SaveInvitationSettingsStatus.Saved,
             eventType,
             template.Id.ToString(),
+            template.Name,
             InvitationFieldValues.Parse(serialized),
             settings.PublicLinkEnabled,
             settings.PublicEventToken);

@@ -266,6 +266,18 @@ minting a token if none exists yet. `false` **disables and revokes** the token �
 revocation, not just a visibility flag — so re-enabling later always mints a brand-new token rather
 than reviving a URL that may already have been shared.
 
+`GET` (and the settings echoed back by `PUT`) includes `templateName` alongside `templateId` — the
+template's display name, copied into this service's own storage at save time. Callers never need a
+second call to template-management-service just to show a name for an id; it's null exactly when
+`templateId` is null.
+
+Saving fetches the template from template-management-service, forwarding the organiser's own
+bearer token from the inbound request onto that outbound call — it's a delegated action taken on
+the organiser's behalf, not a separate service identity, and the organiser already holds whatever
+claim the catalog checks. If there is no incoming token (unexpected in practice, since this
+endpoint requires authorization) the outbound call proceeds without one and the catalog's 401
+surfaces through the existing "template unavailable" failure path rather than crashing.
+
 #### `POST /invitations/settings/events/{eventId}/public-token`
 
 Authenticated, requires `events.update`. Body: `{ "action": "rotate" }` — `rotate` is the only

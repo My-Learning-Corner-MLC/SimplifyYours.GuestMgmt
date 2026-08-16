@@ -259,6 +259,7 @@ public sealed class GetInvitationQueryHandlerTests
                     Guid.NewGuid(),
                     FieldValuesJson,
                     Guid.Parse("aaaaaaaa-1111-2222-3333-444444444444"),
+                    "Marigold",
                     1,
                     "<html><body></body></html>",
                     null,

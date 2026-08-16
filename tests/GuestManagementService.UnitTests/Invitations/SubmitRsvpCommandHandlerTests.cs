@@ -240,6 +240,7 @@ public sealed class SubmitRsvpCommandHandlerTests
                 Guid.NewGuid(),
                 """{"eventName":"Ada's party"}""",
                 Guid.Parse("dddddddd-1111-2222-3333-444444444444"),
+                "Confetti",
                 1,
                 "<html><body></body></html>",
                 null,

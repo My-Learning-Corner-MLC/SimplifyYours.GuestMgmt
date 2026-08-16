@@ -291,7 +291,7 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
         DateTimeOffset? previewExpiresAt = null)
     {
         var settings = EventInvitationSettings.Create(
-            EventId, TenantId, fieldValuesJson, TemplateId, 1, "<html><body></body></html>", null, null, Now);
+            EventId, TenantId, fieldValuesJson, TemplateId, "Marigold", 1, "<html><body></body></html>", null, null, Now);
 
         if (publicToken is not null)
         {

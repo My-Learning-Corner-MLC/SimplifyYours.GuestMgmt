@@ -254,6 +254,11 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("template_id");
 
+                    b.Property<string>("TemplateName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("template_name");
+
                     b.Property<int?>("TemplateVersion")
                         .HasColumnType("integer")
                         .HasColumnName("template_version");

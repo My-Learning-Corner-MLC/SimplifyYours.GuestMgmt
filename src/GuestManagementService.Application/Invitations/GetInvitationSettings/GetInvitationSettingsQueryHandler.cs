@@ -18,6 +18,7 @@ public sealed record GetInvitationSettingsResult(
     GetInvitationSettingsStatus Status,
     string EventType = "",
     string? TemplateId = null,
+    string? TemplateName = null,
     IReadOnlyDictionary<string, string?>? FieldValues = null,
     bool IsConfigured = false,
     bool PublicLinkEnabled = false,
@@ -73,6 +74,7 @@ public sealed class GetInvitationSettingsQueryHandler(
                 GetInvitationSettingsStatus.Found,
                 eventReference.EventType,
                 saved.TemplateId?.ToString(),
+                saved.TemplateName,
                 InvitationFieldValues.Parse(saved.FieldValues),
                 IsConfigured: saved.HtmlContent is not null,
                 PublicLinkEnabled: saved.PublicLinkEnabled,
@@ -83,6 +85,7 @@ public sealed class GetInvitationSettingsQueryHandler(
             GetInvitationSettingsStatus.Found,
             eventReference.EventType,
             TemplateId: null,
+            TemplateName: null,
             BuildDefaults(eventReference),
             IsConfigured: false);
     }

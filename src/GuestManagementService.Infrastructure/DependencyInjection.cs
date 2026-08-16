@@ -36,6 +36,10 @@ public static class DependencyInjection
         services.AddSingleton<IInvitationRenderer>(_ => new Invitations.ScribanInvitationRenderer(configuration));
         services.AddSingleton<IInvitationLinkBuilder>(_ => new Guests.InvitationLinkBuilder(configuration));
 
+        // Needed by TemplateCatalogClient to forward the organiser's own bearer token — see its
+        // remarks. Not otherwise used in this service.
+        services.AddHttpContextAccessor();
+
         // Typed client for template-management-service's catalog. Called from exactly one place —
         // the authenticated save path — never from the anonymous render path. See
         // ITemplateCatalogClient's remarks for why that boundary matters.

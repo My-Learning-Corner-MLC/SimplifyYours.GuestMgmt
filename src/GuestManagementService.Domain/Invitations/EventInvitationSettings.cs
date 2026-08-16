@@ -56,6 +56,13 @@ public sealed class EventInvitationSettings
     /// </summary>
     public Guid? TemplateId { get; private set; }
 
+    /// <summary>
+    /// The template's display name, copied at snapshot time alongside the content. Stored so
+    /// callers (the settings GET/PUT response, the Guests-tab toolbar note) never need a second
+    /// call to the catalog just to show a name — the id alone was never enough for that.
+    /// </summary>
+    public string? TemplateName { get; private set; }
+
     /// <summary>The catalog version fetched at snapshot time. Immutable once stored.</summary>
     public int? TemplateVersion { get; private set; }
 
@@ -100,6 +107,7 @@ public sealed class EventInvitationSettings
         Guid tenantId,
         string fieldValues,
         Guid templateId,
+        string templateName,
         int templateVersion,
         string htmlContent,
         string? cssContent,
@@ -117,7 +125,7 @@ public sealed class EventInvitationSettings
         }
 
         var settings = new EventInvitationSettings(eventId, tenantId, fieldValues, createdAt);
-        settings.SnapshotTemplate(templateId, templateVersion, htmlContent, cssContent, jsContent, createdAt);
+        settings.SnapshotTemplate(templateId, templateName, templateVersion, htmlContent, cssContent, jsContent, createdAt);
 
         return settings;
     }
@@ -142,6 +150,7 @@ public sealed class EventInvitationSettings
     /// </summary>
     public void SnapshotTemplate(
         Guid templateId,
+        string templateName,
         int templateVersion,
         string htmlContent,
         string? cssContent,
@@ -159,6 +168,7 @@ public sealed class EventInvitationSettings
         }
 
         TemplateId = templateId;
+        TemplateName = NormalizeRequired(templateName, nameof(templateName));
         TemplateVersion = templateVersion;
         HtmlContent = htmlContent;
         CssContent = cssContent;

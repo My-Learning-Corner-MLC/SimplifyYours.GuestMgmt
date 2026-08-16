@@ -26,6 +26,12 @@ internal sealed class EventInvitationSettingsConfiguration : IEntityTypeConfigur
         builder.Property(settings => settings.TemplateId)
             .HasColumnName("template_id");
 
+        // Copied at snapshot time so a settings read never needs a second call to the catalog just
+        // to show a name. 200 mirrors template-management-service's own Templates.name column.
+        builder.Property(settings => settings.TemplateName)
+            .HasColumnName("template_name")
+            .HasMaxLength(200);
+
         builder.Property(settings => settings.TemplateVersion)
             .HasColumnName("template_version");
 

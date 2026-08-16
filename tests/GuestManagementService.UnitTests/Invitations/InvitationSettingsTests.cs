@@ -436,7 +436,7 @@ public sealed class InvitationSettingsTests
     private static EventInvitationSettings NewSnapshottedSettings(
         string fieldValues = "{}") =>
         EventInvitationSettings.Create(
-            EventId, TenantId, fieldValues, TemplateId, 3, "<html><body>marigold v3</body></html>", "body{}", null, Now);
+            EventId, TenantId, fieldValues, TemplateId, "Marigold", 3, "<html><body>marigold v3</body></html>", "body{}", null, Now);
 
     private static async Task<GetInvitationSettingsResult> Get(
         EventInvitationSettings? saved,
