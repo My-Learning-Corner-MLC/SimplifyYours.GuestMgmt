@@ -2,6 +2,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
+using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Domain.Invitations;
@@ -10,10 +11,16 @@ using Scriban;
 
 namespace GuestManagementService.Application.Invitations.SaveInvitationSettings;
 
+/// <param name="PublicLinkEnabled">
+/// Omitted (null) leaves the public link untouched. <see langword="true"/> enables it, minting a
+/// token if none exists. <see langword="false"/> disables it AND revokes the token — see
+/// <c>EventInvitationSettings.DisablePublicLink</c>.
+/// </param>
 public sealed record SaveInvitationSettingsCommand(
     Guid EventId,
     string? TemplateId,
-    IReadOnlyDictionary<string, string?>? FieldValues) : BaseCommand, IRequest<SaveInvitationSettingsResult>;
+    IReadOnlyDictionary<string, string?>? FieldValues,
+    bool? PublicLinkEnabled = null) : BaseCommand, IRequest<SaveInvitationSettingsResult>;
 
 public enum SaveInvitationSettingsStatus
 {
@@ -25,7 +32,9 @@ public sealed record SaveInvitationSettingsResult(
     SaveInvitationSettingsStatus Status,
     string EventType = "",
     string? TemplateId = null,
-    IReadOnlyDictionary<string, string?>? FieldValues = null)
+    IReadOnlyDictionary<string, string?>? FieldValues = null,
+    bool PublicLinkEnabled = false,
+    string? PublicEventToken = null)
 {
     public static SaveInvitationSettingsResult EventNotFound() => new(SaveInvitationSettingsStatus.EventNotFound);
 }
@@ -55,6 +64,7 @@ public sealed class SaveInvitationSettingsCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IEventInvitationSettingsRepository settingsRepository,
     ITemplateCatalogClient templateCatalogClient,
+    IInvitationTokenGenerator tokenGenerator,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<SaveInvitationSettingsCommand, SaveInvitationSettingsResult>
@@ -103,20 +113,24 @@ public sealed class SaveInvitationSettingsCommandHandler(
             request.CurrentUser.TenantId,
             cancellationToken);
 
+        EventInvitationSettings settings;
+
         if (existing is null)
         {
-            await settingsRepository.AddAsync(
-                EventInvitationSettings.Create(
-                    request.EventId,
-                    request.CurrentUser.TenantId,
-                    serialized,
-                    template.Id,
-                    template.Version,
-                    template.HtmlContent,
-                    template.CssContent,
-                    template.JsContent,
-                    now),
-                cancellationToken);
+            settings = EventInvitationSettings.Create(
+                request.EventId,
+                request.CurrentUser.TenantId,
+                serialized,
+                template.Id,
+                template.Version,
+                template.HtmlContent,
+                template.CssContent,
+                template.JsContent,
+                now);
+
+            ApplyPublicLinkChange(settings, request.PublicLinkEnabled, now);
+
+            await settingsRepository.AddAsync(settings, cancellationToken);
         }
         else
         {
@@ -128,6 +142,10 @@ public sealed class SaveInvitationSettingsCommandHandler(
                 template.CssContent,
                 template.JsContent,
                 now);
+
+            ApplyPublicLinkChange(existing, request.PublicLinkEnabled, now);
+
+            settings = existing;
             await settingsRepository.UpdateAsync(existing, cancellationToken);
         }
 
@@ -137,7 +155,31 @@ public sealed class SaveInvitationSettingsCommandHandler(
             SaveInvitationSettingsStatus.Saved,
             eventType,
             template.Id.ToString(),
-            InvitationFieldValues.Parse(serialized));
+            InvitationFieldValues.Parse(serialized),
+            settings.PublicLinkEnabled,
+            settings.PublicEventToken);
+    }
+
+    /// <summary>
+    /// Folds the public-link enable/disable action into the same save call rather than a separate
+    /// endpoint — a dedicated PUT .../public-link route existed at one point and was removed:
+    /// composing content and turning on the link it's shared through are the same organiser action.
+    /// Omitted (null) is a genuine no-op, not "disable" — leaving the request field out must never
+    /// silently turn a live public link off.
+    /// </summary>
+    private void ApplyPublicLinkChange(EventInvitationSettings settings, bool? enabled, DateTimeOffset now)
+    {
+        switch (enabled)
+        {
+            case true:
+                settings.EnablePublicLink(tokenGenerator.Generate, now);
+                break;
+            case false:
+                settings.DisablePublicLink(now);
+                break;
+            case null:
+                break;
+        }
     }
 
     internal static List<ValidationFailure> Validate(

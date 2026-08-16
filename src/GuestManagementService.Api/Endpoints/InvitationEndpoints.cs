@@ -6,7 +6,6 @@ using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Contracts.Invitations;
-using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
 using MediatR;
 
@@ -17,8 +16,12 @@ namespace GuestManagementService.Api.Endpoints;
 /// </summary>
 /// <remarks>
 /// These endpoints are anonymous by design — the invitation token is the only credential. They sit
-/// under <c>/guests</c> so the gateway's existing <c>/api/v1/guests/{**remainder}</c> route already
-/// forwards them, and rely on <c>InvitationRateLimits</c> for throttling.
+/// at the top level of <c>/invitations</c>; the organiser-authenticated settings routes in
+/// <see cref="InvitationSettingsEndpoints"/> nest under the reserved <c>/invitations/settings</c>
+/// segment instead, so the two surfaces can share this prefix without an authenticated route ever
+/// colliding with a real anonymous token (see <c>InvitationRateLimits.ReservedFirstSegments</c>).
+/// This class relies on <c>InvitationRateLimits</c> for throttling. The gateway exposes a dedicated
+/// <c>/api/v1/invitations/{**remainder}</c> route for the whole prefix.
 /// <para>
 /// Authorization in this service is opt-in per endpoint, so anything added here is public unless
 /// it explicitly says otherwise. Treat that as a standing review item.
@@ -28,7 +31,7 @@ public static class InvitationEndpoints
 {
     public static IEndpointRouteBuilder MapInvitationEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/guests/invitations").WithTags("Invitations");
+        var group = endpoints.MapGroup("/invitations").WithTags("Invitations");
 
         group
             .MapGet("{token}", GetInvitationAsync)

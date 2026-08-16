@@ -53,8 +53,10 @@ public class EndpointPolicyMappingTests
     }
 
     [Fact]
-    public void GetInvitationLink_endpoint_requires_guests_view_policy()
+    public void GetGuestInvitationLink_endpoint_requires_guests_view_policy()
     {
+        // The invitation token is credential-like: whoever holds it can read a guest's personal
+        // data without authenticating. This endpoint must never become anonymous.
         var endpoints = MapGuestEndpointsForTest();
 
         var endpoint = endpoints.SingleOrDefault(e =>
@@ -68,8 +70,6 @@ public class EndpointPolicyMappingTests
             .Where(policy => policy is not null)
             .ToArray();
 
-        // The invitation token is credential-like: whoever holds it can read a guest's personal
-        // data without authenticating. This endpoint must never become anonymous.
         Assert.Contains(Permissions.GuestsView, policies);
     }
 
@@ -117,7 +117,7 @@ public class EndpointPolicyMappingTests
     public void Invitation_settings_endpoints_are_both_protected()
     {
         // Authorization is opt-in per endpoint in this service, so an endpoint added to this group
-        // without a policy would be silently public. Reading is guests.view; writing reuses
+        // without a policy would be silently public. Reading is events.view; writing reuses
         // events.update, because composing an invitation is editing the event's presentation.
         var endpoints = MapInvitationSettingsEndpointsForTest();
 
@@ -129,10 +129,11 @@ public class EndpointPolicyMappingTests
             .OrderBy(policy => policy)
             .ToArray();
 
-        // Reading is guests.view; every write action — saving, the public-link toggle, revoke, and
-        // preview issuance — reuses events.update, because each is a way of composing the event's
-        // presentation. No endpoint in this group may end up with no policy at all.
-        Assert.Equal(new[] { Permissions.EventsUpdate, Permissions.GuestsView }.OrderBy(p => p), policies);
+        // Reading is events.view; every write action — saving (which also folds in the public-link
+        // enable/disable), rotating the public token, and preview issuance — reuses events.update,
+        // because each is a way of composing the event's presentation. No endpoint in this group
+        // may end up with no policy at all.
+        Assert.Equal(new[] { Permissions.EventsUpdate, Permissions.EventsView }.OrderBy(p => p), policies);
         Assert.All(endpoints, e => Assert.NotEmpty(e.Metadata.GetOrderedMetadata<IAuthorizeData>()));
     }
 
@@ -168,10 +169,10 @@ public class EndpointPolicyMappingTests
     [Fact]
     public void Invitation_endpoints_are_all_anonymous()
     {
-        // The mirror image of the settings test. These three carry a guest's name and an event's
-        // address, and the invitation token is their only credential — but "anonymous" here has to
-        // be deliberate, not accidental. A future RequireAuthorization() added to "harden" one of
-        // them would lock every guest out of their own invitation, and nothing else would catch it.
+        // These three carry a guest's name and an event's address, and the invitation token is
+        // their only credential — but "anonymous" here has to be deliberate, not accidental. A
+        // future RequireAuthorization() added to "harden" one of them would lock every guest out of
+        // their own invitation, and nothing else would catch it.
         var endpoints = MapInvitationEndpointsForTest();
 
         Assert.Equal(3, endpoints.Count);

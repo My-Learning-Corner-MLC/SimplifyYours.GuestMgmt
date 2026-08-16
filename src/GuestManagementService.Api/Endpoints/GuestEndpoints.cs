@@ -34,6 +34,30 @@ public static class GuestEndpoints
         return endpoints;
     }
 
+    internal static async Task<IResult> GetInvitationLinkAsync(
+        Guid guestId,
+        HttpContext httpContext,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetInvitationLinkQuery(guestId), cancellationToken);
+
+        return result.Status switch
+        {
+            GetInvitationLinkStatus.Found => Results.Ok(
+                new GetInvitationLinkResponse(
+                    result.GuestId,
+                    result.InvitationToken!,
+                    result.InvitationUrl!)),
+            GetInvitationLinkStatus.NotFound => ApiErrorResults.NotFound(
+                "The guest was not found. It may have been deleted or the id may be incorrect.",
+                httpContext),
+            _ => ApiErrorResults.Unexpected(
+                "The invitation link could not be loaded right now. Please try again later.",
+                httpContext)
+        };
+    }
+
     private static async Task<IResult> AddGuestAsync(
         AddGuestRequest request,
         HttpContext httpContext,
@@ -80,30 +104,6 @@ public static class GuestEndpoints
         {
             return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
         }
-    }
-
-    internal static async Task<IResult> GetInvitationLinkAsync(
-        Guid guestId,
-        HttpContext httpContext,
-        ISender sender,
-        CancellationToken cancellationToken)
-    {
-        var result = await sender.Send(new GetInvitationLinkQuery(guestId), cancellationToken);
-
-        return result.Status switch
-        {
-            GetInvitationLinkStatus.Found => Results.Ok(
-                new GetInvitationLinkResponse(
-                    result.GuestId,
-                    result.InvitationToken!,
-                    result.InvitationUrl!)),
-            GetInvitationLinkStatus.NotFound => ApiErrorResults.NotFound(
-                "The guest was not found. It may have been deleted or the id may be incorrect.",
-                httpContext),
-            _ => ApiErrorResults.Unexpected(
-                "The invitation link could not be loaded right now. Please try again later.",
-                httpContext)
-        };
     }
 
     private static async Task<IResult> ListGuestsAsync(

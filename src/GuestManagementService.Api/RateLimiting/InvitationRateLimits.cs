@@ -33,7 +33,19 @@ public enum InvitationRateLimitKind
 /// </remarks>
 public static class InvitationRateLimits
 {
-    public const string InvitationPathPrefix = "/guests/invitations/";
+    public const string InvitationPathPrefix = "/invitations/";
+
+    /// <summary>
+    /// The authenticated organiser settings routes live under
+    /// <c>/invitations/settings/events/{eventId}/...</c> — "settings" is a reserved first-segment
+    /// literal this limiter must not mistake for a real invitation token (a guest's invitation link
+    /// stayed at <c>/guests/{guestId}/invitation-link</c>, entirely outside this prefix). Getting
+    /// this wrong would not be a security hole — it is a throttling misclassification — but it is a
+    /// real functional bug: every organiser's settings calls would share one rate-limit bucket keyed
+    /// on the literal "settings", throttling them against each other instead of individually.
+    /// </summary>
+    private static readonly HashSet<string> ReservedFirstSegments =
+        new(StringComparer.OrdinalIgnoreCase) { "settings" };
 
     public const int ReadPermitsPerToken = 30;
     public const int ReadPermitsPerIp = 300;
@@ -48,7 +60,7 @@ public static class InvitationRateLimits
     /// </summary>
     public static InvitationRateLimitKind Classify(PathString path, string method)
     {
-        if (!path.HasValue || !path.Value!.StartsWith(InvitationPathPrefix, StringComparison.OrdinalIgnoreCase))
+        if (ExtractToken(path) is null)
         {
             return InvitationRateLimitKind.None;
         }
@@ -59,7 +71,8 @@ public static class InvitationRateLimits
     }
 
     /// <summary>
-    /// Extracts the invitation token from the path, or null when there is not one.
+    /// Extracts the invitation token from the path, or null when there is not one — including when
+    /// the first segment is a reserved organiser-route literal rather than a token.
     /// </summary>
     public static string? ExtractToken(PathString path)
     {
@@ -72,7 +85,12 @@ public static class InvitationRateLimits
         var separator = remainder.IndexOf('/');
         var token = separator >= 0 ? remainder[..separator] : remainder;
 
-        return string.IsNullOrWhiteSpace(token) ? null : token;
+        if (string.IsNullOrWhiteSpace(token) || ReservedFirstSegments.Contains(token))
+        {
+            return null;
+        }
+
+        return token;
     }
 
     /// <summary>

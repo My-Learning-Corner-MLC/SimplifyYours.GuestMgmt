@@ -194,7 +194,9 @@ Response body:
 
 ### Invitation endpoints
 
-Three of these are **anonymous**: the per-guest invitation token in the URL is the only credential.
+Every invitation-related route — anonymous or authenticated — lives under the shared `/invitations`
+prefix, so the gateway exposes one dedicated `/api/v1/invitations/{**remainder}` route for all of
+them. Three are **anonymous**: the per-guest invitation token in the URL is the only credential.
 They are the service's only unauthenticated surface, and they serve guest data, so they are rate
 limited (30/min per token and 300/min per IP on the reads; 10/min and 60/min on the write) and
 return `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
@@ -202,6 +204,12 @@ return `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
 Every failure returns the same `404` — unknown token, malformed token, deleted event, and an event
 whose invitation was never composed are indistinguishable, so the endpoints cannot be used to probe
 which tokens are real.
+
+One literal first-path-segment is **reserved** under `/invitations` and can never collide with a
+real (128-bit opaque) token: `settings` (the organiser routes, below). `InvitationRateLimits`
+explicitly excludes it when deciding whether a request is the anonymous, token-rate-limited kind.
+The guest-invitation-link lookup below is unrelated to this reservation — it lives entirely under
+`/guests`, outside the `/invitations` prefix.
 
 #### `GET /guests/{guestId}/invitation-link`
 
@@ -211,13 +219,13 @@ Fetched one guest at a time on purpose. The token is credential-like, so it neve
 `POST /guests/query`: one captured list response would otherwise expose every live invitation for
 the event at once.
 
-#### `GET /guests/invitations/{token}` — anonymous
+#### `GET /invitations/{token}` — anonymous
 
 Returns the guest's first name, the organiser's saved merge values, and the RSVP state
 (`status`, `plusOnesAllowed`, `plusOnesConfirmed`, `dietaryNotes`, `deadline`, `isOpen`,
 `respondedAt`). Deliberately narrow — no email, phone, guest id, tenant id, or any other guest.
 
-#### `GET /guests/invitations/{token}/render` — anonymous
+#### `GET /invitations/{token}/render` — anonymous
 
 Returns a complete HTML document, not JSON: the invitation as the guest sees it, rendered from the
 organiser's saved content. Served into a sandboxed iframe, so the response carries
@@ -226,7 +234,7 @@ organiser's saved content. Served into a sandboxed iframe, so the response carri
 All merge values are HTML-encoded as the model is built, since Scriban does not escape output. A
 template cannot opt out of it.
 
-#### `POST /guests/invitations/{token}/rsvp` — anonymous
+#### `POST /invitations/{token}/rsvp` — anonymous
 
 Records the guest's own answer: `{ rsvpStatus, plusOnesConfirmed, dietaryNotes }`.
 
@@ -241,14 +249,38 @@ would manufacture phantom RSVPs from bots.
   event's own timezone). Afterwards both first submissions and edits return `409`.
 - `respondedAt` records the first response and is not moved by later edits.
 
-#### `GET` / `PUT /events/{eventId}/invitation-settings`
+#### `GET` / `PUT /invitations/settings/events/{eventId}`
 
-Authenticated. Reading requires `guests.view`; writing requires `events.update` — composing an
-invitation is editing the event's presentation, so it reuses that permission rather than adding one.
+Authenticated. Reading requires `events.view`; writing requires `events.update` — composing an
+invitation is editing the event's presentation, so both reuse event-service's permissions rather
+than adding new ones.
 
-`PUT` saves `{ templateId, fieldValues }`. Required fields depend on the event type (a wedding needs
-`brideName`/`groomName`, a birthday needs `eventName`; `venueNotes` is always optional). Saving
-re-renders every already-issued link immediately.
+`PUT` saves `{ templateId, fieldValues, publicLinkEnabled? }`. Required fields depend on the event
+type (a wedding needs `brideName`/`groomName`, a birthday needs `eventName`; `venueNotes` is always
+optional). Saving re-renders every already-issued link immediately.
+
+`publicLinkEnabled` folds the public-link toggle into this same call rather than a separate
+endpoint — composing content and turning on the link it's shared through are one organiser action.
+Omitted (`null`) is a genuine no-op and leaves an existing link untouched. `true` enables it,
+minting a token if none exists yet. `false` **disables and revokes** the token — a real
+revocation, not just a visibility flag — so re-enabling later always mints a brand-new token rather
+than reviving a URL that may already have been shared.
+
+#### `POST /invitations/settings/events/{eventId}/public-token`
+
+Authenticated, requires `events.update`. Body: `{ "action": "rotate" }` — `rotate` is the only
+supported action; anything else returns `400`.
+
+Replaces the public token so the previously shared URL immediately stops resolving, while the link
+stays enabled at the new one. This is a narrower action than the enable/disable above: "give me a
+fresh link," not "turn it on or off." Requires the public link to already be enabled — rotating a
+disabled link is meaningless and returns a validation error.
+
+#### `POST /invitations/settings/events/{eventId}/preview-token`
+
+Authenticated, requires `events.update`. Issues a short-lived (15 minute) token so the organiser's
+preview `<iframe>` — which cannot carry an `Authorization` header — can reach the render endpoint.
+Re-issuing overwrites the previous token, invalidating it immediately.
 
 ## Configuration
 

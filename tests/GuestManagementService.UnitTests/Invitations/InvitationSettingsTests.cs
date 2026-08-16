@@ -1,6 +1,7 @@
 using FluentValidation;
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
+using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Application.Authorization;
 using GuestManagementService.Application.Invitations;
@@ -306,6 +307,67 @@ public sealed class InvitationSettingsTests
         unitOfWork.Verify(w => w.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // ---------- save: public-link enable/disable folded in (was a separate endpoint) ----------
+
+    [Fact]
+    public async Task Save_WithPublicLinkEnabledTrue_MintsATokenOnFirstEnable()
+    {
+        var result = await Save(WeddingValues(), publicLinkEnabled: true);
+
+        Assert.True(result.PublicLinkEnabled);
+        Assert.False(string.IsNullOrEmpty(result.PublicEventToken));
+    }
+
+    [Fact]
+    public async Task Save_WithPublicLinkEnabledTrue_ReusesTheExistingTokenIfAlreadyEnabled()
+    {
+        var existing = NewSnapshottedSettings();
+        existing.EnablePublicLink(() => "already-live-token", Now);
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var result = await Save(WeddingValues(), settings: settings.Object, publicLinkEnabled: true);
+
+        // Re-saving other content while the link is already on must not silently rotate the URL.
+        Assert.Equal("already-live-token", result.PublicEventToken);
+    }
+
+    [Fact]
+    public async Task Save_WithPublicLinkEnabledFalse_DisablesAndRevokesTheToken()
+    {
+        var existing = NewSnapshottedSettings();
+        existing.EnablePublicLink(() => "will-be-revoked", Now);
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var result = await Save(WeddingValues(), settings: settings.Object, publicLinkEnabled: false);
+
+        Assert.False(result.PublicLinkEnabled);
+        Assert.Null(result.PublicEventToken);
+    }
+
+    [Fact]
+    public async Task Save_WithPublicLinkEnabledOmitted_LeavesAnEnabledLinkUntouched()
+    {
+        // Omitted is a genuine no-op — leaving the field out of a request must never silently turn
+        // a live public link off.
+        var existing = NewSnapshottedSettings();
+        existing.EnablePublicLink(() => "leave-me-alone", Now);
+        var settings = new Mock<IEventInvitationSettingsRepository>();
+        settings
+            .Setup(r => r.GetByEventIdAsync(EventId, TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var result = await Save(WeddingValues(), settings: settings.Object, publicLinkEnabled: null);
+
+        Assert.True(result.PublicLinkEnabled);
+        Assert.Equal("leave-me-alone", result.PublicEventToken);
+    }
+
     [Fact]
     public async Task Save_UpdatesExistingSettingsRatherThanInsertingASecondRow()
     {
@@ -404,7 +466,8 @@ public sealed class InvitationSettingsTests
         Guid? callerTenantId = null,
         IEventInvitationSettingsRepository? settings = null,
         IUnitOfWork? unitOfWork = null,
-        ITemplateCatalogClient? catalog = null)
+        ITemplateCatalogClient? catalog = null,
+        bool? publicLinkEnabled = null)
     {
         if (templateId == UseDefaultTemplateId)
         {
@@ -415,15 +478,19 @@ public sealed class InvitationSettingsTests
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(p => p.GetUtcNow()).Returns(Now);
 
+        var tokenGenerator = new Mock<IInvitationTokenGenerator>();
+        tokenGenerator.Setup(g => g.Generate()).Returns(() => Guid.NewGuid().ToString("N"));
+
         var handler = new SaveInvitationSettingsCommandHandler(
             Events(null),
             repo,
             catalog ?? CatalogReturning(TemplateFetchResult.Found(FoundTemplate())).Object,
+            tokenGenerator.Object,
             unitOfWork ?? new Mock<IUnitOfWork>().Object,
             timeProvider.Object);
 
         return await handler.Handle(
-            new SaveInvitationSettingsCommand(EventId, templateId, values)
+            new SaveInvitationSettingsCommand(EventId, templateId, values, publicLinkEnabled)
             {
                 CurrentUser = new CurrentUser(Guid.NewGuid(), callerTenantId ?? TenantId),
             },
