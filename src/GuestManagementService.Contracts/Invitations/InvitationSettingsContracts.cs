@@ -41,5 +41,3 @@ public sealed record SetPublicTokenRequest(string Action);
 
 /// <summary>Token is the raw value the frontend needs to build the shareable URL.</summary>
 public sealed record PublicTokenResponse(bool Enabled, string? PublicEventToken);
-
-public sealed record PreviewTokenResponse(string Token, DateTimeOffset ExpiresAt);

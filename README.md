@@ -288,11 +288,10 @@ stays enabled at the new one. This is a narrower action than the enable/disable 
 fresh link," not "turn it on or off." Requires the public link to already be enabled — rotating a
 disabled link is meaningless and returns a validation error.
 
-#### `POST /invitations/settings/events/{eventId}/preview-token`
-
-Authenticated, requires `events.update`. Issues a short-lived (15 minute) token so the organiser's
-preview `<iframe>` — which cannot carry an `Authorization` header — can reach the render endpoint.
-Re-issuing overwrites the previous token, invalidating it immediately.
+Previewing a template — chosen or not — is not this service's concern: it lives entirely on
+template-management-service's own preview-token/render endpoints, which render with sample data
+only and never touch this service's storage. `GET /invitations/{token}/render` above only ever
+serves the committed invitation via a guest or public-event token.
 
 ## Configuration
 

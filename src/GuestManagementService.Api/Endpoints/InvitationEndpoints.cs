@@ -79,39 +79,27 @@ public static class InvitationEndpoints
     }
 
     /// <summary>
-    /// Resolves ONE of three token types — a guest's invitation token, the event's public link
-    /// token, or an organiser's preview token — and renders accordingly. See
-    /// <see cref="ResolveInvitationRenderQueryHandler"/> for the full matrix; this method only maps
-    /// its result onto HTTP.
+    /// Resolves ONE of two token types — a guest's invitation token, or the event's public link
+    /// token — and renders accordingly. See <see cref="ResolveInvitationRenderQueryHandler"/> for
+    /// the full matrix; this method only maps its result onto HTTP.
     /// </summary>
     internal static async Task<IResult> RenderInvitationAsync(
         string token,
-        string? mode,
-        string? type,
         HttpContext httpContext,
         ISender sender,
         IInvitationRenderer renderer,
         IConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ResolveInvitationRenderQuery(token, mode, type), cancellationToken);
+        var result = await sender.Send(new ResolveInvitationRenderQuery(token), cancellationToken);
 
         ApplyPublicHeaders(httpContext);
 
-        switch (result.Status)
+        if (result.Status == ResolveInvitationRenderStatus.NotFound)
         {
-            case ResolveInvitationRenderStatus.NotFound:
-                // Uniform for every failure — unknown token, wrong-type token, expired preview,
-                // revoked public link. Nothing here may reveal which table nearly matched.
-                return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
-
-            case ResolveInvitationRenderStatus.BadRequest:
-                return ApiErrorResults.ValidationProblem(
-                    new Dictionary<string, string[]>
-                    {
-                        [result.BadRequestField!] = [result.BadRequestMessage!],
-                    },
-                    httpContext);
+            // Uniform for every failure — unknown token, revoked public link. Nothing here may
+            // reveal which table nearly matched.
+            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
         // The app must be able to frame this, so frame-ancestors names the SPA origin rather than

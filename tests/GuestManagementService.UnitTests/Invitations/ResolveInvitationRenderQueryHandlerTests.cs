@@ -11,10 +11,10 @@ using Moq;
 namespace GuestManagementService.UnitTests.Invitations;
 
 /// <summary>
-/// Table-driven coverage of the §7.9 render-token matrix. Every cell in the spec's table is one
-/// test here, plus the cross-cutting guarantees: a guest token can never reach preview rendering, a
-/// preview token can never resolve real guest data, and every failure — unknown, wrong-type, or
-/// expired/revoked — returns an identically-shaped 404.
+/// Table-driven coverage of the render-token matrix. Previewing moved to
+/// template-management-service, so this handler resolves only two token types: a guest's own
+/// invitation token, and the event's public link token. Every failure — unknown or revoked —
+/// returns an identically-shaped 404.
 /// </summary>
 public sealed class ResolveInvitationRenderQueryHandlerTests
 {
@@ -25,155 +25,37 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
 
     private const string GuestToken = "guest-token-123";
     private const string PublicToken = "public-token-456";
-    private const string PreviewToken = "preview-token-789";
     private const string UnknownToken = "unknown-token-000";
 
     // ---------- guest token ----------
 
     [Fact]
-    public async Task GuestToken_NoMode_RendersRealGuestDataWithLiveRsvp()
+    public async Task GuestToken_RendersRealGuestDataWithLiveRsvp()
     {
-        var result = await Handle(GuestToken, mode: null, type: null);
+        var result = await Handle(GuestToken);
 
         Assert.Equal(ResolveInvitationRenderStatus.Guest, result.Status);
         Assert.Equal("Ada", result.GuestName);
     }
 
-    [Fact]
-    public async Task GuestToken_ModePreview_Rejects400()
-    {
-        // AC 25: a guest token must REJECT mode=preview, never silently ignore it.
-        var result = await Handle(GuestToken, mode: "preview", type: "private");
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-        Assert.Equal("mode", result.BadRequestField);
-    }
-
-    [Fact]
-    public async Task GuestToken_AnyMode_Rejects400()
-    {
-        var result = await Handle(GuestToken, mode: "anything", type: null);
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-    }
-
     // ---------- public event token ----------
 
     [Fact]
-    public async Task PublicToken_NoMode_RendersWithGuestNameUnbound()
+    public async Task PublicToken_RendersWithGuestNameUnbound()
     {
-        var result = await Handle(PublicToken, mode: null, type: null);
+        var result = await Handle(PublicToken);
 
         Assert.Equal(ResolveInvitationRenderStatus.PublicEvent, result.Status);
         Assert.Null(result.GuestName);
     }
 
     [Fact]
-    public async Task PublicToken_ModePreview_Rejects400()
-    {
-        var result = await Handle(PublicToken, mode: "preview", type: "public");
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-    }
-
-    [Fact]
     public async Task PublicToken_WhenLinkIsDisabled_ReturnsNotFound()
     {
         // Disabling must stop the link from resolving at all — not merely hide it in the UI.
-        var result = await Handle(PublicToken, mode: null, type: null, publicLinkEnabled: false);
+        var result = await Handle(PublicToken, publicLinkEnabled: false);
 
         Assert.Equal(ResolveInvitationRenderStatus.NotFound, result.Status);
-    }
-
-    // ---------- preview token ----------
-
-    [Fact]
-    public async Task PreviewToken_NoMode_Rejects400()
-    {
-        // A preview token REQUIRES the mode param.
-        var result = await Handle(PreviewToken, mode: null, type: null);
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-        Assert.Equal("mode", result.BadRequestField);
-    }
-
-    [Fact]
-    public async Task PreviewToken_ModePreviewTypePrivate_BindsTheFixedSampleGuestName()
-    {
-        var result = await Handle(PreviewToken, mode: "preview", type: "private");
-
-        Assert.Equal(ResolveInvitationRenderStatus.Preview, result.Status);
-        Assert.Equal(ResolveInvitationRenderQueryHandler.SampleGuestName, result.GuestName);
-        Assert.NotEqual("Ada", result.GuestName); // never the real guest's name
-    }
-
-    [Fact]
-    public async Task PreviewToken_ModePreviewTypePublic_BindsGuestNameUnbound()
-    {
-        var result = await Handle(PreviewToken, mode: "preview", type: "public");
-
-        Assert.Equal(ResolveInvitationRenderStatus.Preview, result.Status);
-        Assert.Null(result.GuestName);
-    }
-
-    [Fact]
-    public async Task PreviewToken_ModePreviewMissingType_Rejects400()
-    {
-        var result = await Handle(PreviewToken, mode: "preview", type: null);
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-        Assert.Equal("type", result.BadRequestField);
-    }
-
-    [Fact]
-    public async Task PreviewToken_ModePreviewInvalidType_Rejects400()
-    {
-        var result = await Handle(PreviewToken, mode: "preview", type: "nonsense");
-
-        Assert.Equal(ResolveInvitationRenderStatus.BadRequest, result.Status);
-    }
-
-    [Fact]
-    public async Task PreviewToken_WhenExpired_ReturnsTheSameNotFoundAsAnUnknownToken()
-    {
-        var result = await Handle(
-            PreviewToken, mode: "preview", type: "private", previewExpiresAt: Now.AddMinutes(-1));
-
-        Assert.Equal(ResolveInvitationRenderStatus.NotFound, result.Status);
-    }
-
-    [Fact]
-    public async Task PreviewToken_NeverQueriesTheGuestRepository()
-    {
-        // AC 23: a preview token must never be able to resolve real guest data. The strongest
-        // possible guarantee here is that the guest table is never even consulted for this branch.
-        var guests = new Mock<IGuestRepository>();
-        guests
-            .Setup(r => r.GetByInvitationTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guest?)null);
-
-        var handler = CreateHandler(guests.Object, publicLinkEnabled: true, previewExpiresAt: Now.AddMinutes(15));
-
-        var result = await handler.Handle(
-            new ResolveInvitationRenderQuery(PreviewToken, "preview", "private"), CancellationToken.None);
-
-        Assert.Equal(ResolveInvitationRenderStatus.Preview, result.Status);
-        guests.Verify(
-            r => r.GetByInvitationTokenAsync(PreviewToken, It.IsAny<CancellationToken>()),
-            Times.Once); // called once to rule out PreviewToken ALSO being a guest token — never again.
-    }
-
-    [Fact]
-    public async Task PreviewToken_UsesSavedFieldValuesFallingBackToSamplesForAnythingUnset()
-    {
-        var result = await Handle(
-            PreviewToken,
-            mode: "preview",
-            type: "private",
-            fieldValuesJson: """{"venueName":"The Old Chapel"}""");
-
-        Assert.Equal("The Old Chapel", result.FieldValues!["venueName"]); // saved value wins
-        Assert.False(string.IsNullOrEmpty(result.FieldValues["brideName"])); // sample fallback, never blank
     }
 
     // ---------- uniform 404 across every failure mode ----------
@@ -181,7 +63,7 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
     [Fact]
     public async Task UnknownToken_ReturnsNotFound()
     {
-        var result = await Handle(UnknownToken, mode: null, type: null);
+        var result = await Handle(UnknownToken);
 
         Assert.Equal(ResolveInvitationRenderStatus.NotFound, result.Status);
     }
@@ -191,21 +73,18 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
     {
         // Revocation is modelled as the old token no longer matching any row — the handler cannot
         // distinguish "never existed" from "existed, now revoked", which is exactly the point.
-        var result = await Handle("a-since-rotated-token", mode: null, type: null);
+        var result = await Handle("a-since-rotated-token");
 
         Assert.Equal(ResolveInvitationRenderStatus.NotFound, result.Status);
     }
 
     [Fact]
-    public async Task UnknownAndRevokedAndWrongTypeTokens_AllProduceTheIdenticalNotFoundShape()
+    public async Task UnknownAndRevokedTokens_ProduceTheIdenticalNotFoundShape()
     {
-        var unknown = await Handle(UnknownToken, mode: null, type: null);
-        var revoked = await Handle("a-since-rotated-token", mode: null, type: null);
-        var expiredPreview = await Handle(
-            PreviewToken, mode: "preview", type: "private", previewExpiresAt: Now.AddSeconds(-1));
+        var unknown = await Handle(UnknownToken);
+        var revoked = await Handle("a-since-rotated-token");
 
         Assert.Equal(unknown, revoked);
-        Assert.Equal(unknown, expiredPreview);
     }
 
     [Fact]
@@ -214,7 +93,7 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
         var guests = new Mock<IGuestRepository>();
         var handler = CreateHandler(guests.Object, publicLinkEnabled: true);
 
-        var result = await handler.Handle(new ResolveInvitationRenderQuery("", null, null), CancellationToken.None);
+        var result = await handler.Handle(new ResolveInvitationRenderQuery(""), CancellationToken.None);
 
         Assert.Equal(ResolveInvitationRenderStatus.NotFound, result.Status);
         guests.Verify(
@@ -226,10 +105,7 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
 
     private static async Task<ResolveInvitationRenderResult> Handle(
         string token,
-        string? mode,
-        string? type,
         bool publicLinkEnabled = true,
-        DateTimeOffset? previewExpiresAt = null,
         string fieldValuesJson = "{}")
     {
         var guests = new Mock<IGuestRepository>();
@@ -237,16 +113,14 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
             .Setup(r => r.GetByInvitationTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string t, CancellationToken _) => t == GuestToken ? NewGuest() : null);
 
-        var handler = CreateHandler(
-            guests.Object, publicLinkEnabled, previewExpiresAt ?? Now.AddMinutes(15), fieldValuesJson);
+        var handler = CreateHandler(guests.Object, publicLinkEnabled, fieldValuesJson);
 
-        return await handler.Handle(new ResolveInvitationRenderQuery(token, mode, type), CancellationToken.None);
+        return await handler.Handle(new ResolveInvitationRenderQuery(token), CancellationToken.None);
     }
 
     private static ResolveInvitationRenderQueryHandler CreateHandler(
         IGuestRepository guests,
         bool publicLinkEnabled,
-        DateTimeOffset? previewExpiresAt = null,
         string fieldValuesJson = "{}")
     {
         var events = new Mock<IEventReferenceRepository>();
@@ -265,30 +139,17 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
             .ReturnsAsync((string t, CancellationToken _) =>
                 t == PublicToken ? NewSettings(fieldValuesJson, publicLinkEnabled, PublicToken) : null);
 
-        settings
-            .Setup(r => r.GetByPreviewTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string t, CancellationToken _) =>
-                t == PreviewToken
-                    ? NewSettings(fieldValuesJson, previewToken: PreviewToken, previewExpiresAt: previewExpiresAt)
-                    : null);
-
-        var timeProvider = new Mock<TimeProvider>();
-        timeProvider.Setup(p => p.GetUtcNow()).Returns(Now);
-
         return new ResolveInvitationRenderQueryHandler(
             guests,
             events.Object,
             settings.Object,
-            timeProvider.Object,
             NullLogger<ResolveInvitationRenderQueryHandler>.Instance);
     }
 
     private static EventInvitationSettings NewSettings(
         string fieldValuesJson,
         bool publicLinkEnabled = false,
-        string? publicToken = null,
-        string? previewToken = null,
-        DateTimeOffset? previewExpiresAt = null)
+        string? publicToken = null)
     {
         var settings = EventInvitationSettings.Create(
             EventId, TenantId, fieldValuesJson, TemplateId, "Marigold", 1, "<html><body></body></html>", null, null, Now);
@@ -301,11 +162,6 @@ public sealed class ResolveInvitationRenderQueryHandlerTests
             {
                 settings.DisablePublicLink(Now);
             }
-        }
-
-        if (previewToken is not null)
-        {
-            settings.IssuePreviewToken(previewToken, previewExpiresAt ?? Now.AddMinutes(15), Now);
         }
 
         return settings;

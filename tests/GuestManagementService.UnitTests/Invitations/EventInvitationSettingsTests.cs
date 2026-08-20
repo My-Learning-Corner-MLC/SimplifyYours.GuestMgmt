@@ -31,8 +31,6 @@ public sealed class EventInvitationSettingsTests
 
         Assert.False(settings.PublicLinkEnabled);
         Assert.Null(settings.PublicEventToken);
-        Assert.Null(settings.PreviewToken);
-        Assert.Null(settings.PreviewExpiresAt);
     }
 
     [Theory]
@@ -168,18 +166,6 @@ public sealed class EventInvitationSettingsTests
         Assert.Equal("rotated-token", settings.PublicEventToken);
         Assert.NotEqual("original-token", settings.PublicEventToken);
         Assert.True(settings.PublicLinkEnabled);
-    }
-
-    [Fact]
-    public void IssuePreviewToken_OverwritesAnyPreviousToken()
-    {
-        var settings = Create();
-        var expiresAt = Now.AddMinutes(15);
-
-        settings.IssuePreviewToken("first-preview-token", expiresAt, Now);
-        settings.IssuePreviewToken("second-preview-token", expiresAt.AddMinutes(15), Now);
-
-        Assert.Equal("second-preview-token", settings.PreviewToken);
     }
 
     [Fact]

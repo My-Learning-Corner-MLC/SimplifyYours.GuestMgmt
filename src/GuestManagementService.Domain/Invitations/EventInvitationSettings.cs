@@ -3,7 +3,8 @@ namespace GuestManagementService.Domain.Invitations;
 /// <summary>
 /// The invitation an organiser has composed for one event: which template (snapshotted from
 /// <c>template-management-service</c> at the moment it was chosen), the content that fills it, and
-/// the two anonymous surfaces derived from it — the public event link and the organiser's preview.
+/// the public event link derived from it. Previewing a template is entirely
+/// template-management-service's own concern — it never touches this row.
 /// </summary>
 /// <remarks>
 /// Deliberately separate from <c>EventReference</c>. That is a replicated read model of data owned
@@ -85,14 +86,6 @@ public sealed class EventInvitationSettings
     /// resolving while the link stays live.
     /// </summary>
     public string? PublicEventToken { get; private set; }
-
-    /// <summary>
-    /// Short-lived, organiser-only credential that lets an <c>&lt;iframe&gt;</c> (which cannot carry
-    /// an <c>Authorization</c> header) reach the render path. Re-issuing overwrites the previous one.
-    /// </summary>
-    public string? PreviewToken { get; private set; }
-
-    public DateTimeOffset? PreviewExpiresAt { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -218,22 +211,6 @@ public sealed class EventInvitationSettings
         }
 
         PublicEventToken = newToken;
-        UpdatedAt = updatedAt.ToUniversalTime();
-    }
-
-    /// <summary>
-    /// Issues (or re-issues) a short-lived preview token. Re-issuing overwrites the previous token,
-    /// which is the simplest possible invalidation.
-    /// </summary>
-    public void IssuePreviewToken(string token, DateTimeOffset expiresAt, DateTimeOffset updatedAt)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            throw new ArgumentException("A preview token is required.", nameof(token));
-        }
-
-        PreviewToken = token;
-        PreviewExpiresAt = expiresAt.ToUniversalTime();
         UpdatedAt = updatedAt.ToUniversalTime();
     }
 

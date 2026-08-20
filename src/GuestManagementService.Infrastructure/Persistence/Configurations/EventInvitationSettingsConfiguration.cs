@@ -59,16 +59,6 @@ internal sealed class EventInvitationSettingsConfiguration : IEntityTypeConfigur
             .IsUnique()
             .HasDatabaseName("ix_event_invitation_settings_public_event_token");
 
-        builder.Property(settings => settings.PreviewToken)
-            .HasColumnName("preview_token");
-
-        builder.HasIndex(settings => settings.PreviewToken)
-            .IsUnique()
-            .HasDatabaseName("ix_event_invitation_settings_preview_token");
-
-        builder.Property(settings => settings.PreviewExpiresAt)
-            .HasColumnName("preview_expires_at");
-
         // jsonb, matching how guests.metadata is stored: the field set is template- and
         // event-type dependent, so columns would mean a migration per template.
         builder.Property(settings => settings.FieldValues)

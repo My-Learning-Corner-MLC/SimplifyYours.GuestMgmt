@@ -3,7 +3,6 @@ using GuestManagementService.Api.Responses;
 using GuestManagementService.Api.Security;
 using GuestManagementService.Application.Invitations;
 using GuestManagementService.Application.Invitations.GetInvitationSettings;
-using GuestManagementService.Application.Invitations.IssuePreviewToken;
 using GuestManagementService.Application.Invitations.RotatePublicToken;
 using GuestManagementService.Application.Invitations.SaveInvitationSettings;
 using GuestManagementService.Contracts.Invitations;
@@ -47,11 +46,6 @@ public static class InvitationSettingsEndpoints
         group
             .MapPost("public-token", RotatePublicTokenAsync)
             .WithName("RotateInvitationPublicToken")
-            .RequireAuthorization(Permissions.EventsUpdate);
-
-        group
-            .MapPost("preview-token", IssuePreviewTokenAsync)
-            .WithName("IssueInvitationPreviewToken")
             .RequireAuthorization(Permissions.EventsUpdate);
 
         return endpoints;
@@ -161,31 +155,6 @@ public static class InvitationSettingsEndpoints
             }
 
             return Results.Ok(new PublicTokenResponse(Enabled: true, result.PublicEventToken));
-        }
-        catch (ValidationException exception)
-        {
-            return ApiErrorResults.ValidationProblem(ToValidationErrors(exception), httpContext);
-        }
-    }
-
-    internal static async Task<IResult> IssuePreviewTokenAsync(
-        Guid eventId,
-        HttpContext httpContext,
-        ISender sender,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await sender.Send(new IssuePreviewTokenCommand(eventId), cancellationToken);
-
-            if (result.Status != IssuePreviewTokenStatus.Issued)
-            {
-                return ApiErrorResults.NotFound(
-                    "The event was not found. It may have been deleted or the id may be incorrect.",
-                    httpContext);
-            }
-
-            return Results.Ok(new PreviewTokenResponse(result.Token!, result.ExpiresAt!.Value));
         }
         catch (ValidationException exception)
         {

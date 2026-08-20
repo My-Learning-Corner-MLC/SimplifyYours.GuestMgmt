@@ -232,14 +232,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("js_content");
 
-                    b.Property<DateTimeOffset?>("PreviewExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("preview_expires_at");
-
-                    b.Property<string>("PreviewToken")
-                        .HasColumnType("text")
-                        .HasColumnName("preview_token");
-
                     b.Property<string>("PublicEventToken")
                         .HasColumnType("text")
                         .HasColumnName("public_event_token");
@@ -273,10 +265,6 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
 
                     b.HasKey("EventId")
                         .HasName("pk_event_invitation_settings");
-
-                    b.HasIndex("PreviewToken")
-                        .IsUnique()
-                        .HasDatabaseName("ix_event_invitation_settings_preview_token");
 
                     b.HasIndex("PublicEventToken")
                         .IsUnique()

@@ -16,10 +16,10 @@ public interface IInvitationRenderer
     /// </param>
     /// <param name="guestName">
     /// The one value that is never typed: it belongs to whichever guest's link is being opened.
-    /// <see langword="null"/> when no guest is bound — the public event link and the public preview
-    /// mode both render this way. <b>Never pass an empty string for "no guest"</b>: Scriban's
-    /// <c>{{ if guestName }}</c> treats only <see langword="null"/> and <see langword="false"/> as
-    /// falsy, so an empty string still renders the guest block and the RSVP trigger.
+    /// <see langword="null"/> when no guest is bound — the public event link renders this way.
+    /// <b>Never pass an empty string for "no guest"</b>: Scriban's <c>{{ if guestName }}</c> treats
+    /// only <see langword="null"/> and <see langword="false"/> as falsy, so an empty string still
+    /// renders the guest block and the RSVP trigger.
     /// </param>
     /// <param name="eventType">Selects which merge tokens the template may resolve.</param>
     /// <remarks>

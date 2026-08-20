@@ -130,9 +130,9 @@ public class EndpointPolicyMappingTests
             .ToArray();
 
         // Reading is events.view; every write action — saving (which also folds in the public-link
-        // enable/disable), rotating the public token, and preview issuance — reuses events.update,
-        // because each is a way of composing the event's presentation. No endpoint in this group
-        // may end up with no policy at all.
+        // enable/disable) and rotating the public token — reuses events.update, because each is a
+        // way of composing the event's presentation. No endpoint in this group may end up with no
+        // policy at all.
         Assert.Equal(new[] { Permissions.EventsUpdate, Permissions.EventsView }.OrderBy(p => p), policies);
         Assert.All(endpoints, e => Assert.NotEmpty(e.Metadata.GetOrderedMetadata<IAuthorizeData>()));
     }
