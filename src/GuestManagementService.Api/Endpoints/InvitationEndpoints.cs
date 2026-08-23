@@ -73,7 +73,6 @@ public static class InvitationEndpoints
 
         return Results.Ok(ToResponse(
             result.Guest!,
-            result.Content!,
             result.Deadline,
             result.IsOpen));
     }
@@ -147,7 +146,6 @@ public static class InvitationEndpoints
                 SubmitRsvpStatus.Accepted => Results.Ok(
                     ToResponse(
                         result.Guest!,
-                        result.Content!,
                         result.Deadline,
                         isOpen: true)),
                 SubmitRsvpStatus.Closed => ApiErrorResults.Conflict(
@@ -184,14 +182,12 @@ public static class InvitationEndpoints
 
     public static GetInvitationResponse ToResponse(
         Guest guest,
-        IReadOnlyDictionary<string, string?> content,
         DateTimeOffset? deadline,
         bool isOpen)
     {
         return new GetInvitationResponse(
             // First name only. The page greets the guest; it does not need to prove who they are.
             guest.FirstName,
-            content,
             new InvitationRsvpResponse(
                 guest.RsvpStatus.ToString(),
                 InvitationMetadata.ReadPlusOnesAllowed(guest.Metadata),

@@ -27,7 +27,6 @@ namespace GuestManagementService.Application.Invitations.SubmitRsvp;
 public sealed class SubmitRsvpCommandHandler(
     IGuestRepository guestRepository,
     IEventReferenceRepository eventReferenceRepository,
-    IEventInvitationSettingsRepository settingsRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     ILogger<SubmitRsvpCommandHandler> logger)
@@ -100,16 +99,9 @@ public sealed class SubmitRsvpCommandHandler(
             guest.Id,
             status);
 
-        // Read after the write so the confirmation the guest sees is assembled from the same saved
-        // invitation the page was rendered from, rather than the API layer reaching for it itself.
-        var settings = await settingsRepository.GetByEventIdAsync(eventReference.EventId, cancellationToken);
-
         return SubmitRsvpResult.Accepted(
             guest,
             eventReference,
-            RsvpDeadline.Compute(eventReference.EventDate, eventReference.TimeZoneId),
-            settings is null
-                ? new Dictionary<string, string?>()
-                : InvitationFieldValues.Parse(settings.FieldValues));
+            RsvpDeadline.Compute(eventReference.EventDate, eventReference.TimeZoneId));
     }
 }

@@ -85,18 +85,6 @@ public sealed class GetInvitationQueryHandlerTests
         Assert.False(result.IsOpen);
     }
 
-    /// <summary>The organiser's saved invitation content, as the endpoint reads it.</summary>
-    private static Dictionary<string, string?> Content() => new(StringComparer.Ordinal)
-    {
-        ["brideName"] = "Amara",
-        ["groomName"] = "Julian",
-        ["eventDate"] = "Saturday, September 12, 2026",
-        ["eventTime"] = "4:00 PM",
-        ["venueName"] = "Rosewood Hall",
-        ["venueAddress"] = "12 Sample Street",
-        ["venueNotes"] = null,
-    };
-
     [Fact]
     public void Response_ExposesOnlyWhatThePageRenders()
     {
@@ -105,7 +93,6 @@ public sealed class GetInvitationQueryHandlerTests
         // rather than by inspecting a few properties.
         var response = InvitationEndpoints.ToResponse(
             NewGuest(),
-            Content(),
             new DateTimeOffset(2026, 9, 11, 16, 59, 59, TimeSpan.Zero),
             isOpen: true);
 
@@ -119,7 +106,6 @@ public sealed class GetInvitationQueryHandlerTests
         Assert.DoesNotContain(Token, json, StringComparison.Ordinal);
 
         Assert.Contains("Ada", json, StringComparison.Ordinal);
-        Assert.Contains("Rosewood Hall", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -127,23 +113,11 @@ public sealed class GetInvitationQueryHandlerTests
     {
         var guest = NewGuest("{\"plusOnes\":2,\"plusOnesConfirmed\":1,\"dietaryNotes\":\"Pescatarian\"}");
 
-        var response = InvitationEndpoints.ToResponse(guest, Content(), null, isOpen: true);
+        var response = InvitationEndpoints.ToResponse(guest, null, isOpen: true);
 
         Assert.Equal(2, response.Rsvp.PlusOnesAllowed);
         Assert.Equal(1, response.Rsvp.PlusOnesConfirmed);
         Assert.Equal("Pescatarian", response.Rsvp.DietaryNotes);
-    }
-
-    [Fact]
-    public void Response_CarriesTheOrganisersContentRatherThanTheEventRecord()
-    {
-        // AC 51: an event edited after the invitation was composed must not silently rewrite what
-        // guests were shown, so the payload comes from the saved settings.
-        var response = InvitationEndpoints.ToResponse(NewGuest(), Content(), null, isOpen: true);
-
-        Assert.Equal("Amara", response.Content["brideName"]);
-        Assert.Equal("Rosewood Hall", response.Content["venueName"]);
-        Assert.Null(response.Content["venueNotes"]);
     }
 
     private static async Task<GetInvitationResult> Handle(
@@ -170,16 +144,6 @@ public sealed class GetInvitationQueryHandlerTests
 
         Assert.Equal(GetInvitationStatus.NotFound, result.Status);
         Assert.Null(result.Guest);
-        Assert.Null(result.Content);
-    }
-
-    [Fact]
-    public async Task Handle_CarriesTheSavedContentSoTheApiNeverLoadsItItself()
-    {
-        var result = await Handle(NewGuest(), NewEvent());
-
-        Assert.Equal(GetInvitationStatus.Found, result.Status);
-        Assert.Equal("Ada's party", result.Content!["eventName"]);
     }
 
     [Fact]

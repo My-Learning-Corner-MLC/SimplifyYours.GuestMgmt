@@ -258,7 +258,6 @@ public sealed class InvitationEndpointsTests
             guest,
             eventReference,
             Now.AddDays(30),
-            isOpen: true,
-            new Dictionary<string, string?> { ["eventName"] = "Ada's wedding" });
+            isOpen: true);
     }
 }

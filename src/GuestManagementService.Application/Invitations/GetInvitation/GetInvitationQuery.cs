@@ -21,20 +21,14 @@ public sealed record GetInvitationResult(
     Guest? Guest = null,
     EventReference? Event = null,
     DateTimeOffset? Deadline = null,
-    bool IsOpen = false,
-    /// <summary>
-    /// The organiser's saved merge values. Carried on the result so the API layer never has to
-    /// reach past MediatR to a repository to assemble a response.
-    /// </summary>
-    IReadOnlyDictionary<string, string?>? Content = null)
+    bool IsOpen = false)
 {
     public static GetInvitationResult Found(
         Guest guest,
         EventReference eventReference,
         DateTimeOffset? deadline,
-        bool isOpen,
-        IReadOnlyDictionary<string, string?> content) =>
-        new(GetInvitationStatus.Found, guest, eventReference, deadline, isOpen, content);
+        bool isOpen) =>
+        new(GetInvitationStatus.Found, guest, eventReference, deadline, isOpen);
 
     public static GetInvitationResult NotFound() => new(GetInvitationStatus.NotFound);
 }

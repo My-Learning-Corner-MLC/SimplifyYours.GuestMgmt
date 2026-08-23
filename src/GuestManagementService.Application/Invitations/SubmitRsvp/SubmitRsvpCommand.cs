@@ -29,19 +29,13 @@ public sealed record SubmitRsvpResult(
     SubmitRsvpStatus Status,
     Guest? Guest = null,
     EventReference? Event = null,
-    DateTimeOffset? Deadline = null,
-    /// <summary>
-    /// The organiser's saved merge values, so the confirmation response can be built without the
-    /// API layer loading them from a repository itself.
-    /// </summary>
-    IReadOnlyDictionary<string, string?>? Content = null)
+    DateTimeOffset? Deadline = null)
 {
     public static SubmitRsvpResult Accepted(
         Guest guest,
         EventReference eventReference,
-        DateTimeOffset? deadline,
-        IReadOnlyDictionary<string, string?> content) =>
-        new(SubmitRsvpStatus.Accepted, guest, eventReference, deadline, content);
+        DateTimeOffset? deadline) =>
+        new(SubmitRsvpStatus.Accepted, guest, eventReference, deadline);
 
     public static SubmitRsvpResult NotFound() => new(SubmitRsvpStatus.NotFound);
 
