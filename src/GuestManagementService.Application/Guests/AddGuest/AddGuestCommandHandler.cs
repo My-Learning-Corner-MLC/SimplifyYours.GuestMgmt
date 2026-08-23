@@ -12,6 +12,7 @@ public sealed class AddGuestCommandHandler(
     IEventReferenceRepository eventReferenceRepository,
     IGuestRepository guestRepository,
     IGuestMetadataMapperFactory metadataMapperFactory,
+    IInvitationTokenGenerator invitationTokenGenerator,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     ILogger<AddGuestCommandHandler> logger)
@@ -82,6 +83,7 @@ public sealed class AddGuestCommandHandler(
             normalizedEmail,
             gender,
             metadataJson,
+            invitationTokenGenerator.Generate(),
             now);
 
         await guestRepository.AddAsync(guest, cancellationToken);

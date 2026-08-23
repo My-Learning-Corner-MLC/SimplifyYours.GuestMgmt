@@ -27,11 +27,14 @@ public sealed class BirthdayGuestMetadataMapperTests
     {
         var element = ParseElement(new { plusOnes = 2, dietaryNotes = "Vegan" });
 
+        // dietaryNotes is ignored on the organiser path — it is the guest's answer, written by the
+        // RSVP form, not something the organiser fills in for them.
+
         var json = mapper.Serialize(element);
 
         Assert.NotNull(json);
         Assert.Contains("\"plusOnes\":2", json);
-        Assert.Contains("\"dietaryNotes\":\"Vegan\"", json);
+        Assert.DoesNotContain("\"dietaryNotes\":\"Vegan\"", json);
     }
 
     [Fact]
@@ -43,14 +46,6 @@ public sealed class BirthdayGuestMetadataMapperTests
         Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.PlusOnes");
     }
 
-    [Fact]
-    public void Serialize_WhenDietaryNotesTooLong_ThrowsValidationException()
-    {
-        var element = ParseElement(new { dietaryNotes = new string('a', 501) });
-
-        var exception = Assert.Throws<ValidationException>(() => mapper.Serialize(element));
-        Assert.Contains(exception.Errors, error => error.PropertyName == "EventMetadata.DietaryNotes");
-    }
 
     [Fact]
     public void ToContract_WhenStoredMetadataIsNull_ReturnsNull()

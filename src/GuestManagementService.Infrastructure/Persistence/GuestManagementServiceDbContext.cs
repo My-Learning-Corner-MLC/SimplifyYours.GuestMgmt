@@ -12,6 +12,8 @@ public sealed class GuestManagementServiceDbContext(DbContextOptions<GuestManage
 
     public DbSet<EventReference> EventReferences => Set<EventReference>();
 
+    public DbSet<Domain.Invitations.EventInvitationSettings> EventInvitationSettings => Set<Domain.Invitations.EventInvitationSettings>();
+
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

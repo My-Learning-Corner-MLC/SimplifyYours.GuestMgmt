@@ -11,6 +11,10 @@ public sealed record GuestDetails(
     string? EmailAddress,
     string Gender,
     object? EventMetadata,
+    string DeliveryStatus,
+    string RsvpStatus,
+    DateTimeOffset? RespondedAt,
+    int? PlusOnesConfirmed,
     DateTimeOffset CreatedAt)
 {
     /// <summary>
@@ -29,6 +33,10 @@ public sealed record GuestDetails(
             guest.EmailAddress,
             GuestParsing.ToContractValue(guest.Gender),
             metadataMapper.ToContract(guest.Metadata),
+            guest.DeliveryStatus.ToString(),
+            guest.RsvpStatus.ToString(),
+            guest.RespondedAt,
+            Invitations.InvitationMetadata.ReadPlusOnesConfirmed(guest.Metadata),
             guest.CreatedAt);
     }
 }

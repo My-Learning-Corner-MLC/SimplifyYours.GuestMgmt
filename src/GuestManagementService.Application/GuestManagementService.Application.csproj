@@ -8,6 +8,9 @@
   <ItemGroup>
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.5.1" />
     <PackageReference Include="MediatR" Version="12.4.1" />
+    <!-- Used only to validate a fetched template parses before it is snapshotted (see
+         SaveInvitationSettingsCommandHandler). No rendering happens in this layer. -->
+    <PackageReference Include="Scriban" Version="7.2.6" />
   </ItemGroup>
 
   <ItemGroup>

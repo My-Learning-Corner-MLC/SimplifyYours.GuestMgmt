@@ -98,6 +98,14 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DeliveryStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("NotSent")
+                        .HasColumnName("delivery_status");
+
                     b.Property<string>("EmailAddress")
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)")
@@ -118,6 +126,12 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("gender");
+
+                    b.Property<string>("InvitationToken")
+                        .IsRequired()
+                        .HasMaxLength(43)
+                        .HasColumnType("character varying(43)")
+                        .HasColumnName("invitation_token");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -146,6 +160,18 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("phone_number");
 
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("responded_at");
+
+                    b.Property<string>("RsvpStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("NoResponse")
+                        .HasColumnName("rsvp_status");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -160,6 +186,10 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                     b.HasIndex("EventId")
                         .HasDatabaseName("ix_guests_event_id");
 
+                    b.HasIndex("InvitationToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_guests_invitation_token");
+
                     b.HasIndex("EventId", "NormalizedEmailAddress")
                         .IsUnique()
                         .HasDatabaseName("ux_guests_event_id_normalized_email_address")
@@ -173,6 +203,74 @@ namespace GuestManagementService.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_guests_tenant_id_event_id");
 
                     b.ToTable("guests", (string)null);
+                });
+
+            modelBuilder.Entity("GuestManagementService.Domain.Invitations.EventInvitationSettings", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CssContent")
+                        .HasColumnType("text")
+                        .HasColumnName("css_content");
+
+                    b.Property<string>("FieldValues")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_values");
+
+                    b.Property<string>("HtmlContent")
+                        .HasColumnType("text")
+                        .HasColumnName("html_content");
+
+                    b.Property<string>("JsContent")
+                        .HasColumnType("text")
+                        .HasColumnName("js_content");
+
+                    b.Property<string>("PublicEventToken")
+                        .HasColumnType("text")
+                        .HasColumnName("public_event_token");
+
+                    b.Property<bool>("PublicLinkEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("public_link_enabled");
+
+                    b.Property<Guid?>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<string>("TemplateName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("template_name");
+
+                    b.Property<int?>("TemplateVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_version");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("EventId")
+                        .HasName("pk_event_invitation_settings");
+
+                    b.HasIndex("PublicEventToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_event_invitation_settings_public_event_token");
+
+                    b.ToTable("event_invitation_settings", (string)null);
                 });
 
             modelBuilder.Entity("GuestManagementService.Infrastructure.Persistence.Inbox.InboxMessage", b =>

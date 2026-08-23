@@ -11,6 +11,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="Scriban" Version="7.2.6" />
     <PackageReference Include="SimplifyYours.Event.Consumer" Version="1.1.0" />
   </ItemGroup>
 
@@ -23,5 +24,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the bridge script — the runtime that reports an RSVP press to the parent frame. Not
+         scaffolding: template content itself (html/css/js) now lives on EventInvitationSettings as
+         a per-event snapshot, never embedded in this assembly. -->
+    <EmbeddedResource Include="Invitations\Templates\bridge.js" />
+  </ItemGroup>
 
 </Project>

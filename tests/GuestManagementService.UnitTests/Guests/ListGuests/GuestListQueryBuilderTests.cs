@@ -161,6 +161,7 @@ public sealed class GuestListQueryBuilderTests
             email,
             Gender.PreferNotToSay,
             null,
+            "tok-test-invitation-token",
             createdAt);
     }
 }

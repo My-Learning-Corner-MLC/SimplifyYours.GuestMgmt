@@ -1,6 +1,7 @@
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Invitations;
 using GuestManagementService.Contracts.IntegrationEvents;
 using GuestManagementService.Infrastructure.Messaging;
 using GuestManagementService.Infrastructure.Persistence;
@@ -31,8 +32,34 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
 
+        services.AddSingleton<IInvitationTokenGenerator, Guests.InvitationTokenGenerator>();
+        services.AddSingleton<IInvitationRenderer>(_ => new Invitations.ScribanInvitationRenderer(configuration));
+        services.AddSingleton<IInvitationLinkBuilder>(_ => new Guests.InvitationLinkBuilder(configuration));
+
+        // Needed by TemplateCatalogClient to forward the organiser's own bearer token — see its
+        // remarks. Not otherwise used in this service.
+        services.AddHttpContextAccessor();
+
+        // Typed client for template-management-service's catalog. Called from exactly one place —
+        // the authenticated save path — never from the anonymous render path. See
+        // ITemplateCatalogClient's remarks for why that boundary matters.
+        services.AddHttpClient<ITemplateCatalogClient, Invitations.TemplateCatalogClient>((sp, client) =>
+        {
+            var baseUrl = configuration["TemplateManagement:BaseUrl"];
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                throw new InvalidOperationException(
+                    "Configuration value 'TemplateManagement:BaseUrl' is required to reach the "
+                    + "template catalog.");
+            }
+
+            client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();
+        services.AddScoped<IEventInvitationSettingsRepository, EfCoreEventInvitationSettingsRepository>();
         services.AddScoped<IEventInboxStore, GuestManagementInboxStore>();
         services.AddScoped<IIntegrationEventHandler<EventReferencePayload>, EventReferenceIntegrationEventHandler>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork>();

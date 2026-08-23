@@ -192,6 +192,107 @@ Response body:
 }
 ```
 
+### Invitation endpoints
+
+Every invitation-related route — anonymous or authenticated — lives under the shared `/invitations`
+prefix, so the gateway exposes one dedicated `/api/v1/invitations/{**remainder}` route for all of
+them. Three are **anonymous**: the per-guest invitation token in the URL is the only credential.
+They are the service's only unauthenticated surface, and they serve guest data, so they are rate
+limited (30/min per token and 300/min per IP on the reads; 10/min and 60/min on the write) and
+return `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
+
+Every failure returns the same `404` — unknown token, malformed token, deleted event, and an event
+whose invitation was never composed are indistinguishable, so the endpoints cannot be used to probe
+which tokens are real.
+
+One literal first-path-segment is **reserved** under `/invitations` and can never collide with a
+real (128-bit opaque) token: `settings` (the organiser routes, below). `InvitationRateLimits`
+explicitly excludes it when deciding whether a request is the anonymous, token-rate-limited kind.
+The guest-invitation-link lookup below is unrelated to this reservation — it lives entirely under
+`/guests`, outside the `/invitations` prefix.
+
+#### `GET /guests/{guestId}/invitation-link`
+
+Authenticated, requires `guests.view`. Returns `{ guestId, invitationToken, invitationUrl }`.
+
+Fetched one guest at a time on purpose. The token is credential-like, so it never appears in
+`POST /guests/query`: one captured list response would otherwise expose every live invitation for
+the event at once.
+
+#### `GET /invitations/{token}` — anonymous
+
+Returns the guest's first name, the organiser's saved merge values, and the RSVP state
+(`status`, `plusOnesAllowed`, `plusOnesConfirmed`, `dietaryNotes`, `deadline`, `isOpen`,
+`respondedAt`). Deliberately narrow — no email, phone, guest id, tenant id, or any other guest.
+
+#### `GET /invitations/{token}/render` — anonymous
+
+Returns a complete HTML document, not JSON: the invitation as the guest sees it, rendered from the
+organiser's saved content. Served into a sandboxed iframe, so the response carries
+`Content-Security-Policy: frame-ancestors <Invitations:PublicBaseUrl>`.
+
+All merge values are HTML-encoded as the model is built, since Scriban does not escape output. A
+template cannot opt out of it.
+
+#### `POST /invitations/{token}/rsvp` — anonymous
+
+Records the guest's own answer: `{ rsvpStatus, plusOnesConfirmed, dietaryNotes }`.
+
+`POST` only. Email link-scanners pre-fetch every URL they see, so a `GET` that recorded an answer
+would manufacture phantom RSVPs from bots.
+
+- `rsvpStatus` is one of `Accepted`, `Declined`, `Maybe`.
+- Only `Accepted` may carry a non-zero `plusOnesConfirmed`, and it can never exceed the organiser's
+  allowance — the guest's answer never rewrites `plusOnesAllowed`.
+- `dietaryNotes` caps at 500 characters.
+- A guest may change their answer until the deadline (end of the day before the event, in the
+  event's own timezone). Afterwards both first submissions and edits return `409`.
+- `respondedAt` records the first response and is not moved by later edits.
+
+#### `GET` / `PUT /invitations/settings/events/{eventId}`
+
+Authenticated. Reading requires `events.view`; writing requires `events.update` — composing an
+invitation is editing the event's presentation, so both reuse event-service's permissions rather
+than adding new ones.
+
+`PUT` saves `{ templateId, fieldValues, publicLinkEnabled? }`. Required fields depend on the event
+type (a wedding needs `brideName`/`groomName`, a birthday needs `eventName`; `venueNotes` is always
+optional). Saving re-renders every already-issued link immediately.
+
+`publicLinkEnabled` folds the public-link toggle into this same call rather than a separate
+endpoint — composing content and turning on the link it's shared through are one organiser action.
+Omitted (`null`) is a genuine no-op and leaves an existing link untouched. `true` enables it,
+minting a token if none exists yet. `false` **disables and revokes** the token — a real
+revocation, not just a visibility flag — so re-enabling later always mints a brand-new token rather
+than reviving a URL that may already have been shared.
+
+`GET` (and the settings echoed back by `PUT`) includes `templateName` alongside `templateId` — the
+template's display name, copied into this service's own storage at save time. Callers never need a
+second call to template-management-service just to show a name for an id; it's null exactly when
+`templateId` is null.
+
+Saving fetches the template from template-management-service, forwarding the organiser's own
+bearer token from the inbound request onto that outbound call — it's a delegated action taken on
+the organiser's behalf, not a separate service identity, and the organiser already holds whatever
+claim the catalog checks. If there is no incoming token (unexpected in practice, since this
+endpoint requires authorization) the outbound call proceeds without one and the catalog's 401
+surfaces through the existing "template unavailable" failure path rather than crashing.
+
+#### `POST /invitations/settings/events/{eventId}/public-token`
+
+Authenticated, requires `events.update`. Body: `{ "action": "rotate" }` — `rotate` is the only
+supported action; anything else returns `400`.
+
+Replaces the public token so the previously shared URL immediately stops resolving, while the link
+stays enabled at the new one. This is a narrower action than the enable/disable above: "give me a
+fresh link," not "turn it on or off." Requires the public link to already be enabled — rotating a
+disabled link is meaningless and returns a validation error.
+
+Previewing a template — chosen or not — is not this service's concern: it lives entirely on
+template-management-service's own preview-token/render endpoints, which render with sample data
+only and never touch this service's storage. `GET /invitations/{token}/render` above only ever
+serves the committed invitation via a guest or public-event token.
+
 ## Configuration
 
 The service requires `ConnectionStrings:GuestManagementServiceDb` at runtime. Keep real connection strings out of source control and provide them through environment variables, user secrets, or local-only configuration.
@@ -203,6 +304,20 @@ Protected endpoints also require:
 - `Auth:Issuer`: Identity Service issuer URL, for example `https://localhost:15200/`.
 - `Auth:Audience`: expected access-token audience, currently `simplify-yours-api`.
 - `Auth:AccessTokenEncryptionKeyBase64`: base64-encoded shared access-token encryption key.
+
+The invitation endpoints also require:
+
+- `Invitations:PublicBaseUrl`: the origin the SPA is served from, for example
+  `https://local.simplifyyours.com`. **The service fails to start without it.** It is both the
+  origin named in the render endpoint's `frame-ancestors` CSP and the `postMessage` target baked
+  into every rendered invitation, so a wrong value produces a blank iframe and a dead RSVP button
+  rather than an error. `appsettings.json` ships it blank on purpose so a deployment that forgets to
+  set it fails loudly instead of serving invitations that look fine and do nothing.
+- `Invitations:TrustedProxyNetworks`: optional CIDR list of proxies whose `X-Forwarded-For` is
+  believed, defaulting to the RFC 1918 private ranges plus loopback. This is what makes the per-IP
+  rate limit per-*client*: without it every request carries the API gateway's address and all guests
+  share one bucket. Narrow it to the gateway's own address if the service is ever reachable
+  directly.
 
 Keep real token encryption keys and bearer tokens out of source control.
 
@@ -264,8 +379,12 @@ dotnet test GuestManagementService.sln --configuration Release --no-build
 ### Test With Coverage
 
 ```bash
-dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:Threshold=80 /p:ThresholdType=line /p:ThresholdStat=total
+dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=TestResults/coverage.cobertura.xml
 ```
+
+On a pull request CI then runs `diff-cover` against the base branch and fails under **50% of
+changed lines**. It does not enforce a repo-wide total — this block previously showed an
+`/p:Threshold=80` total-coverage gate that `ci.yml` does not run.
 
 ### Run The API Locally
 
@@ -310,5 +429,9 @@ Keep this README up to date during development. When a feature introduces a new 
 ```bash
 dotnet restore GuestManagementService.sln
 dotnet build GuestManagementService.sln --configuration Release --no-restore
-dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:Threshold=80 /p:ThresholdType=line /p:ThresholdStat=total
+dotnet test GuestManagementService.sln --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=TestResults/coverage.cobertura.xml
 ```
+
+On a pull request CI then runs `diff-cover` against the base branch and fails under **50% of
+changed lines**. It does not enforce a repo-wide total — this block previously showed an
+`/p:Threshold=80` total-coverage gate that `ci.yml` does not run.

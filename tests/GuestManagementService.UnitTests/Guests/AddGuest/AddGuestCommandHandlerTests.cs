@@ -29,6 +29,11 @@ public sealed class AddGuestCommandHandlerTests
             new BirthdayGuestMetadataMapper(new BirthdayGuestMetadataRequestValidator())
         ]);
 
+    // Deterministic stand-in for the real CSPRNG generator: these tests assert that a token is
+    // stored, not that it is unpredictable. Randomness is covered in InvitationTokenGeneratorTests.
+    private static readonly IInvitationTokenGenerator TestInvitationTokenGenerator =
+        new StubInvitationTokenGenerator();
+
     [Fact]
     public async Task Handle_WhenEventExists_CreatesGuest()
     {
@@ -51,6 +56,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -102,6 +108,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -125,7 +132,9 @@ public sealed class AddGuestCommandHandlerTests
         Assert.Equal("Family", metadata.Relationship);
         Assert.Equal("Bride", metadata.Side);
         Assert.Equal(2, metadata.PlusOnes);
-        Assert.Equal("Pescatarian", metadata.DietaryNotes);
+        // The organiser no longer supplies dietary notes; the guest does, through the RSVP
+        // form. Anything sent on this path is ignored rather than stored.
+        Assert.Null(metadata.DietaryNotes);
         Assert.NotNull(savedGuest);
         Assert.NotNull(savedGuest.Metadata);
         Assert.Contains("\"relationship\":\"Family\"", savedGuest.Metadata);
@@ -154,6 +163,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -177,7 +187,9 @@ public sealed class AddGuestCommandHandlerTests
         Assert.NotNull(result.Guest);
         var metadata = Assert.IsType<BirthdayGuestMetadataResponse>(result.Guest.EventMetadata);
         Assert.Equal(2, metadata.PlusOnes);
-        Assert.Equal("Pescatarian", metadata.DietaryNotes);
+        // The organiser no longer supplies dietary notes; the guest does, through the RSVP
+        // form. Anything sent on this path is ignored rather than stored.
+        Assert.Null(metadata.DietaryNotes);
         Assert.NotNull(savedGuest);
         Assert.NotNull(savedGuest.Metadata);
         Assert.DoesNotContain("relationship", savedGuest.Metadata);
@@ -200,6 +212,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -239,6 +252,7 @@ public sealed class AddGuestCommandHandlerTests
             eventReferences.Object,
             guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
@@ -485,8 +499,14 @@ public sealed class AddGuestCommandHandlerTests
             eventReferenceRepository ?? eventReferences.Object,
             guestRepository ?? guests.Object,
             MetadataMapperFactory,
+            TestInvitationTokenGenerator,
             unitOfWork.Object,
             timeProvider.Object,
             NullLogger<AddGuestCommandHandler>.Instance);
+    }
+
+    private sealed class StubInvitationTokenGenerator : IInvitationTokenGenerator
+    {
+        public string Generate() => "tok-test-invitation-token";
     }
 }

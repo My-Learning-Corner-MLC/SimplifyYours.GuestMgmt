@@ -63,6 +63,34 @@ internal sealed class GuestConfiguration : IEntityTypeConfiguration<Guest>
             .HasColumnName("metadata")
             .HasColumnType("jsonb");
 
+        // 128-bit token, base64url-encoded without padding = 22 characters. The column leaves a
+        // little headroom rather than pinning exactly 22.
+        builder.Property(guest => guest.InvitationToken)
+            .HasColumnName("invitation_token")
+            .HasMaxLength(43)
+            .IsRequired();
+
+        builder.HasIndex(guest => guest.InvitationToken)
+            .IsUnique()
+            .HasDatabaseName("ix_guests_invitation_token");
+
+        builder.Property(guest => guest.DeliveryStatus)
+            .HasColumnName("delivery_status")
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasDefaultValue(DeliveryStatus.NotSent)
+            .IsRequired();
+
+        builder.Property(guest => guest.RsvpStatus)
+            .HasColumnName("rsvp_status")
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasDefaultValue(RsvpStatus.NoResponse)
+            .IsRequired();
+
+        builder.Property(guest => guest.RespondedAt)
+            .HasColumnName("responded_at");
+
         builder.Property(guest => guest.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
