@@ -4,28 +4,9 @@ using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
 using GuestManagementService.Application.Abstractions.Invitations;
-using GuestManagementService.Application.Authorization;
 using MediatR;
 
 namespace GuestManagementService.Application.Invitations.RotatePublicToken;
-
-/// <summary>
-/// Replaces the public event token so the previously shared URL immediately 404s, while the link
-/// stays enabled at a new URL. Distinct from disabling: that turns the link off, this issues a
-/// fresh one. Requires the link to already be enabled — rotating a disabled link is meaningless.
-/// </summary>
-public sealed record RotatePublicTokenCommand(Guid EventId) : BaseCommand, IRequest<RotatePublicTokenResult>;
-
-public enum RotatePublicTokenStatus
-{
-    Rotated = 0,
-    EventNotFound = 1,
-}
-
-public sealed record RotatePublicTokenResult(RotatePublicTokenStatus Status, string? PublicEventToken = null)
-{
-    public static RotatePublicTokenResult EventNotFound() => new(RotatePublicTokenStatus.EventNotFound);
-}
 
 /// <summary>Owner-scoped, same reasoning as the other invitation-settings handlers.</summary>
 public sealed class RotatePublicTokenCommandHandler(

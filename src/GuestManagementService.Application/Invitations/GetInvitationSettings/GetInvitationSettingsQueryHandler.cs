@@ -1,31 +1,8 @@
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Invitations;
-using GuestManagementService.Application.Authorization;
-using GuestManagementService.Domain.EventReferences;
 using MediatR;
 
 namespace GuestManagementService.Application.Invitations.GetInvitationSettings;
-
-public sealed record GetInvitationSettingsQuery(Guid EventId) : BaseCommand, IRequest<GetInvitationSettingsResult>;
-
-public enum GetInvitationSettingsStatus
-{
-    Found = 0,
-    EventNotFound = 1,
-}
-
-public sealed record GetInvitationSettingsResult(
-    GetInvitationSettingsStatus Status,
-    string EventType = "",
-    string? TemplateId = null,
-    string? TemplateName = null,
-    IReadOnlyDictionary<string, string?>? FieldValues = null,
-    bool IsConfigured = false,
-    bool PublicLinkEnabled = false,
-    string? PublicEventToken = null)
-{
-    public static GetInvitationSettingsResult EventNotFound() => new(GetInvitationSettingsStatus.EventNotFound);
-}
 
 /// <summary>
 /// Returns the invitation an organiser has composed, or the defaults to start from.
@@ -86,32 +63,7 @@ public sealed class GetInvitationSettingsQueryHandler(
             eventReference.EventType,
             TemplateId: null,
             TemplateName: null,
-            BuildDefaults(eventReference),
+            GetInvitationSettingsDefaults.BuildDefaults(eventReference),
             IsConfigured: false);
-    }
-
-    /// <summary>
-    /// Pre-fill from the replicated event record. Couple names have no event-record source, so they
-    /// start empty — that is precisely why the form exists.
-    /// </summary>
-    internal static Dictionary<string, string?> BuildDefaults(EventReference eventReference)
-    {
-        var defaults = new Dictionary<string, string?>(StringComparer.Ordinal);
-
-        foreach (var field in InvitationFieldSchema.AllFor(eventReference.EventType))
-        {
-            defaults[field] = field switch
-            {
-                InvitationFieldSchema.EventName => eventReference.EventName,
-                InvitationFieldSchema.EventDate => eventReference.EventDate?.ToString("D"),
-                InvitationFieldSchema.EventTime => eventReference.EventStartTime?.ToString("t"),
-                InvitationFieldSchema.VenueName => eventReference.VenueName,
-                InvitationFieldSchema.VenueAddress => eventReference.VenueAddress,
-                InvitationFieldSchema.VenueNotes => eventReference.VenueNotes,
-                _ => null,
-            };
-        }
-
-        return defaults;
     }
 }

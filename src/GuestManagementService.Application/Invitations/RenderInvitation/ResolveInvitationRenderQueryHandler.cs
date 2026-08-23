@@ -8,37 +8,6 @@ using Microsoft.Extensions.Logging;
 namespace GuestManagementService.Application.Invitations.RenderInvitation;
 
 /// <summary>
-/// <c>GET /invitations/{token}/render</c> resolves one of two token types, each rendering the
-/// event's committed invitation. Previewing a template — chosen or not yet chosen — is entirely
-/// template-management-service's own concern; this handler never issues or resolves preview
-/// tokens.
-/// </summary>
-public sealed record ResolveInvitationRenderQuery(string Token) : IRequest<ResolveInvitationRenderResult>;
-
-public enum ResolveInvitationRenderStatus
-{
-    /// <summary>Unknown or revoked token of either type — deliberately uniform.</summary>
-    NotFound = 0,
-
-    /// <summary>Guest token — slice 1's unchanged behaviour.</summary>
-    Guest = 1,
-
-    /// <summary>Public event token — guestName unbound.</summary>
-    PublicEvent = 2,
-}
-
-public sealed record ResolveInvitationRenderResult(
-    ResolveInvitationRenderStatus Status,
-    string EventType = "",
-    /// <summary>Null means "omit guestName from the render model entirely" — see B5.</summary>
-    string? GuestName = null,
-    IReadOnlyDictionary<string, string?>? FieldValues = null,
-    InvitationTemplateSnapshot? Snapshot = null)
-{
-    public static ResolveInvitationRenderResult NotFound() => new(ResolveInvitationRenderStatus.NotFound);
-}
-
-/// <summary>
 /// Resolves the render token against the two token types this endpoint still serves.
 /// </summary>
 /// <remarks>
