@@ -6,9 +6,9 @@ namespace GuestManagementService.UnitTests.RateLimiting;
 public sealed class InvitationRateLimitsTests
 {
     [Theory]
-    [InlineData("/guests/invitations/tok123", "GET", InvitationRateLimitKind.Read)]
-    [InlineData("/guests/invitations/tok123/render", "GET", InvitationRateLimitKind.Read)]
-    [InlineData("/guests/invitations/tok123/rsvp", "POST", InvitationRateLimitKind.Write)]
+    [InlineData("/invitations/tok123", "GET", InvitationRateLimitKind.Read)]
+    [InlineData("/invitations/tok123/render", "GET", InvitationRateLimitKind.Read)]
+    [InlineData("/invitations/tok123/rsvp", "POST", InvitationRateLimitKind.Write)]
     public void Classify_RecognisesInvitationRoutes(string path, string method, InvitationRateLimitKind expected)
     {
         Assert.Equal(expected, InvitationRateLimits.Classify(new PathString(path), method));
@@ -18,29 +18,37 @@ public sealed class InvitationRateLimitsTests
     [InlineData("/guests", "POST")]
     [InlineData("/guests/query", "POST")]
     [InlineData("/guests/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/invitation-link", "GET")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55", "GET")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/preview-token", "POST")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55/public-token", "POST")]
     [InlineData("/ping", "GET")]
     [InlineData("/", "GET")]
     public void Classify_LeavesNonInvitationRoutesUnlimited(string path, string method)
     {
         // Authenticated organiser traffic must not be throttled by limits designed for anonymous
-        // guests — in particular the invitation-link endpoint, whose path is deliberately similar.
+        // guests. "settings" is the reserved first-segment literal under /invitations for exactly
+        // this reason — see InvitationRateLimits.ReservedFirstSegments. The guest-invitation-link
+        // lookup sits under /guests entirely, outside this prefix, so it is unlimited trivially.
         Assert.Equal(InvitationRateLimitKind.None, InvitationRateLimits.Classify(new PathString(path), method));
     }
 
     [Theory]
-    [InlineData("/guests/invitations/tok123", "tok123")]
-    [InlineData("/guests/invitations/tok123/render", "tok123")]
-    [InlineData("/guests/invitations/tok123/rsvp", "tok123")]
+    [InlineData("/invitations/tok123", "tok123")]
+    [InlineData("/invitations/tok123/render", "tok123")]
+    [InlineData("/invitations/tok123/rsvp", "tok123")]
     public void ExtractToken_ReadsTheTokenSegment(string path, string expected)
     {
         Assert.Equal(expected, InvitationRateLimits.ExtractToken(new PathString(path)));
     }
 
     [Theory]
-    [InlineData("/guests/invitations/")]
+    [InlineData("/invitations/")]
     [InlineData("/guests/query")]
+    [InlineData("/invitations/settings/events/6f9b3c2a-6d1e-4f5b-9c3a-2e7d8b1f4a55")]
     public void ExtractToken_ReturnsNullWhenThereIsNoToken(string path)
     {
+        // "settings" is a reserved literal, never a real token — see the equivalent reasoning in
+        // Classify_LeavesNonInvitationRoutesUnlimited above.
         Assert.Null(InvitationRateLimits.ExtractToken(new PathString(path)));
     }
 
@@ -49,7 +57,7 @@ public sealed class InvitationRateLimitsTests
     {
         Assert.Equal(
             InvitationRateLimitKind.Read,
-            InvitationRateLimits.Classify(new PathString("/Guests/Invitations/tok123"), "GET"));
+            InvitationRateLimits.Classify(new PathString("/Invitations/tok123"), "GET"));
     }
 
     [Fact]

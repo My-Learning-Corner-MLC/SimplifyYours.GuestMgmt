@@ -1,18 +1,17 @@
 namespace GuestManagementService.Contracts.Invitations;
 
 /// <summary>
-/// Everything the public invitation page renders, and nothing more. Deliberately narrow: no email
-/// address, phone number, guest id, tenant id, or any other guest — whoever holds the link can
-/// read this without authenticating.
+/// Everything the invitation page's chrome needs outside the rendered invitation itself —
+/// deliberately narrow: no email address, phone number, guest id, tenant id, or any other guest —
+/// whoever holds the link can read this without authenticating.
 /// </summary>
 /// <remarks>
-/// The displayed content is the organiser's saved invitation, not the replicated event record, so
-/// an event edited after the invitation was composed does not silently rewrite what guests see.
+/// The invitation's own content (merge values rendered into the template) is served separately by
+/// the <c>/render</c> endpoint, which the page loads into an iframe — this response only carries
+/// what drives the page around it: the guest's name and their RSVP state.
 /// </remarks>
 public sealed record GetInvitationResponse(
     string GuestName,
-    /// <summary>The saved merge values, keyed by token. Shape depends on the event type.</summary>
-    IReadOnlyDictionary<string, string?> Content,
     InvitationRsvpResponse Rsvp);
 
 public sealed record InvitationRsvpResponse(

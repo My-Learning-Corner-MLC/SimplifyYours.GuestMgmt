@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using GuestManagementService.Application.Abstractions.Invitations;
@@ -6,6 +7,7 @@ using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Infrastructure.Invitations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GuestManagementService.UnitTests.Invitations;
@@ -142,11 +144,58 @@ public sealed class TemplateCatalogClientTests
         Assert.Contains($"templates/{TemplateId:D}", requestedUri!.ToString(), StringComparison.Ordinal);
     }
 
-    private static TemplateCatalogClient CreateClient(HttpMessageHandler handler)
+    [Fact]
+    public async Task GetTemplateAsync_ForwardsTheOrganisersBearerTokenVerbatim()
+    {
+        AuthenticationHeaderValue? forwarded = null;
+        var handler = new FakeHandler((request, _) =>
+        {
+            forwarded = request.Headers.Authorization;
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        });
+
+        await CreateClient(handler, incomingBearerToken: "organiser-jwt")
+            .GetTemplateAsync(TemplateId, CancellationToken.None);
+
+        Assert.NotNull(forwarded);
+        Assert.Equal("Bearer", forwarded!.Scheme);
+        Assert.Equal("organiser-jwt", forwarded.Parameter);
+    }
+
+    [Fact]
+    public async Task GetTemplateAsync_WhenThereIsNoIncomingRequest_ProceedsWithoutAuthorizationRatherThanThrowing()
+    {
+        // Defence in depth: RequireAuthorization should make this unreachable in practice, but a
+        // missing HttpContext (e.g. a background caller) must degrade to an unauthenticated
+        // outbound call, not a crash. template-management-service correctly rejects it with 401,
+        // which the existing failure path already turns into Unavailable.
+        var handler = new FakeHandler((request, _) =>
+        {
+            Assert.Null(request.Headers.Authorization);
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        });
+
+        var result = await CreateClient(handler, incomingBearerToken: null)
+            .GetTemplateAsync(TemplateId, CancellationToken.None);
+
+        Assert.Equal(TemplateFetchStatus.Unavailable, result.Status);
+    }
+
+    private static TemplateCatalogClient CreateClient(HttpMessageHandler handler, string? incomingBearerToken = "caller-jwt")
     {
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://template-management.internal/") };
+        var accessor = new HttpContextAccessor();
 
-        return new TemplateCatalogClient(httpClient, NullLogger<TemplateCatalogClient>.Instance);
+        if (incomingBearerToken is not null)
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Headers.Authorization = $"Bearer {incomingBearerToken}";
+            accessor.HttpContext = context;
+        }
+
+        return new TemplateCatalogClient(httpClient, accessor, NullLogger<TemplateCatalogClient>.Instance);
     }
 
     private sealed class FakeHandler(

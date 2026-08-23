@@ -26,6 +26,12 @@ internal sealed class EventInvitationSettingsConfiguration : IEntityTypeConfigur
         builder.Property(settings => settings.TemplateId)
             .HasColumnName("template_id");
 
+        // Copied at snapshot time so a settings read never needs a second call to the catalog just
+        // to show a name. 200 mirrors template-management-service's own Templates.name column.
+        builder.Property(settings => settings.TemplateName)
+            .HasColumnName("template_name")
+            .HasMaxLength(200);
+
         builder.Property(settings => settings.TemplateVersion)
             .HasColumnName("template_version");
 
@@ -52,16 +58,6 @@ internal sealed class EventInvitationSettingsConfiguration : IEntityTypeConfigur
         builder.HasIndex(settings => settings.PublicEventToken)
             .IsUnique()
             .HasDatabaseName("ix_event_invitation_settings_public_event_token");
-
-        builder.Property(settings => settings.PreviewToken)
-            .HasColumnName("preview_token");
-
-        builder.HasIndex(settings => settings.PreviewToken)
-            .IsUnique()
-            .HasDatabaseName("ix_event_invitation_settings_preview_token");
-
-        builder.Property(settings => settings.PreviewExpiresAt)
-            .HasColumnName("preview_expires_at");
 
         // jsonb, matching how guests.metadata is stored: the field set is template- and
         // event-type dependent, so columns would mean a migration per template.

@@ -19,4 +19,12 @@ public static class Permissions
     /// their own invitations, which is an unpleasant thing to debug.
     /// </remarks>
     public const string EventsUpdate = "events.update";
+
+    /// <summary>
+    /// Also declared by event-service and reused here, same reasoning as <see cref="EventsUpdate"/>.
+    /// Reading an event's invitation settings, or browsing the template catalog, is reading the
+    /// event's presentation — gated on being able to view the event, not on the narrower
+    /// <see cref="GuestsView"/>.
+    /// </summary>
+    public const string EventsView = "events.view";
 }

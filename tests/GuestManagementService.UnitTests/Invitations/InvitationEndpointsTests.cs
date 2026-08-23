@@ -59,8 +59,6 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-abc123",
-            mode: null,
-            type: null,
             httpContext,
             RenderSender(GuestFound()),
             Renderer(),
@@ -82,8 +80,6 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-abc123",
-            mode: null,
-            type: null,
             httpContext,
             RenderSender(GuestFound()),
             Renderer(),
@@ -102,8 +98,6 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-abc123",
-            mode: null,
-            type: null,
             httpContext,
             RenderSender(GuestFound()),
             Renderer(),
@@ -123,8 +117,6 @@ public sealed class InvitationEndpointsTests
 
         await InvitationEndpoints.RenderInvitationAsync(
             "tok-unknown",
-            mode: null,
-            type: null,
             httpContext,
             RenderSender(ResolveInvitationRenderResult.NotFound()),
             renderer.Object,
@@ -138,25 +130,6 @@ public sealed class InvitationEndpointsTests
                 It.IsAny<string?>(),
                 It.IsAny<string>()),
             Times.Never);
-    }
-
-    [Fact]
-    public async Task RenderInvitation_OnBadRequest_ReturnsAValidationProblem()
-    {
-        var httpContext = new DefaultHttpContext();
-
-        var result = await InvitationEndpoints.RenderInvitationAsync(
-            "tok-guest",
-            mode: "preview",
-            type: null,
-            httpContext,
-            RenderSender(ResolveInvitationRenderResult.BadRequest("mode", "mode is not valid for a guest invitation link.")),
-            Renderer(),
-            Configuration(SpaOrigin),
-            CancellationToken.None);
-
-        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
-        Assert.Equal(400, statusCodeResult.StatusCode);
     }
 
     [Fact]
@@ -285,7 +258,6 @@ public sealed class InvitationEndpointsTests
             guest,
             eventReference,
             Now.AddDays(30),
-            isOpen: true,
-            new Dictionary<string, string?> { ["eventName"] = "Ada's wedding" });
+            isOpen: true);
     }
 }

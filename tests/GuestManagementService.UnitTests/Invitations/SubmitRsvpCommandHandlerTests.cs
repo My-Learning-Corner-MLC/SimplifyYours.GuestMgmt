@@ -198,7 +198,6 @@ public sealed class SubmitRsvpCommandHandlerTests
         return new SubmitRsvpCommandHandler(
             guests,
             events.Object,
-            SettingsRepository().Object,
             unitOfWork,
             timeProvider.Object,
             NullLogger<SubmitRsvpCommandHandler>.Instance);
@@ -227,26 +226,6 @@ public sealed class SubmitRsvpCommandHandlerTests
         guests.Verify(
             r => r.GetByInvitationTokenAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-    }
-
-    /// <summary>The saved invitation, echoed back in the confirmation the guest sees.</summary>
-    private static Mock<IEventInvitationSettingsRepository> SettingsRepository()
-    {
-        var settings = new Mock<IEventInvitationSettingsRepository>();
-        settings
-            .Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EventInvitationSettings.Create(
-                EventId,
-                Guid.NewGuid(),
-                """{"eventName":"Ada's party"}""",
-                Guid.Parse("dddddddd-1111-2222-3333-444444444444"),
-                1,
-                "<html><body></body></html>",
-                null,
-                null,
-                BeforeDeadline));
-
-        return settings;
     }
 
     private static Guest NewGuest(string? metadata)

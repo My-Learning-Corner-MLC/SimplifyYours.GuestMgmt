@@ -6,7 +6,6 @@ using GuestManagementService.Application.Invitations.GetInvitation;
 using GuestManagementService.Application.Invitations.RenderInvitation;
 using GuestManagementService.Application.Invitations.SubmitRsvp;
 using GuestManagementService.Contracts.Invitations;
-using GuestManagementService.Domain.EventReferences;
 using GuestManagementService.Domain.Guests;
 using MediatR;
 
@@ -17,8 +16,12 @@ namespace GuestManagementService.Api.Endpoints;
 /// </summary>
 /// <remarks>
 /// These endpoints are anonymous by design — the invitation token is the only credential. They sit
-/// under <c>/guests</c> so the gateway's existing <c>/api/v1/guests/{**remainder}</c> route already
-/// forwards them, and rely on <c>InvitationRateLimits</c> for throttling.
+/// at the top level of <c>/invitations</c>; the organiser-authenticated settings routes in
+/// <see cref="InvitationSettingsEndpoints"/> nest under the reserved <c>/invitations/settings</c>
+/// segment instead, so the two surfaces can share this prefix without an authenticated route ever
+/// colliding with a real anonymous token (see <c>InvitationRateLimits.ReservedFirstSegments</c>).
+/// This class relies on <c>InvitationRateLimits</c> for throttling. The gateway exposes a dedicated
+/// <c>/api/v1/invitations/{**remainder}</c> route for the whole prefix.
 /// <para>
 /// Authorization in this service is opt-in per endpoint, so anything added here is public unless
 /// it explicitly says otherwise. Treat that as a standing review item.
@@ -28,7 +31,7 @@ public static class InvitationEndpoints
 {
     public static IEndpointRouteBuilder MapInvitationEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/guests/invitations").WithTags("Invitations");
+        var group = endpoints.MapGroup("/invitations").WithTags("Invitations");
 
         group
             .MapGet("{token}", GetInvitationAsync)
@@ -70,45 +73,32 @@ public static class InvitationEndpoints
 
         return Results.Ok(ToResponse(
             result.Guest!,
-            result.Content!,
             result.Deadline,
             result.IsOpen));
     }
 
     /// <summary>
-    /// Resolves ONE of three token types — a guest's invitation token, the event's public link
-    /// token, or an organiser's preview token — and renders accordingly. See
-    /// <see cref="ResolveInvitationRenderQueryHandler"/> for the full matrix; this method only maps
-    /// its result onto HTTP.
+    /// Resolves ONE of two token types — a guest's invitation token, or the event's public link
+    /// token — and renders accordingly. See <see cref="ResolveInvitationRenderQueryHandler"/> for
+    /// the full matrix; this method only maps its result onto HTTP.
     /// </summary>
     internal static async Task<IResult> RenderInvitationAsync(
         string token,
-        string? mode,
-        string? type,
         HttpContext httpContext,
         ISender sender,
         IInvitationRenderer renderer,
         IConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ResolveInvitationRenderQuery(token, mode, type), cancellationToken);
+        var result = await sender.Send(new ResolveInvitationRenderQuery(token), cancellationToken);
 
         ApplyPublicHeaders(httpContext);
 
-        switch (result.Status)
+        if (result.Status == ResolveInvitationRenderStatus.NotFound)
         {
-            case ResolveInvitationRenderStatus.NotFound:
-                // Uniform for every failure — unknown token, wrong-type token, expired preview,
-                // revoked public link. Nothing here may reveal which table nearly matched.
-                return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
-
-            case ResolveInvitationRenderStatus.BadRequest:
-                return ApiErrorResults.ValidationProblem(
-                    new Dictionary<string, string[]>
-                    {
-                        [result.BadRequestField!] = [result.BadRequestMessage!],
-                    },
-                    httpContext);
+            // Uniform for every failure — unknown token, revoked public link. Nothing here may
+            // reveal which table nearly matched.
+            return ApiErrorResults.NotFound("This invitation could not be found.", httpContext);
         }
 
         // The app must be able to frame this, so frame-ancestors names the SPA origin rather than
@@ -156,7 +146,6 @@ public static class InvitationEndpoints
                 SubmitRsvpStatus.Accepted => Results.Ok(
                     ToResponse(
                         result.Guest!,
-                        result.Content!,
                         result.Deadline,
                         isOpen: true)),
                 SubmitRsvpStatus.Closed => ApiErrorResults.Conflict(
@@ -193,14 +182,12 @@ public static class InvitationEndpoints
 
     public static GetInvitationResponse ToResponse(
         Guest guest,
-        IReadOnlyDictionary<string, string?> content,
         DateTimeOffset? deadline,
         bool isOpen)
     {
         return new GetInvitationResponse(
             // First name only. The page greets the guest; it does not need to prove who they are.
             guest.FirstName,
-            content,
             new InvitationRsvpResponse(
                 guest.RsvpStatus.ToString(),
                 InvitationMetadata.ReadPlusOnesAllowed(guest.Metadata),

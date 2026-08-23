@@ -74,11 +74,6 @@ public sealed class GetInvitationQueryHandler(
             eventReference.TimeZoneId,
             timeProvider.GetUtcNow());
 
-        return GetInvitationResult.Found(
-            guest,
-            eventReference,
-            deadline,
-            isOpen,
-            InvitationFieldValues.Parse(settings.FieldValues));
+        return GetInvitationResult.Found(guest, eventReference, deadline, isOpen);
     }
 }

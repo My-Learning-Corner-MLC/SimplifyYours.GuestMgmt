@@ -31,8 +31,6 @@ public sealed class EventInvitationSettingsTests
 
         Assert.False(settings.PublicLinkEnabled);
         Assert.Null(settings.PublicEventToken);
-        Assert.Null(settings.PreviewToken);
-        Assert.Null(settings.PreviewExpiresAt);
     }
 
     [Theory]
@@ -47,16 +45,16 @@ public sealed class EventInvitationSettingsTests
     public void Create_RejectsAnEmptyEventOrTenantId()
     {
         Assert.Throws<ArgumentException>(() =>
-            EventInvitationSettings.Create(Guid.Empty, TenantId, "{}", TemplateId, 1, "<html></html>", null, null, Now));
+            EventInvitationSettings.Create(Guid.Empty, TenantId, "{}", TemplateId, "Marigold", 1, "<html></html>", null, null, Now));
         Assert.Throws<ArgumentException>(() =>
-            EventInvitationSettings.Create(EventId, Guid.Empty, "{}", TemplateId, 1, "<html></html>", null, null, Now));
+            EventInvitationSettings.Create(EventId, Guid.Empty, "{}", TemplateId, "Marigold", 1, "<html></html>", null, null, Now));
     }
 
     [Fact]
     public void Create_RejectsAnEmptyTemplateId()
     {
         Assert.Throws<ArgumentException>(() =>
-            EventInvitationSettings.Create(EventId, TenantId, "{}", Guid.Empty, 1, "<html></html>", null, null, Now));
+            EventInvitationSettings.Create(EventId, TenantId, "{}", Guid.Empty, "Marigold", 1, "<html></html>", null, null, Now));
     }
 
     [Fact]
@@ -91,9 +89,10 @@ public sealed class EventInvitationSettingsTests
         var otherTemplateId = Guid.Parse("bbbbbbbb-1111-2222-3333-444444444444");
         var later = Now.AddDays(2);
 
-        settings.SnapshotTemplate(otherTemplateId, 3, "<html>v3</html>", "body{}", "console.log(1)", later);
+        settings.SnapshotTemplate(otherTemplateId, "Linden", 3, "<html>v3</html>", "body{}", "console.log(1)", later);
 
         Assert.Equal(otherTemplateId, settings.TemplateId);
+        Assert.Equal("Linden", settings.TemplateName);
         Assert.Equal(3, settings.TemplateVersion);
         Assert.Equal("<html>v3</html>", settings.HtmlContent);
         Assert.Equal("body{}", settings.CssContent);
@@ -107,50 +106,66 @@ public sealed class EventInvitationSettingsTests
         var settings = Create();
 
         Assert.Throws<ArgumentException>(() =>
-            settings.SnapshotTemplate(Guid.Empty, 1, "<html></html>", null, null, Now));
+            settings.SnapshotTemplate(Guid.Empty, "Marigold", 1, "<html></html>", null, null, Now));
         Assert.Throws<ArgumentException>(() =>
-            settings.SnapshotTemplate(TemplateId, 1, " ", null, null, Now));
+            settings.SnapshotTemplate(TemplateId, "Marigold", 1, " ", null, null, Now));
     }
 
     [Fact]
-    public void EnablePublicLink_MintsATokenOnlyTheFirstTime()
+    public void EnablePublicLink_MintsATokenOnlyWhenNoneCurrentlyExists()
     {
         var settings = Create();
-        var generatedTokens = new Queue<string>(["token-one", "token-two"]);
 
-        settings.EnablePublicLink(() => generatedTokens.Dequeue(), Now);
+        settings.EnablePublicLink(() => "token-one", Now);
         var firstToken = settings.PublicEventToken;
 
-        settings.DisablePublicLink(Now);
-        settings.EnablePublicLink(() => generatedTokens.Dequeue(), Now);
+        // Re-enabling without an intervening disable must not silently rotate the URL out from
+        // under an organiser who hasn't touched anything.
+        settings.EnablePublicLink(() => "token-two", Now);
 
-        // Re-enabling must not silently invalidate a URL an organiser already shared.
         Assert.Equal(firstToken, settings.PublicEventToken);
         Assert.True(settings.PublicLinkEnabled);
     }
 
     [Fact]
-    public void RevokePublicLink_RotatesTheToken()
+    public void EnablePublicLink_AfterADisable_MintsABrandNewToken()
+    {
+        // DisablePublicLink is a real revocation (see that test below): it clears the token, so a
+        // later re-enable must never resurrect the old, possibly-already-shared, URL.
+        var settings = Create();
+        settings.EnablePublicLink(() => "original-token", Now);
+        settings.DisablePublicLink(Now);
+
+        settings.EnablePublicLink(() => "fresh-token", Now);
+
+        Assert.Equal("fresh-token", settings.PublicEventToken);
+        Assert.NotEqual("original-token", settings.PublicEventToken);
+        Assert.True(settings.PublicLinkEnabled);
+    }
+
+    [Fact]
+    public void DisablePublicLink_ClearsTheTokenAsARealRevocation()
     {
         var settings = Create();
         settings.EnablePublicLink(() => "original-token", Now);
 
-        settings.RevokePublicLink("rotated-token", Now);
+        settings.DisablePublicLink(Now);
 
-        Assert.Equal("rotated-token", settings.PublicEventToken);
-        Assert.NotEqual("original-token", settings.PublicEventToken);
+        Assert.False(settings.PublicLinkEnabled);
+        Assert.Null(settings.PublicEventToken);
     }
 
     [Fact]
-    public void IssuePreviewToken_OverwritesAnyPreviousToken()
+    public void RotatePublicToken_ReplacesTheTokenWithoutTouchingWhetherTheLinkIsEnabled()
     {
         var settings = Create();
-        var expiresAt = Now.AddMinutes(15);
+        settings.EnablePublicLink(() => "original-token", Now);
 
-        settings.IssuePreviewToken("first-preview-token", expiresAt, Now);
-        settings.IssuePreviewToken("second-preview-token", expiresAt.AddMinutes(15), Now);
+        settings.RotatePublicToken("rotated-token", Now);
 
-        Assert.Equal("second-preview-token", settings.PreviewToken);
+        Assert.Equal("rotated-token", settings.PublicEventToken);
+        Assert.NotEqual("original-token", settings.PublicEventToken);
+        Assert.True(settings.PublicLinkEnabled);
     }
 
     [Fact]
@@ -159,14 +174,22 @@ public sealed class EventInvitationSettingsTests
         var local = new DateTimeOffset(2026, 8, 12, 16, 0, 0, TimeSpan.FromHours(7));
 
         var settings = EventInvitationSettings.Create(
-            EventId, TenantId, "{}", TemplateId, 1, "<html></html>", null, null, local);
+            EventId, TenantId, "{}", TemplateId, "Marigold", 1, "<html></html>", null, null, local);
 
         Assert.Equal(TimeSpan.Zero, settings.CreatedAt.Offset);
         Assert.Equal(local.ToUniversalTime(), settings.CreatedAt);
     }
 
+    [Fact]
+    public void Create_StoresTheTemplateName()
+    {
+        var settings = Create();
+
+        Assert.Equal("Marigold", settings.TemplateName);
+    }
+
     private static EventInvitationSettings Create(
         string fieldValues = "{\"brideName\":\"Amara\"}") =>
         EventInvitationSettings.Create(
-            EventId, TenantId, fieldValues, TemplateId, 1, "<html></html>", null, null, Now);
+            EventId, TenantId, fieldValues, TemplateId, "Marigold", 1, "<html></html>", null, null, Now);
 }
