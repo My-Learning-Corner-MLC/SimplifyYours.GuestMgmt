@@ -1,6 +1,7 @@
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
+using GuestManagementService.Application.Abstractions.Seating;
 using GuestManagementService.Contracts.IntegrationEvents;
 using GuestManagementService.Infrastructure.Messaging;
 using GuestManagementService.Infrastructure.Persistence;
@@ -33,6 +34,7 @@ public static class DependencyInjection
 
         services.AddScoped<IGuestRepository, EfCoreGuestRepository>();
         services.AddScoped<IEventReferenceRepository, EfCoreEventReferenceRepository>();
+        services.AddScoped<ISeatingLayoutRepository, EfCoreSeatingLayoutRepository>();
         services.AddScoped<IEventInboxStore, GuestManagementInboxStore>();
         services.AddScoped<IIntegrationEventHandler<EventReferencePayload>, EventReferenceIntegrationEventHandler>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork>();
