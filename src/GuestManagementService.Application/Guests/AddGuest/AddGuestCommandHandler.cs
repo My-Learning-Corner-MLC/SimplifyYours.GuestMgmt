@@ -72,31 +72,20 @@ public sealed class AddGuestCommandHandler(
         var metadataJson = metadataMapper.Serialize(request.EventMetadata);
 
         var now = timeProvider.GetUtcNow();
-        Guest guest;
-        try
-        {
-            guest = Guest.Create(
-                Guid.NewGuid(),
-                request.EventId,
-                currentUser.TenantId,
-                request.FirstName ?? string.Empty,
-                request.LastName ?? string.Empty,
-                request.PhoneNumber ?? string.Empty,
-                normalizedPhone,
-                request.EmailAddress,
-                normalizedEmail,
-                gender,
-                metadataJson,
-                request.Tags,
-                now);
-        }
-        catch (ArgumentException exception) when (exception.ParamName == "tags")
-        {
-            throw new ValidationException(new[]
-            {
-                new ValidationFailure("Tags", exception.Message),
-            });
-        }
+        var guest = Guest.Create(
+            Guid.NewGuid(),
+            request.EventId,
+            currentUser.TenantId,
+            request.FirstName ?? string.Empty,
+            request.LastName ?? string.Empty,
+            request.PhoneNumber ?? string.Empty,
+            normalizedPhone,
+            request.EmailAddress,
+            normalizedEmail,
+            gender,
+            metadataJson,
+            request.Tags,
+            now);
 
         await guestRepository.AddAsync(guest, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
