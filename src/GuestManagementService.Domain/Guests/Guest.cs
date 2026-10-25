@@ -2,8 +2,12 @@ namespace GuestManagementService.Domain.Guests;
 
 public sealed class Guest
 {
+    public const int MaxTags = 10;
+    public const int MaxTagLength = 32;
+
     private Guest()
     {
+        _tags = new List<string>();
     }
 
     private Guest(
@@ -18,6 +22,7 @@ public sealed class Guest
         string? normalizedEmailAddress,
         Gender gender,
         string? metadata,
+        List<string> tags,
         DateTimeOffset createdAt)
     {
         Id = id;
@@ -31,6 +36,7 @@ public sealed class Guest
         NormalizedEmailAddress = normalizedEmailAddress;
         Gender = gender;
         Metadata = metadata;
+        _tags = tags;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
     }
@@ -60,6 +66,12 @@ public sealed class Guest
     // the domain keeps it opaque so new event types can add fields without a schema change.
     public string? Metadata { get; private set; }
 
+    private readonly List<string> _tags;
+
+    // Free-text seating labels the organizer attaches to a guest (e.g. "College friends",
+    // "Head table"). Applies to every event type. Stored as a Postgres text[] column.
+    public IReadOnlyList<string> Tags => _tags;
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -76,6 +88,7 @@ public sealed class Guest
         string? normalizedEmailAddress,
         Gender gender,
         string? metadata,
+        IReadOnlyList<string>? tags,
         DateTimeOffset createdAt)
     {
         if (id == Guid.Empty)
@@ -100,6 +113,7 @@ public sealed class Guest
         var cleanEmail = NormalizeOptionalText(emailAddress);
         var comparableEmail = NormalizeOptionalText(normalizedEmailAddress);
         var cleanMetadata = NormalizeOptionalText(metadata);
+        var cleanTags = NormalizeTags(tags);
 
         return new Guest(
             id,
@@ -113,6 +127,7 @@ public sealed class Guest
             comparableEmail,
             gender,
             cleanMetadata,
+            cleanTags,
             createdAt.ToUniversalTime());
     }
 
@@ -129,5 +144,41 @@ public sealed class Guest
     private static string? NormalizeOptionalText(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static List<string> NormalizeTags(IReadOnlyList<string>? tags)
+    {
+        if (tags is null || tags.Count == 0)
+        {
+            return new List<string>();
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        foreach (var tag in tags)
+        {
+            var trimmed = tag?.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                continue;
+            }
+
+            if (trimmed.Length > MaxTagLength)
+            {
+                throw new ArgumentException($"Tags must be {MaxTagLength} characters or fewer.", nameof(tags));
+            }
+
+            if (seen.Add(trimmed))
+            {
+                result.Add(trimmed);
+            }
+        }
+
+        if (result.Count > MaxTags)
+        {
+            throw new ArgumentException($"A guest may have at most {MaxTags} tags.", nameof(tags));
+        }
+
+        return result;
     }
 }

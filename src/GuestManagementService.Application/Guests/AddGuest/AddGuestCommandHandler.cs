@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.Results;
 using GuestManagementService.Application.Abstractions.Common;
 using GuestManagementService.Application.Abstractions.EventReferences;
 using GuestManagementService.Application.Abstractions.Guests;
@@ -82,6 +84,7 @@ public sealed class AddGuestCommandHandler(
             normalizedEmail,
             gender,
             metadataJson,
+            request.Tags,
             now);
 
         await guestRepository.AddAsync(guest, cancellationToken);

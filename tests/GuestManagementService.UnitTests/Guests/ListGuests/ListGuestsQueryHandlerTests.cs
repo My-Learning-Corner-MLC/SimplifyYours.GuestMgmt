@@ -36,6 +36,7 @@ public sealed class ListGuestsQueryHandlerTests
             "ada@example.com",
             Gender.PreferNotToSay,
             "{\"relationship\":\"Family\",\"side\":\"Bride\",\"plusOnes\":2,\"dietaryNotes\":\"Vegan\"}",
+            null,
             Now);
         var handler = CreateHandler(eventId, [guest], out _);
 
